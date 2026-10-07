@@ -1,2 +1,2 @@
 [workspace]
-members = ["lib/kakushi_lib", "circuits/payment_compliance", "circuits/payout_inclusion"]
+members = ["lib/kakushi_lib", "circuits/payment_compliance", "circuits/payout_inclusion", "circuits/fee_math"]

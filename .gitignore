@@ -22,3 +22,5 @@ coverage/
 generated/
 .cre/
 packages/indexer/generated/
+packages/contracts/deployments/local/
+packages/contracts/broadcast/

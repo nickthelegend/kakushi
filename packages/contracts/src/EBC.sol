@@ -89,6 +89,9 @@ contract EBC is Owned {
     /// @notice keccak(maker, srcChainId, srcToken) => margin config
     mapping(bytes32 => MarginConfig) internal _marginConfig;
     mapping(bytes32 => RefundFee[]) internal _refundFees;
+    /// @notice every address that ever registered a pair (the attester watches payments to them)
+    address[] internal _makers;
+    mapping(address => bool) public isMaker;
 
     event IdentCodeRegistered(uint16 indexed code, uint64 indexed dstChainId);
     event PairRegistered(
@@ -193,6 +196,10 @@ contract EBC is Owned {
         );
         _active[pairId].push(ActiveFlag(uint64(block.timestamp), true));
         _makerPairs[p.maker].push(pairId);
+        if (!isMaker[p.maker]) {
+            isMaker[p.maker] = true;
+            _makers.push(p.maker);
+        }
 
         emit PairRegistered(pairId, p.maker, p.srcChainId, p.srcToken, p.dstChainId, p.dstToken, p.identCode);
         emit PairParamsQueued(
@@ -237,6 +244,10 @@ contract EBC is Owned {
 
     function getPair(bytes32 pairId) external view returns (Pair memory) {
         return _pairs[pairId];
+    }
+
+    function allMakers() external view returns (address[] memory) {
+        return _makers;
     }
 
     function makerPairs(address maker) external view returns (bytes32[] memory) {
