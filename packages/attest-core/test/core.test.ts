@@ -119,3 +119,16 @@ describe("leaf", () => {
     expect(t.indexOf(l.srcRef)).toBe(1);
   });
 });
+
+import { capByDistinctBlocks } from "../src/index.ts";
+describe("read budget", () => {
+  const mk = (b: bigint) => ({ address: "0x00" as Hex, topics: [], data: "0x" as Hex, blockNumber: b, transactionHash: "0x00" as Hex, logIndex: 0 });
+  it("cuts the window before the first unaffordable block", () => {
+    const logs = [mk(10n), mk(10n), mk(12n), mk(15n), mk(19n)];
+    const r = capByDistinctBlocks(logs, 10n, 30n, 2);
+    expect(r.to).toBe(14n);
+    expect(r.logs).toHaveLength(3);
+    expect(r.blocks).toEqual([10n, 12n]);
+    expect(capByDistinctBlocks(logs, 10n, 30n, 8).to).toBe(30n);
+  });
+});

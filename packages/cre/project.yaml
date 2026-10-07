@@ -1,0 +1,34 @@
+# Chainlink CRE project settings. Every `cre` command runs from this folder with -T <target>.
+#
+# local-settings:   the three local anvil forks (scripts/stack.sh). The Monad fork carries
+#                   Chainlink's MockKeystoneForwarder (cloned from testnet), so
+#                   `cre workflow simulate --broadcast` writes reports to the local hub.
+# staging-settings: the public testnets through the simulation forwarder.
+# production-settings: deployed workflows through the production KeystoneForwarder
+#                   (needs `cre account access`).
+local-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: http://127.0.0.1:18710
+    - chain-name: ethereum-testnet-sepolia
+      url: http://127.0.0.1:18711
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: http://127.0.0.1:18712
+
+staging-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: https://testnet-rpc.monad.xyz
+    - chain-name: ethereum-testnet-sepolia
+      url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: https://sepolia.base.org
+
+production-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: ${MONAD_TESTNET_RPC_URL}
+    - chain-name: ethereum-testnet-sepolia
+      url: ${SEPOLIA_RPC_URL}
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: ${BASE_SEPOLIA_RPC_URL}

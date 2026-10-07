@@ -1,0 +1,26 @@
+# CRE workflow settings for kakushi-attest-base (one block per target in ../../project.yaml).
+# Config files are generated from the deployments by `pnpm --filter @kakushi/cre configure`.
+local-settings:
+  user-workflow:
+    workflow-name: "kakushi-attest-base"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.local.json"
+    secrets-path: ""
+
+staging-settings:
+  user-workflow:
+    workflow-name: "kakushi-attest-base"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.testnet.json"
+    secrets-path: ""
+
+production-settings:
+  user-workflow:
+    workflow-name: "kakushi-attest-base"
+    deployment-registry: "private"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.testnet.json"
+    secrets-path: ""

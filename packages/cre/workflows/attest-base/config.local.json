@@ -1,0 +1,22 @@
+{
+  "schedule": "*/30 * * * * *",
+  "hub": {
+    "chainSelectorName": "monad-testnet",
+    "oracle": "0xC220Ed128102d888af857d137a54b9B7573A41b2",
+    "ebc": "0xfB12F7170FF298CDed84C793dAb9aBBEcc01E798"
+  },
+  "chain": {
+    "chainSelectorName": "ethereum-testnet-sepolia-base-1",
+    "chainId": 84532,
+    "payoutRouter": "0xCBb4D00b37cAdD0E4Ac4dF6FBd9d18C3E715C684",
+    "sourceRouter": "0xA59B5bFa8e8932B41CBD9Cc7009d3DCC39eF2F59",
+    "tokens": [
+      "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    ],
+    "startBlock": "47818527",
+    "head": "latest",
+    "confirmations": 0,
+    "maxBlocks": 100
+  },
+  "gasLimit": "1500000"
+}

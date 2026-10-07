@@ -1,0 +1,29 @@
+{
+  "name": "@kakushi/cre",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kakushi's Chainlink CRE workflows: kakushi-attest-<chain> (cron: commit every source payment and Maker payout of a block window as a sorted Poseidon2 root on the Monad hub) and kakushi-source-native (HTTP: attest one native transfer). Plus the local runner that executes the same logic through the simulation forwarder.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "for w in attest-monad attest-sepolia attest-base source-native; do cre workflow build ./workflows/$w || exit 1; done",
+    "configure": "node scripts/configure.ts",
+    "local": "node local/runner.ts",
+    "simulate:attest": "cre workflow simulate ./workflows/attest-monad --non-interactive --trigger-index 0 --broadcast -T",
+    "simulate:native": "cre workflow simulate ./workflows/source-native --non-interactive --trigger-index 0 --http-payload ./workflows/source-native/payload.json --broadcast -T"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.22.0",
+    "@kakushi/attest-core": "workspace:*",
+    "@kakushi/config": "workspace:*",
+    "viem": "^2.38.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "bun": "1.4.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

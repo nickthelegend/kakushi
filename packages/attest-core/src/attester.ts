@@ -214,3 +214,18 @@ export function rawReport(args: { body: Hex; workflowId: Hex; workflowName: Hex;
     "0001";
   return `0x${header}${args.body.replace(/^0x/, "")}` as Hex;
 }
+
+/**
+ * CRE allows 15 EVM reads per execution, and every block holding a log needs one header read
+ * (for its timestamp). Shrink the window so it holds logs from at most `maxDistinct` blocks:
+ * the window then ends right before the first block that would exceed the budget. The next
+ * window starts there, so contiguity is preserved.
+ */
+export function capByDistinctBlocks(logs: RawLog[], from: bigint, to: bigint, maxDistinct: number): { to: bigint; logs: RawLog[]; blocks: bigint[] } {
+  const blocks = [...new Set(logs.map((l) => l.blockNumber))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  if (blocks.length <= maxDistinct) return { to, logs, blocks };
+  const cut = blocks[maxDistinct]! - 1n; // last block we can afford
+  const newTo = cut < from ? from : cut;
+  const kept = logs.filter((l) => l.blockNumber <= newTo);
+  return { to: newTo, logs: kept, blocks: blocks.slice(0, maxDistinct).filter((b) => b <= newTo) };
+}

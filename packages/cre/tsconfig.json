@@ -1,0 +1,1 @@
+{ "extends": "../../tsconfig.base.json", "include": ["src/**/*.ts", "local/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "workflows/**/main.ts"] }

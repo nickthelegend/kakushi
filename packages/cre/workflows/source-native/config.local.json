@@ -1,0 +1,19 @@
+{
+  "hub": {
+    "chainSelectorName": "monad-testnet",
+    "oracle": "0xC220Ed128102d888af857d137a54b9B7573A41b2",
+    "ebc": "0xfB12F7170FF298CDed84C793dAb9aBBEcc01E798"
+  },
+  "rpcs": {
+    "10143": "http://127.0.0.1:18710",
+    "84532": "http://127.0.0.1:18712",
+    "11155111": "http://127.0.0.1:18711"
+  },
+  "confirmations": {
+    "10143": 0,
+    "84532": 0,
+    "11155111": 0
+  },
+  "authorizedKeys": [],
+  "gasLimit": "600000"
+}

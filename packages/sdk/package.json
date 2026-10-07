@@ -1,0 +1,19 @@
+{
+  "name": "@kakushi/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kakushi SDK: quote, build the encoded transfer, watch it across chains, and open/prove disputes from attested data.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./abi": "./src/abi.ts",
+    "./node": "./src/node.ts"
+  },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@kakushi/attest-core": "workspace:*",
+    "@kakushi/config": "workspace:*",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4", "@types/node": "^22.20.1" }
+}

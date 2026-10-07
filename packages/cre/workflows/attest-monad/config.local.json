@@ -1,0 +1,22 @@
+{
+  "schedule": "*/30 * * * * *",
+  "hub": {
+    "chainSelectorName": "monad-testnet",
+    "oracle": "0xC220Ed128102d888af857d137a54b9B7573A41b2",
+    "ebc": "0xfB12F7170FF298CDed84C793dAb9aBBEcc01E798"
+  },
+  "chain": {
+    "chainSelectorName": "monad-testnet",
+    "chainId": 10143,
+    "payoutRouter": "0xCBb4D00b37cAdD0E4Ac4dF6FBd9d18C3E715C684",
+    "sourceRouter": "0xA59B5bFa8e8932B41CBD9Cc7009d3DCC39eF2F59",
+    "tokens": [
+      "0x534b2f3A21130d7a60830c2Df862319e593943A3"
+    ],
+    "startBlock": "69064732",
+    "head": "latest",
+    "confirmations": 0,
+    "maxBlocks": 100
+  },
+  "gasLimit": "1500000"
+}
