@@ -1,0 +1,7 @@
+[package]
+name = "payout_inclusion"
+type = "bin"
+authors = ["kakushi"]
+
+[dependencies]
+kakushi_lib = { path = "../../lib/kakushi_lib" }

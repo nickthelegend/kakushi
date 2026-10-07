@@ -1,0 +1,30 @@
+{
+  "name": "kakushi",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Kakushi: a trust-minimized instant bridge. Pay a Maker, get paid in seconds; a ZK proof slashes the Maker's margin if they don't.",
+  "type": "module",
+  "engines": { "node": ">=22.18.0" },
+  "packageManager": "pnpm@10.29.2",
+  "scripts": {
+    "typecheck": "pnpm -r --filter=!@kakushi/indexer typecheck",
+    "test": "pnpm -r --filter=!@kakushi/indexer --filter=!@kakushi/app test",
+    "lint": "eslint .",
+    "contracts:build": "cd packages/contracts && forge build",
+    "contracts:test": "cd packages/contracts && forge test",
+    "zk:test": "cd packages/zk && PATH=$HOME/.nargo/bin:$PATH nargo test --workspace",
+    "zk:verifiers": "packages/zk/scripts/gen-verifiers.sh",
+    "stack:up": "bash scripts/stack.sh up",
+    "stack:down": "bash scripts/stack.sh down",
+    "stack:status": "bash scripts/stack.sh status",
+    "deploy:local": "node scripts/deploy-local.ts",
+    "demo": "node scripts/demo.ts",
+    "dev": "pnpm --filter @kakushi/app dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

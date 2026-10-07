@@ -1,0 +1,226 @@
+bps = 0
+deadline = 0
+domain = 0
+expected = 0
+gross = 0
+ident_code = 0
+maker = 0
+mode = 0
+obligation_chain_id = 0
+pay_token = 0
+payout_roots = [0, 0, 0, 0, 0, 0, 0, 0]
+recipient = 0
+sender = 0
+src_chain_id = 0
+src_index = 0
+src_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+src_ref = 0
+src_root = 0
+src_timestamp = 0
+src_token = 0
+window_count = 0
+withholding = 0
+
+[src_leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[[windows]]
+high_data = 0
+high_key = 0
+high_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+leaf_index = 0
+leaf_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+low_data = 0
+low_index = 0
+low_key = 0
+low_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+present = false
+
+[windows.leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0

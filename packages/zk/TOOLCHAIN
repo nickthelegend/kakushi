@@ -1,0 +1,5 @@
+nargo 1.0.0-beta.22   (noirup -v 1.0.0-beta.22)
+bb    5.0.0-nightly.20260522   (bbup -v 5.0.0-nightly.20260522)
+noir_js / @noir-lang/* 1.0.0-beta.22, @aztec/bb.js 5.0.0-nightly.20260522
+poseidon (noir-lang/poseidon) v0.4.0
+Pairing source: barretenberg/bbup/bb-versions.json ("1.0.0-beta.22": "5.0.0-nightly.20260522")

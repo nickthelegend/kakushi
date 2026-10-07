@@ -1,0 +1,13 @@
+packages:
+  - "config"
+  - "packages/*"
+  # The Envio indexer is installed on its own (pnpm install --ignore-workspace inside it):
+  # envio ships its own codegen and Envio Cloud uploads only that folder.
+  - "!packages/indexer"
+  - "!packages/contracts"
+  - "!packages/zk"
+
+onlyBuiltDependencies:
+  - better-sqlite3
+  - esbuild
+  - bun

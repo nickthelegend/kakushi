@@ -1,0 +1,27 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+fs_permissions = [{ access = "read", path = "./fixtures" }, { access = "read-write", path = "./deployments" }, { access = "read", path = "../zk/fixtures" }]
+remappings = ["forge-std/=lib/forge-std/src/"]
+# The UltraHonk verifiers exceed EIP-170 (24 KB). They are only deployed on the
+# Monad hub, whose limit is 128 KB.
+code_size_limit = 131072
+ffi = true
+
+[fuzz]
+runs = 1000
+
+[invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+[lint]
+lint_on_build = false

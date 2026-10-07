@@ -1,0 +1,47 @@
+bps = 0
+deadline = 0
+domain = 0
+expected = 0
+gross = 0
+ident_code = 0
+maker = 0
+mode = 0
+obligation_chain_id = 0
+pay_token = 0
+payout_index = 0
+payout_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+payout_root = 0
+recipient = 0
+sender = 0
+src_chain_id = 0
+src_index = 0
+src_path = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+src_ref = 0
+src_root = 0
+src_timestamp = 0
+src_token = 0
+withholding = 0
+
+[payout_leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0
+
+[src_leaf]
+amount = 0
+block_number = 0
+chain_id = 0
+from = 0
+kind = 0
+recipient = 0
+src_ref = 0
+timestamp = 0
+to = 0
+token = 0

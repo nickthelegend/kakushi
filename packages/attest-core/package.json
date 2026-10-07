@@ -1,0 +1,27 @@
+{
+  "name": "@kakushi/attest-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kakushi attestation core: normalized leaves, sorted Poseidon2 trees, fee math and circuit witnesses. Shared by the CRE workflow, Maker, Watchtower, SDK and app.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./prover": "./src/prover.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aztec/bb.js": "5.0.0-nightly.20260522",
+    "@kakushi/config": "workspace:*",
+    "@noir-lang/noir_js": "1.0.0-beta.22",
+    "@zkpassport/poseidon2": "0.6.2",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
