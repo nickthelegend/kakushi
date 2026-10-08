@@ -15,4 +15,9 @@ for c in payment_compliance payout_inclusion; do
   sed -i.bak "s/^contract HonkVerifier is/contract $name is/" "$OUT/$name.sol" && rm "$OUT/$name.sol.bak"
   echo "wrote $OUT/$name.sol ($(wc -c < "$OUT/$name.sol") bytes)"
 done
-mkdir -p ../attest-core/circuits && cp target/payment_compliance.json target/payout_inclusion.json ../attest-core/circuits/ && echo "copied circuit artifacts to attest-core/circuits"
+mkdir -p ../attest-core/circuits
+# keep only what noir_js needs (abi + bytecode): debug symbols carry machine-specific paths
+for c in payment_compliance payout_inclusion fee_math; do
+  node -e 'const fs=require("fs");const j=JSON.parse(fs.readFileSync(process.argv[1]));fs.writeFileSync(process.argv[2],JSON.stringify({noir_version:j.noir_version,hash:j.hash,abi:j.abi,bytecode:j.bytecode}))' "target/$c.json" "../attest-core/circuits/$c.json"
+done
+echo "copied circuit artifacts (abi + bytecode) to attest-core/circuits"
