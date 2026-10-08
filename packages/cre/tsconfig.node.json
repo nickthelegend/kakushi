@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Node-only code: the local runner, scripts and tests
+  "include": ["local/**/*.ts", "scripts/**/*.ts", "test/**/*.ts", "src/native-checks.ts"]
+}

@@ -26,3 +26,5 @@ packages/contracts/deployments/local/
 packages/contracts/broadcast/
 
 config/generated/*.local.json
+
+packages/cre/workflows/*/binary.wasm

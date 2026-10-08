@@ -1,0 +1,16 @@
+{
+  "name": "@kakushi/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "IChainAdapter: one interface per VM. EVM is complete; Solana is the interface + a labelled stub showing the same amount/memo encoding idea.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run" },
+  "dependencies": {
+    "@kakushi/attest-core": "workspace:*",
+    "@kakushi/config": "workspace:*",
+    "@kakushi/sdk": "workspace:*",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4", "@types/node": "^22.20.1" }
+}

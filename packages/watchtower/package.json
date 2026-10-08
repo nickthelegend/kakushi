@@ -1,0 +1,16 @@
+{
+  "name": "@kakushi/watchtower",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kakushi Watchtower (Challenger): watches every Maker's obligations, and when one passes its deadline unpaid it proves the absence (PaymentCompliance) and slashes the Maker's margin back to the sender.",
+  "scripts": { "start": "node src/main.ts", "typecheck": "tsc --noEmit", "test": "vitest run --passWithNoTests" },
+  "dependencies": {
+    "@kakushi/adapters": "workspace:*",
+    "@kakushi/attest-core": "workspace:*",
+    "@kakushi/config": "workspace:*",
+    "@kakushi/sdk": "workspace:*",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4", "@types/node": "^22.20.1" }
+}

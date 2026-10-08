@@ -8,8 +8,9 @@ STATE="$ROOT/.stack"
 mkdir -p "$STATE"
 PIDS="$STATE/pids"
 
-MONAD_FORK_URL="${MONAD_FORK_URL:-https://testnet-rpc.monad.xyz}"
-SEPOLIA_FORK_URL="${SEPOLIA_FORK_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
+# archive endpoints: a fork reads state at its fork block, which pruned RPCs drop after a few minutes
+MONAD_FORK_URL="${MONAD_FORK_URL:-https://rpc-testnet.monadinfra.com}"
+SEPOLIA_FORK_URL="${SEPOLIA_FORK_URL:-https://sepolia.gateway.tenderly.co}"
 BASE_FORK_URL="${BASE_SEPOLIA_FORK_URL:-https://sepolia.base.org}"
 BLOCK_TIME_MONAD="${KAKUSHI_MONAD_BLOCK_TIME:-1}"
 BLOCK_TIME_L1="${KAKUSHI_L1_BLOCK_TIME:-2}"

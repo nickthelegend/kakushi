@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Kakushi's Chainlink CRE workflows: kakushi-attest-<chain> (cron: commit every source payment and Maker payout of a block window as a sorted Poseidon2 root on the Monad hub) and kakushi-source-native (HTTP: attest one native transfer). Plus the local runner that executes the same logic through the simulation forwarder.",
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
     "build": "for w in attest-monad attest-sepolia attest-base source-native; do cre workflow build ./workflows/$w || exit 1; done",
     "configure": "node scripts/configure.ts",

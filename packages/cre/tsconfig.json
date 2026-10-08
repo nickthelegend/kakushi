@@ -1,1 +1,6 @@
-{ "extends": "../../tsconfig.base.json", "include": ["src/**/*.ts", "local/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "workflows/**/main.ts"] }
+{
+  "extends": "../../tsconfig.base.json",
+  // workflow code: @chainlink/cre-sdk typings (bundler resolution, Node APIs forbidden)
+  "compilerOptions": { "module": "ESNext", "moduleResolution": "bundler" },
+  "include": ["src/**/*.ts", "workflows/**/main.ts"]
+}

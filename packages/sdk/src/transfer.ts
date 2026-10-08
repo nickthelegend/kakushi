@@ -83,19 +83,39 @@ export interface PayoutSeen {
   kind: 2 | 3;
 }
 
-/** Look for the Maker's Payout for `srcRef` on `chainId` from `fromBlock`. */
-export async function findPayout(client: PublicClient, router: Hex, srcRef: bigint, maker: Hex, fromBlock: bigint): Promise<PayoutSeen | null> {
-  const logs = await client.getLogs({
-    address: router,
-    event: payoutRouterAbi.find((x) => x.type === "event" && x.name === "Payout") as any,
-    args: { srcRef: toHex32(srcRef), maker },
-    fromBlock,
-    toBlock: "latest",
-  });
-  const l = logs[0] as any;
-  if (!l) return null;
-  const blk = await client.getBlock({ blockNumber: l.blockNumber });
-  return { txHash: l.transactionHash, blockNumber: l.blockNumber, timestamp: blk.timestamp, recipient: l.args.recipient, token: l.args.token, amount: l.args.amount, kind: Number(l.args.kind) as 2 | 3 };
+/**
+ * Look for the Maker's Payout for `srcRef` from `fromBlock`. Pages in 100-block chunks: Monad's
+ * public RPC (and forks forwarding to it) refuse larger eth_getLogs ranges.
+ */
+export async function findPayout(client: PublicClient, router: Hex, srcRef: bigint, maker: Hex, fromBlock: bigint, chunk = 100n): Promise<PayoutSeen | null> {
+  const head = await client.getBlockNumber();
+  const event = payoutRouterAbi.find((x) => x.type === "event" && x.name === "Payout") as any;
+  for (let from = fromBlock; from <= head; from += chunk) {
+    const to = from + chunk - 1n > head ? head : from + chunk - 1n;
+    const logs = await client.getLogs({ address: router, event, args: { srcRef: toHex32(srcRef), maker }, fromBlock: from, toBlock: to });
+    const l = logs[0] as any;
+    if (!l) continue;
+    const blk = await client.getBlock({ blockNumber: l.blockNumber });
+    return { txHash: l.transactionHash, blockNumber: l.blockNumber, timestamp: blk.timestamp, recipient: l.args.recipient, token: l.args.token, amount: l.args.amount, kind: Number(l.args.kind) as 2 | 3 };
+  }
+  return null;
+}
+
+/** A block number at or before unix time `ts` (estimated from block time, with a safety margin). */
+export async function blockBefore(client: PublicClient, ts: bigint, blockTimeMs: number): Promise<bigint> {
+  const head = await client.getBlock();
+  if (ts >= head.timestamp) return head.number!;
+  const back = ((head.timestamp - ts) * 1000n) / BigInt(Math.max(blockTimeMs, 250));
+  const est = head.number! - back - 20n;
+  return est > 0n ? est : 0n;
 }
 
 export { TOPIC_PAYOUT };
+
+/** One-line error text including the node's reason (viem `details`), for logs and UI. */
+export function errText(e: unknown): string {
+  const x = e as { shortMessage?: string; details?: string; message?: string; cause?: { details?: string; shortMessage?: string } };
+  const base = x.shortMessage ?? x.message?.split("\n")[0] ?? String(e);
+  const det = x.details ?? x.cause?.details ?? x.cause?.shortMessage;
+  return det && !base.includes(det) ? `${base}: ${det}` : base;
+}

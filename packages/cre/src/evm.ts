@@ -21,7 +21,10 @@ export const READ_LIMIT = 15;
 
 export class ReadBudget {
   used = 0;
-  constructor(readonly limit = READ_LIMIT) {}
+  readonly limit: number;
+  constructor(limit = READ_LIMIT) {
+    this.limit = limit;
+  }
   take(n = 1): void {
     if (this.used + n > this.limit) throw new Error(`CRE read budget exceeded (${this.used + n}/${this.limit})`);
     this.used += n;

@@ -1,8 +1,8 @@
 {
   "hub": {
     "chainSelectorName": "monad-testnet",
-    "oracle": "0xC220Ed128102d888af857d137a54b9B7573A41b2",
-    "ebc": "0xfB12F7170FF298CDed84C793dAb9aBBEcc01E798"
+    "oracle": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744",
+    "ebc": "0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d"
   },
   "rpcs": {
     "10143": "http://127.0.0.1:18710",
