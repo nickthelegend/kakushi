@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ts:
+    name: typecheck + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  contracts:
+    name: foundry (incl. real-proof dispute tests via FFI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: forge test
+        working-directory: packages/contracts
+        run: forge test -vv
+
+  zk:
+    name: noir circuits + verifier freshness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install nargo + bb (pinned, see packages/zk/TOOLCHAIN)
+        run: |
+          curl -sL https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
+          ~/.nargo/bin/noirup -v 1.0.0-beta.22
+          curl -sL https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash
+          ~/.bb/bbup -v 5.0.0-nightly.20260522
+      - name: nargo test
+        working-directory: packages/zk
+        run: ~/.nargo/bin/nargo test --workspace
+      - name: regenerate verifiers and circuit artifacts; fail on drift
+        run: |
+          packages/zk/scripts/gen-verifiers.sh
+          git diff --exit-code -- packages/contracts/src/verifiers packages/attest-core/circuits
+
+  cre:
+    name: chainlink CRE workflows compile to WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: install CRE CLI
+        run: curl -sSL https://app.chain.link/cre/install.sh | bash
+      - name: cre workflow build (no login needed)
+        working-directory: packages/cre
+        run: |
+          export PATH="$HOME/.cre/bin:$PWD/node_modules/.bin:$PATH"
+          for w in attest-monad attest-sepolia attest-base source-native; do cre workflow build ./workflows/$w; done

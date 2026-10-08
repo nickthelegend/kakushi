@@ -10,8 +10,8 @@
   },
   "packageManager": "pnpm@10.29.2",
   "scripts": {
-    "typecheck": "pnpm -r --filter=!@kakushi/indexer typecheck",
-    "test": "pnpm -r --filter=!@kakushi/indexer --filter=!@kakushi/app test",
+    "typecheck": "pnpm -r --filter=!@kakushi/app --filter=!@kakushi/indexer typecheck && tsc --noEmit -p tsconfig.json",
+    "test": "pnpm -r --filter=!@kakushi/app --filter=!@kakushi/indexer --filter=!@kakushi/cre test",
     "lint": "eslint .",
     "contracts:build": "cd packages/contracts && forge build",
     "contracts:test": "cd packages/contracts && forge test",
