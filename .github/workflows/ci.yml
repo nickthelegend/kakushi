@@ -59,3 +59,27 @@ jobs:
         run: |
           ./target/release/fhish-engine keygen --dir /tmp/fhish
           ./target/release/fhish-engine encrypt --pk /tmp/fhish/keys/public_key.bin --type 4 --value 1337 | head -c 64
+
+  indexer:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: indexer } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: pnpm install --frozen-lockfile   # standalone workspace (indexer/pnpm-workspace.yaml)
+      - run: pnpm configure                    # config.yaml from contracts/deployments/local*.json
+      - run: pnpm codegen
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: npm ci                            # postinstall inlines node-tfhe into the WebView page
+      - run: npm run typecheck
