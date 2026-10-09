@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import type { Hex } from "../lib/bytes";
 import { C, S } from "../ui/theme";
 import { T, Button, Card, Cipher, Field, Gap, Notice, Row, Chip } from "../ui/kit";
 import { Screen } from "../ui/Screen";
@@ -7,7 +8,7 @@ import { useApp } from "../state/AppState";
 import { useFlow } from "../ui/useFlow";
 import { useBalances } from "../ui/useBalances";
 import { AccountSetup } from "./Onboarding";
-import { claimLink, describeError, formatAusd, linkInfo, shortHex } from "../lib/pay";
+import { claimLink, describeError, formatAusd, linkInfo, reveal, shortHex } from "../lib/pay";
 import { parseLink, type ParsedLink } from "../lib/links";
 import { NETWORKS } from "../lib/config";
 
@@ -21,6 +22,22 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
   const [info, setInfo] = useState<Awaited<ReturnType<typeof linkInfo>> | null>(null);
   const [infoErr, setInfoErr] = useState<string | null>(null);
   const [claimed, setClaimed] = useState(false);
+  const [received, setReceived] = useState<Hex | null>(null);
+  const [amount, setAmount] = useState<bigint | null>(null);
+  const [revealing, setRevealing] = useState(false);
+  const [revealErr, setRevealErr] = useState<string | null>(null);
+  const revealReceived = async () => {
+    if (!ctx || !received) return;
+    setRevealing(true);
+    setRevealErr(null);
+    try {
+      setAmount(await app.withSigner((w) => reveal(ctx, w.account, received)));
+    } catch (e) {
+      setRevealErr(describeError(e));
+    } finally {
+      setRevealing(false);
+    }
+  };
   const ctx = app.ctx;
 
   // a link names its network; follow it
@@ -50,6 +67,7 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
       flow.step("sig", { state: "done" });
       flow.step("send", { state: "done", ms: r.tx.ms, hint: r.sponsored ? "sponsored: the DEV sponsor paid the gas, not you" : "self-submitted" });
       setClaimed(true);
+      setReceived(r.received);
       app.setPendingClaim(null);
       await flow.track(r.tx);
     });
@@ -80,14 +98,14 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
     <Screen title={`Pay link #${link.id}`} back>
       <Card glow>
         <Row style={{ justifyContent: "space-between" }}>
-          <T kind="label">{bal.revealed && claimed ? "Your private balance" : "You've been sent"}</T>
+          <T kind="label">{amount !== null ? "You received" : "You've been sent"}</T>
           <Chip text={NETWORKS[link.net].label} />
         </Row>
         <Gap h={S.sm} />
-        {bal.revealed && claimed ? (
+        {amount !== null ? (
           <>
-            <T kind="revealed">${formatAusd(bal.revealed.value)}</T>
-            <T kind="small">includes this link · revealed only to you</T>
+            <T kind="revealed">${formatAusd(amount)}</T>
+            <T kind="small">this link's amount · revealed only to you</T>
           </>
         ) : (
           <>
@@ -122,11 +140,15 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
           <AccountSetup compact />
         </>
       ) : claimed ? (
-        <Button testID="reveal-claimed" title={bal.revealed ? "Revealed" : "Reveal my balance"} busy={bal.revealing} disabled={!!bal.revealed} onPress={bal.doReveal} />
+        received ? (
+          <Button testID="reveal-claimed" title={amount !== null ? "Revealed" : "Reveal what you received"} busy={revealing} disabled={amount !== null} onPress={revealReceived} />
+        ) : (
+          <Button testID="reveal-claimed" title={bal.revealed ? "Revealed" : "Reveal my balance"} busy={bal.revealing} disabled={!!bal.revealed} onPress={bal.doReveal} />
+        )
       ) : (
         <Button testID="claim" title={`Claim to ${shortHex(app.address ?? "")}`} busy={flow.busy} disabled={!info || info.state !== "Open"} onPress={claim} />
       )}
-      {bal.revealErr ? <Notice tone="error">{bal.revealErr}</Notice> : null}
+      {bal.revealErr || revealErr ? <Notice tone="error">{bal.revealErr ?? revealErr}</Notice> : null}
       {flow.steps.length ? (
         <>
           <Gap h={S.lg} />

@@ -27,6 +27,7 @@ import { MonadHeads, sendRawSync, trackByTags, type CommitState, type CommitTime
 import type { Hex } from "./bytes.ts";
 
 export const payAbi = parseAbi([
+  "event ConfidentialTransfer(address indexed from, address indexed to, bytes32 indexed amount)",
   "function wrap(uint256 amount)",
   "function wrapWithAuthorization(address from, uint256 amount, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s)",
   "function pay(address to, bytes32 encryptedAmount, bytes inputProof, bytes32 ref) returns (bytes32)",
@@ -325,7 +326,9 @@ export async function claimLink(ctx: PayContext, submitter: LocalAccount, id: bi
   const signature = await linkAccount.sign({ hash: digest });
   const by = ctx.sponsor ?? submitter;
   const tx = await sendTx(ctx, by, ctx.causd, payAbi, "claimLink", [id, to, signature]);
-  return { tx, sponsored: by !== submitter };
+  // the claim re-encrypts the escrowed amount into a handle only the claimer may decrypt
+  const moved = parseEventLogs({ abi: payAbi, logs: tx.logs, eventName: "ConfidentialTransfer" }).find((l) => (l.args as { to: Hex }).to.toLowerCase() === to.toLowerCase());
+  return { tx, sponsored: by !== submitter, received: (moved?.args as { amount?: Hex } | undefined)?.amount ?? null };
 }
 
 export async function refundLink(ctx: PayContext, account: LocalAccount, id: bigint) {

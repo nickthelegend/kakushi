@@ -120,7 +120,8 @@ const monBefore = await ctx.pub.getBalance({ address: newcomer.address });
 const C = await P.claimLink(ctx, newcomer.account, parsedApp!.id, parsedApp!.key, newcomer.address);
 const cl = await P.settle(ctx, C.tx, null, () => {});
 const nb = await P.reveal(ctx, newcomer.account, (await P.balances(ctx, newcomer.address)).handle);
-check("pay link: claimed by the Mera account (sponsored, 0 MON)", C.sponsored && monBefore === 0n && nb === linkAmt, `newcomer ${P.shortHex(newcomer.address)} revealed ${P.formatAusd(nb)} cAUSD via Mera signTypedData · ${ladder(cl)}`);
+const got = C.received ? await P.reveal(ctx, newcomer.account, C.received) : -1n; // what the Claim screen reveals
+check("pay link: claimed by the Mera account (sponsored, 0 MON)", C.sponsored && monBefore === 0n && nb === linkAmt && got === linkAmt, `newcomer ${P.shortHex(newcomer.address)} revealed ${P.formatAusd(nb)} cAUSD via Mera signTypedData (link amount from the claim receipt: ${P.formatAusd(got)}) · ${ladder(cl)}`);
 let again = "";
 await P.claimLink(ctx, newcomer.account, parsedApp!.id, parsedApp!.key, newcomer.address).catch((e) => (again = P.describeError(e)));
 check("pay link: second claim refused", /already claimed/.test(again), again);
