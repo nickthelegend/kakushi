@@ -5,3 +5,4 @@ export * from "./tree.ts";
 export * from "./window.ts";
 export * from "./witness.ts";
 export * from "./attester.ts";
+export * from "./pool.ts";

@@ -26,7 +26,7 @@ function PointsCard() {
       <div className="rounded-[24px] bg-[#04060f]/70 p-6 ring-1 ring-white/10 backdrop-blur">
         <div className="text-[14px] text-ui-muted">Your points</div>
         <div className="serif mt-2 text-[44px] leading-none text-ui-muted">—</div>
-        <p className="mt-3 text-[14px] text-ui-muted">Connect a wallet to see your points, rank and quest progress.</p>
+        <p className="mt-3 text-[14px] text-ui-muted">Connect a wallet</p>
       </div>
     );
   }
@@ -108,8 +108,7 @@ function Quests() {
                   <Star aria-hidden size={13} className="fill-current" />+{x.points}
                 </span>
               </div>
-              <h3 className="mt-4 text-[18px] font-medium">{x.title}</h3>
-              <p className="mt-1 flex-1 text-[14px] leading-snug text-ui-muted">{x.description}</p>
+              <h3 className="mt-4 flex-1 text-[18px] font-medium" title={x.description}>{x.title}</h3>
               {x.progress ? (
                 <div className="mt-4">
                   <div className="mb-1.5 flex justify-between text-[12px] text-ui-muted">
@@ -183,7 +182,7 @@ export default function QuestsPage() {
               <Star aria-hidden size={13} className="fill-current" /> Season 1 · Testnet
             </span>
             <h1 className="mt-4 text-[clamp(40px,5.2vw,68px)] leading-[1.02]">Kakushi Quests</h1>
-            <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.5] text-ui-muted">Bridge, explore Monad&rsquo;s routes and keep Makers honest. Every point is computed from your own transactions on chain.</p>
+            <p className="mt-4 max-w-[46ch] text-[17px] leading-[1.5] text-ui-muted">Points from your own on-chain transfers.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/bridge" className="inline-flex h-12 items-center rounded-full bg-white px-6 text-[15px] font-medium text-[#13141f]">Bridge to earn</Link>
               <Link href="/referral" className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium ring-1 ring-white/40 hover:bg-white/10">Invite friends</Link>

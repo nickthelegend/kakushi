@@ -71,4 +71,35 @@ describe("chain registry", () => {
     }
   });
 
+  it("reads the optional privacy object tolerantly", () => {
+    const dir = mkdtempSync(join(tmpdir(), "kakushi-deployments-"));
+    const a = (n: number) => `0x${n.toString(16).padStart(40, "0")}`;
+    const privacy = {
+      deployBlock: 7,
+      stealthRegistry: a(1),
+      stealthAnnouncer: a(2),
+      stealthPay: a(3),
+      shieldedVerifier: a(4),
+      pools: {
+        "MON-1": { address: a(5), token: a(0), symbol: "MON", decimals: 18, denomination: "1000000000000000000" },
+        "USDC-10": { address: a(6), token: a(7), symbol: "USDC", decimals: 6, denomination: "10000000" },
+        broken: { address: "nope", token: a(0), denomination: "1" },
+      },
+    };
+    try {
+      mkdirSync(join(dir, "local"));
+      const base = { deployBlock: 1, deployer: "0x1", payoutRouter: "0x2", sourceRouter: "0x3" };
+      writeFileSync(join(dir, "local", "10143.json"), JSON.stringify({ ...base, chainId: 10143, role: "hub", privacy }));
+      writeFileSync(join(dir, "local", "11155111.json"), JSON.stringify({ ...base, chainId: 11155111, role: "spoke" }));
+      writeFileSync(join(dir, "local", "84532.json"), JSON.stringify({ ...base, chainId: 84532, role: "spoke", privacy: { stealthPay: "0x" } }));
+      const d = loadDeployments("local", dir);
+      expect(d.hub.privacy?.stealthPay).toBe(a(3));
+      expect(Object.keys(d.hub.privacy!.pools)).toEqual(["MON-1", "USDC-10"]);
+      expect(BigInt(d.hub.privacy!.pools["MON-1"]!.denomination)).toBe(10n ** 18n);
+      expect(d.chains[11155111]!.privacy).toBeUndefined();
+      expect(d.chains[84532]!.privacy).toBeUndefined();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

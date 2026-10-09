@@ -6,3 +6,6 @@ export * from "./attestations.ts";
 export * from "./kakushi.ts";
 export * from "./transfer.ts";
 export * from "./dispute.ts";
+export * from "./stealth.ts";
+export * from "./notes.ts";
+export * from "./pool-abi.ts";

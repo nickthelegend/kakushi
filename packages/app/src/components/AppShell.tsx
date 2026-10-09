@@ -1,7 +1,7 @@
 "use client";
 
 import { AppFrame, IconSquareButton, KakushiMark, Logo, Menu, SecondaryButton, StatusPill, TopNav } from "@kakushi/ui";
-import { ArrowLeftRight, BookOpen, Compass, Gavel, GitBranch, Globe, LogOut, ShieldCheck, Star, Store, Trophy, UserPlus, Users, Wallet, BarChart3 } from "lucide-react";
+import { ArrowLeftRight, BarChart3, BookOpen, CodeXml, Compass, Gavel, GitBranch, Globe, Inbox, LogOut, Send, Shield, ShieldCheck, Star, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -11,26 +11,26 @@ import { useStoredReferrer } from "@/lib/referral";
 import { useWallet } from "@/lib/wallet";
 
 export const NAV = [
-  { key: "trade", label: "Trade", href: "/bridge", icon: <ArrowLeftRight /> },
-  { key: "explorer", label: "Explorer", href: "/explorer", icon: <Compass /> },
-  { key: "quests", label: "Quests", href: "/quests", icon: <Trophy /> },
-  { key: "market", label: "Market", href: "/market", icon: <BarChart3 /> },
+  { key: "send", label: "Send", href: "/send", icon: <Send /> },
+  { key: "receive", label: "Receive", href: "/receive", icon: <Inbox /> },
+  { key: "shield", label: "Shield", href: "/shield", icon: <Shield /> },
+  { key: "bridge", label: "Bridge", href: "/bridge", icon: <ArrowLeftRight /> },
+  { key: "developers", label: "Developers", href: "/developers", icon: <CodeXml /> },
 ];
 
 export const MORE = [
-  { key: "claim", label: "Claim", href: "/disputes", icon: <Gavel />, description: "A Maker didn't pay? Prove it, get paid from margin" },
-  { key: "referral", label: "Referral", href: "/referral", icon: <UserPlus />, description: "Invite friends, earn 10% of their points" },
-  { key: "maker", label: "Become a Maker", href: "/maker", icon: <Store />, description: "Post margin, set fees, earn on every fill" },
-  { key: "attestations", label: "Attestations", href: "/attestations", icon: <ShieldCheck />, description: "Chainlink CRE windows on Monad" },
+  { key: "claim", label: "Claim", href: "/disputes", icon: <Gavel />, description: "A Maker didn't pay? Prove it" },
+  { key: "explorer", label: "Explorer", href: "/explorer", icon: <Compass />, description: "Bridge transfers" },
+  { key: "market", label: "Makers", href: "/market", icon: <BarChart3 />, description: "Routes and liquidity" },
+  { key: "attestations", label: "Attestations", href: "/attestations", icon: <ShieldCheck />, description: "Chainlink CRE windows" },
   { key: "docs", label: "Docs", href: "https://github.com/nickthelegend/kakushi#readme", icon: <BookOpen />, description: "How Kakushi works" },
   { key: "github", label: "GitHub", href: "https://github.com/nickthelegend/kakushi", icon: <GitBranch />, description: "Open source, MIT" },
 ];
 
 function activeKey(pathname: string): string {
   const hit = [...NAV, ...MORE].find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));
-  if (pathname.startsWith("/tx/") || pathname.startsWith("/explorer")) return "explorer";
-  if (pathname.startsWith("/market")) return "market";
-  return hit?.key ?? "trade";
+  if (pathname.startsWith("/tx/")) return "bridge";
+  return hit?.key ?? "send";
 }
 
 /** Where Kakushi is running, in the network pill's shape. */
@@ -159,7 +159,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         actions={
           <>
             <NetworkPill className="hidden 2xl:inline-flex" />
-            <PointsPill />
             <ConnectButton />
           </>
         }

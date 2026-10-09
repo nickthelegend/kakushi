@@ -32,10 +32,10 @@ async function forkUp(k: ChainKey): Promise<boolean> {
   }
 }
 
-function forge(role: "hub" | "spoke", port: number) {
+function forge(role: "hub" | "spoke", port: number, script = "script/Deploy.s.sol") {
   execFileSync(
     "forge",
-    ["script", "script/Deploy.s.sol", "--rpc-url", `http://127.0.0.1:${port}`, "--broadcast", "--sender", localAccount("deployer").address, "--slow"],
+    ["script", script, "--rpc-url", `http://127.0.0.1:${port}`, "--broadcast", "--sender", localAccount("deployer").address, "--slow"],
     {
       cwd: "packages/contracts",
       stdio: ["ignore", "ignore", "inherit"],
@@ -65,7 +65,11 @@ async function main() {
     else rmSync(`${DEPLOYMENTS_DIR}/local/${CHAINS[k].chainId}.json`, { force: true });
   }
   console.log(`local forks: ${keys.map((k) => CHAINS[k].shortName).join(", ")}`);
-  for (const k of keys) forge(k === "monadTestnet" ? "hub" : "spoke", CHAINS[k].localPort);
+  for (const k of keys) {
+    forge(k === "monadTestnet" ? "hub" : "spoke", CHAINS[k].localPort);
+    // privacy layer (stealth registry/announcer/StealthPay + shielded pools); merges `privacy` into the record
+    forge(k === "monadTestnet" ? "hub" : "spoke", CHAINS[k].localPort, "script/DeployPrivacy.s.sol");
+  }
   const d = loadDeployments("local");
   console.log(`deployed: hub ${d.hub.disputeModule} (DisputeModule), PayoutRouter ${d.hub.payoutRouter} on all chains`);
 

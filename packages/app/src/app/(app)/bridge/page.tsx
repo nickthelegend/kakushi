@@ -184,7 +184,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
     }
   }
 
-  const reason = error ? "Kakushi isn't live on this network yet. Transfers open once the testnet contracts and Makers are up." : !w.address ? null : qErr ?? (q && !q.quotable ? q.reason : null);
+  const reason = error ? "Not live on this network yet" : !w.address ? null : qErr ?? (q && !q.quotable ? q.reason : null);
   const cta = sending ?? (!w.address ? "Connect a wallet to bridge" : insufficient ? `Not enough ${route.asset}` : !amount ? "Enter an amount" : q ? `Bridge ${fmt(BigInt(q.principal), src.decimals, route.asset === "ETH" ? 4 : 2)} ${route.asset}` : loadingQ ? "Finding a Maker…" : "Bridge");
 
   return (
@@ -286,47 +286,48 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
         />
       ) : null}
 
-      {/* Details */}
-      <dl className="mt-2 grid gap-2.5 px-3 py-3 text-[13px]">
-        <div className="flex items-center justify-between">
-          <dt className="flex items-center gap-1.5 text-ui-muted"><Timer aria-hidden size={14} /> Time</dt>
-          <dd className="ui-figure">{q ? `≈ ${(q.etaMs / 1000).toFixed(1)} s` : "≈ 1 s"}</dd>
-        </div>
-        <div className="flex items-center justify-between">
-          <dt className="text-ui-muted">Fee</dt>
-          <dd className="ui-figure">{q ? `${fmt(BigInt(q.withholdingFee) + BigInt(q.tradingFee), src.decimals, route.asset === "ETH" ? 6 : 4)} ${route.asset}` : "—"}</dd>
-        </div>
-        <div className="flex items-center justify-between">
-          <dt className="flex items-center gap-1.5 text-ui-muted"><Users aria-hidden size={14} /> Maker</dt>
-          <dd>
-            <Menu
-              label="Choose a Maker"
-              align="end"
-              width={340}
-              trigger={<span className={cn("inline-flex items-center gap-1 font-medium hover:text-ui-lime-text", !quotes?.length && "pointer-events-none text-ui-muted")}>{q ? q.name : "Best quote"}<ChevronDown aria-hidden size={13} /></span>}
-            >
-              {quotes?.map((x) => (
-                <Menu.Item key={x.maker} disabled={!x.quotable} onSelect={() => setChosen(x.maker)} description={x.quotable ? `Fee ${fmt(BigInt(x.withholdingFee) + BigInt(x.tradingFee), src.decimals, 4)} · margin ${fmt(BigInt(x.margin), 6, 0)} USDC` : x.reason}>
-                  {x.name}: {fmt(BigInt(x.net), src.decimals, 4)} {route.asset}
-                </Menu.Item>
-              ))}
-            </Menu>
-          </dd>
-        </div>
-        <div className="flex items-center justify-between">
-          <dt className="flex items-center gap-1.5 text-ui-muted"><ShieldCheck aria-hidden size={14} /> Backed by</dt>
-          <dd className="ui-figure">{q ? `${fmt(BigInt(q.margin), 6, 0)} USDC margin on Monad` : "Maker margin on Monad"}</dd>
-        </div>
-        {gross !== null ? (
+      {/* One line of quote; the rest behind Details */}
+      <details className="group mt-2 px-3 py-2 text-[13px]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-1.5 text-ui-muted [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-1.5"><Timer aria-hidden size={14} /> <span className="ui-figure text-ui-text">{q ? `${(q.etaMs / 1000).toFixed(1)} s` : "≈1 s"}</span> · fee <span className="ui-figure text-ui-text">{q ? fmt(BigInt(q.withholdingFee) + BigInt(q.tradingFee), src.decimals, route.asset === "ETH" ? 5 : 3) : "—"}</span></span>
+          <span className="inline-flex items-center gap-1">Details <ChevronDown aria-hidden size={13} className="transition-transform group-open:rotate-180" /></span>
+        </summary>
+        <dl className="mt-2 grid gap-2.5 border-t border-ui-hairline pt-3">
           <div className="flex items-center justify-between">
-            <dt className="text-ui-muted">Wallet sends</dt>
-            <dd className="ui-figure" title={`The last four digits route it to ${chainByIdentCode(Number(gross.toString().slice(-4)))?.shortName ?? "an unknown chain"}`}>
-              {fixed.slice(0, -4)}
-              <span className="code-digits">{fixed.slice(-4)}</span>
+            <dt className="flex items-center gap-1.5 text-ui-muted"><Users aria-hidden size={14} /> Maker</dt>
+            <dd>
+              <Menu
+                label="Choose a Maker"
+                align="end"
+                width={340}
+                trigger={<span className={cn("inline-flex items-center gap-1 font-medium hover:text-ui-lime-text", !quotes?.length && "pointer-events-none text-ui-muted")}>{q ? q.name : "Best quote"}<ChevronDown aria-hidden size={13} /></span>}
+              >
+                {quotes?.map((x) => (
+                  <Menu.Item key={x.maker} disabled={!x.quotable} onSelect={() => setChosen(x.maker)} description={x.quotable ? `Fee ${fmt(BigInt(x.withholdingFee) + BigInt(x.tradingFee), src.decimals, 4)} · margin ${fmt(BigInt(x.margin), 6, 0)} USDC` : x.reason}>
+                    {x.name}: {fmt(BigInt(x.net), src.decimals, 4)} {route.asset}
+                  </Menu.Item>
+                ))}
+              </Menu>
             </dd>
           </div>
-        ) : null}
-      </dl>
+          <div className="flex items-center justify-between">
+            <dt className="flex items-center gap-1.5 text-ui-muted"><ShieldCheck aria-hidden size={14} /> Margin</dt>
+            <dd className="ui-figure">{q ? `${fmt(BigInt(q.margin), 6, 0)} USDC` : "—"}</dd>
+          </div>
+          {gross !== null ? (
+            <div className="flex items-center justify-between">
+              <dt className="text-ui-muted">Wallet sends</dt>
+              <dd className="ui-figure">{fixed.slice(0, -4)}<span className="code-digits">{fixed.slice(-4)}</span></dd>
+            </div>
+          ) : null}
+          {cfg?.deployments?.hub?.fillWindow ? (
+            <div className="flex items-center justify-between">
+              <dt className="text-ui-muted">Fill window</dt>
+              <dd className="ui-figure">{cfg.deployments.hub.fillWindow} s, then margin pays</dd>
+            </div>
+          ) : null}
+        </dl>
+      </details>
 
       {sendErr ? <p role="alert" className="px-3 pb-2 text-[13px] text-ui-down">{sendErr}</p> : null}
       {w.address ? (
@@ -342,7 +343,6 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
           {reason}
         </p>
       ) : null}
-      {cfg?.deployments?.hub?.fillWindow ? <p className="px-3 pt-1 pb-1 text-[12px] text-ui-dim">If the Maker misses the {cfg.deployments.hub.fillWindow} s window, a proof pays you from its margin.</p> : null}
     </div>
   );
 }

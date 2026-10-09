@@ -1,7 +1,7 @@
 "use client";
 
 import { StatusPill, cn } from "@kakushi/ui";
-import { Check, Coins, Gavel, Send } from "lucide-react";
+import { Check, EyeOff, Repeat, Shield } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Rise, useReduced, useReveal } from "@/components/motion";
@@ -25,7 +25,7 @@ export function How() {
                 <div className="flex flex-1 flex-col px-3 pt-5 pb-3">
                   <h3 className="flex items-center gap-2.5 text-[22px] font-medium tracking-[-0.025em]">
                     <span className={cn("grid size-8 place-items-center rounded-full text-white", card.key === "pay" ? "bg-[#2f47f5]" : card.key === "paid" ? "bg-[#c79a52]" : "bg-[#6d86e9]")}>
-                      {card.key === "pay" ? <Send size={16} /> : card.key === "paid" ? <Coins size={16} /> : <Gavel size={16} />}
+                      {card.key === "pay" ? <EyeOff size={16} /> : card.key === "paid" ? <Shield size={16} /> : <Repeat size={16} />}
                     </span>
                     {card.title}
                   </h3>
@@ -41,79 +41,83 @@ export function How() {
   );
 }
 
-/** The amount, its last four digits rolling into the destination code. */
+const HEX = "0123456789abcdef";
+const TARGET = "0x9f3c…e21a";
+
+/** A meta-address turns into a one-time address that only the recipient can find. */
 function PayVisual() {
   const [ref, seen] = useReveal<HTMLDivElement>(0.5);
   const reduced = useReduced();
-  const [digits, setDigits] = useState("0000");
+  const [addr, setAddr] = useState("0x????…????");
   useEffect(() => {
     if (!seen) return;
-    if (reduced) return setDigits("9001");
+    if (reduced) return setAddr(TARGET);
     let n = 0;
     const id = setInterval(() => {
       n++;
-      if (n > 12) {
+      if (n > 14) {
         clearInterval(id);
-        setDigits("9001");
+        setAddr(TARGET);
         return;
       }
-      setDigits(Array.from({ length: 4 }, (_, k) => (n > 4 + k * 2 ? "9001"[k] : String(Math.floor(Math.random() * 10)))).join(""));
+      setAddr(TARGET.split("").map((ch, k) => (ch === "…" || k < 2 || n > 4 + k ? ch : HEX[Math.floor(Math.random() * 16)])).join(""));
     }, 70);
     return () => clearInterval(id);
   }, [seen, reduced]);
   return (
-    <div ref={ref} className="flex h-full flex-col justify-center gap-4 px-5">
-      <p className="text-[14px] text-ui-muted">You send to Maker B</p>
-      <p className="ui-figure text-[40px] leading-none font-medium tracking-[-0.04em]">
-        100.00<span className="code-digits">{digits}</span>
-      </p>
-      <div className="flex items-center justify-between rounded-[18px] bg-ui-canvas px-4 py-3 text-[15px]">
-        <span className="text-ui-muted">Code {digits}</span>
-        <span className="font-medium">{digits === "9001" ? "Monad testnet" : "…"}</span>
+    <div ref={ref} className="flex h-full flex-col justify-center gap-3 px-5">
+      <div className="rounded-[16px] bg-ui-canvas px-4 py-3">
+        <p className="text-[12px] text-ui-muted">Pay to</p>
+        <p className="mt-0.5 truncate font-mono text-[13px]">st:eth:0x02a1…7f9c</p>
       </div>
+      <div className="flex justify-center text-ui-muted">↓</div>
+      <div className="rounded-[16px] bg-[#101a4a] px-4 py-3 ring-1 ring-[#3b55ff]/40">
+        <p className="text-[12px] text-[#c4d0ff]">Lands on</p>
+        <p className="mt-0.5 font-mono text-[18px] font-medium">{addr}</p>
+      </div>
+      <p className="text-center text-[12px] text-ui-muted">New address every payment</p>
     </div>
   );
 }
 
-/** A bar runs to about a second and the payout turns Final. */
+/** Deposit with a commitment, withdraw elsewhere with a proof. */
 function PaidVisual() {
   const [ref, seen] = useReveal<HTMLDivElement>(0.5);
   const reduced = useReduced();
-  const [paid, setPaid] = useState(false);
+  const [step, setStep] = useState(0);
   useEffect(() => {
     if (!seen) return;
-    const t = setTimeout(() => setPaid(true), reduced ? 0 : 1100);
-    return () => clearTimeout(t);
+    if (reduced) return setStep(2);
+    const t1 = setTimeout(() => setStep(1), 500);
+    const t2 = setTimeout(() => setStep(2), 1400);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [seen, reduced]);
   return (
-    <div ref={ref} className="flex h-full flex-col justify-center gap-4 px-5">
-      <div className="flex items-center justify-between">
-        <span className="text-[15px] text-ui-muted">Maker B pays you on Monad</span>
-        <span className="ui-figure text-[17px] font-medium">99.84</span>
+    <div ref={ref} className="flex h-full flex-col justify-center gap-3 px-5">
+      <div className="flex items-center justify-between rounded-[16px] bg-ui-canvas px-4 py-3 text-[14px]">
+        <span className="text-ui-muted">Deposit</span>
+        <span className="ui-figure font-medium">1 MON</span>
       </div>
-      <div>
-        <div className="h-2 overflow-hidden rounded-full bg-ui-canvas">
-          <motion.div className="h-full rounded-full bg-ui-lime-button" initial={{ width: "0%" }} animate={{ width: seen ? "100%" : "0%" }} transition={{ duration: reduced ? 0 : 0.8, delay: reduced ? 0 : 0.25, ease: "linear" }} />
-        </div>
-        <div className="mt-2 flex justify-between text-[12px] text-ui-muted">
-          <span>Your payment</span>
-          <span className="ui-figure">≈1 s</span>
-        </div>
-      </div>
-      <motion.div animate={{ opacity: paid ? 1 : 0.35, scale: paid ? 1 : 0.98 }} transition={{ duration: 0.35, ease: EASE_REVEAL }} className="flex items-center justify-between rounded-[18px] bg-ui-canvas px-4 py-3">
-        <span className="flex items-center gap-2.5 text-[15px] font-medium">
-          <span className={cn("grid size-7 place-items-center rounded-full", paid ? "bg-ui-lime-button text-ui-on-lime" : "bg-ui-surface-2 text-ui-muted")}>
-            <Check size={15} strokeWidth={2.5} aria-hidden />
+      <motion.div animate={{ opacity: step >= 1 ? 1 : 0.3 }} className="flex items-center justify-center gap-2 text-[13px] text-[#f2c27a]">
+        <span className="size-1.5 rounded-full bg-current" /> Pool of 1 MON deposits
+      </motion.div>
+      <motion.div animate={{ opacity: step >= 2 ? 1 : 0.35, scale: step >= 2 ? 1 : 0.98 }} transition={{ duration: 0.35, ease: EASE_REVEAL }} className="flex items-center justify-between rounded-[16px] bg-ui-canvas px-4 py-3">
+        <span className="flex items-center gap-2 text-[14px]">
+          <span className={cn("grid size-6 place-items-center rounded-full", step >= 2 ? "bg-ui-lime-button text-white" : "bg-ui-surface-2 text-ui-muted")}>
+            <Check size={13} strokeWidth={2.5} aria-hidden />
           </span>
-          {paid ? "Paid to you" : "Filling"}
+          Withdraw to a new wallet
         </span>
-        <StatusPill tone={paid ? "lime" : "neutral"} size="sm">{paid ? "Final" : "…"}</StatusPill>
+        <StatusPill tone={step >= 2 ? "lime" : "neutral"} size="sm">{step >= 2 ? "Proof ok" : "…"}</StatusPill>
       </motion.div>
     </div>
   );
 }
 
-/** Deadline passes, attestation lands, the proof slashes margin back. */
+/** Sepolia to Monad, delivered to a stealth address by a Maker. */
 function ProofVisual() {
   const [ref, seen] = useReveal<HTMLDivElement>(0.5);
   const reduced = useReduced();
@@ -121,26 +125,20 @@ function ProofVisual() {
   useEffect(() => {
     if (!seen) return;
     if (reduced) return setStep(3);
-    const timers = [1, 2, 3].map((n) => setTimeout(() => setStep(n), 300 + n * 550));
+    const timers = [1, 2, 3].map((n) => setTimeout(() => setStep(n), 300 + n * 500));
     return () => timers.forEach(clearTimeout);
   }, [seen, reduced]);
-  const rows = ["No payout by the deadline", "Chainlink CRE attests the windows", "Noir proof verified on Monad"];
+  const rows = ["25 USDC sent on Sepolia", "Maker pays on Monad", "To a stealth address"];
   return (
-    <div ref={ref} className="flex h-full flex-col justify-between p-5">
-      <ul className="grid gap-2.5">
-        {rows.map((r, i) => (
-          <li key={r} className={cn("flex items-center gap-2.5 text-[14px] transition-opacity", step > i ? "opacity-100" : "opacity-30")}>
-            <span className={cn("grid size-6 place-items-center rounded-full", step > i ? "bg-ui-pill-purple text-ui-pill-purple-text" : "bg-ui-surface-2")}>
-              <Check size={13} strokeWidth={2.5} aria-hidden />
-            </span>
-            {r}
-          </li>
-        ))}
-      </ul>
-      <div className={cn("flex items-center justify-between rounded-[18px] bg-ui-canvas px-4 py-3 text-[15px] font-medium transition-opacity", step >= 3 ? "opacity-100" : "opacity-35")}>
-        <span>Paid from margin</span>
-        <span className="ui-figure">12.009001</span>
-      </div>
+    <div ref={ref} className="flex h-full flex-col justify-center gap-2.5 p-5">
+      {rows.map((r, i) => (
+        <div key={r} className={cn("flex items-center gap-2.5 rounded-[14px] bg-ui-canvas px-3.5 py-2.5 text-[14px] transition-opacity", step > i ? "opacity-100" : "opacity-30")}>
+          <span className={cn("grid size-6 place-items-center rounded-full", step > i ? "bg-ui-pill-purple text-ui-pill-purple-text" : "bg-ui-surface-2")}>
+            <Check size={13} strokeWidth={2.5} aria-hidden />
+          </span>
+          {r}
+        </div>
+      ))}
     </div>
   );
 }

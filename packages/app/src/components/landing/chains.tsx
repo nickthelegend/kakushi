@@ -13,10 +13,10 @@ const KEYS = [...new Set(ROUTES.flatMap((r) => [r.src, r.dst]))].sort((a, b) => 
 /** The figures Orbiter leads with, and the chains and routes as they are configured. */
 export function Chains() {
   const stats = [
-    { value: "≈1 s", label: "to receive on Monad" },
-    { value: "0.10%", label: "Maker fees from" },
+    { value: "1", label: "SDK call to go private" },
     { value: String(KEYS.length), label: "chains, one hub" },
-    { value: "0", label: "wrapped tokens" },
+    { value: "0", label: "custodians" },
+    { value: "≈1 s", label: "private bridge to Monad" },
   ];
   return (
     <section id="chains" aria-labelledby="chains-title" className="scroll-mt-24 py-16 lg:py-24">
@@ -47,7 +47,7 @@ export function Chains() {
                       <ChainCoin chainId={c.chainId} size={40} />
                       <div className="min-w-0 flex-1">
                         <h3 className="text-[17px] font-medium">{c.shortName}</h3>
-                        <p className="text-[13px] text-ui-muted">{hub ? "Hub: rules, margin and disputes" : "Spoke: payouts through the router"}</p>
+                        <p className="text-[13px] text-ui-muted">{hub ? "Hub: pools, proofs and disputes" : "Spoke: pools and stealth payments"}</p>
                       </div>
                       <span className="ui-figure rounded-full bg-ui-lime-chip px-2.5 py-1 text-[12px] text-ui-lime-active" title="The last four digits of an amount sent here">
                         code {c.identCode}

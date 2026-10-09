@@ -10,14 +10,12 @@ import { Hero } from "@/components/landing/hero";
 import { How } from "@/components/landing/how";
 import { Makers } from "@/components/landing/makers";
 import { LandingNav } from "@/components/landing/nav";
-import { Proof } from "@/components/landing/proof";
 import { Sponsors } from "@/components/landing/sponsors";
-import { Transfer } from "@/components/landing/transfer";
 import { SmoothScroll } from "@/components/motion";
 
 export const metadata: Metadata = {
-  title: { absolute: "Kakushi: the fast bridge for Monad" },
-  description: "Bridge USDC and ETH to and from Monad in about a second, paid from Maker liquidity and backed by Maker margin on Monad.",
+  title: { absolute: "Kakushi: privacy for any app" },
+  description: "Stealth addresses, a zero-knowledge pool and a private bridge for any app, on Monad and every chain it talks to.",
 };
 
 export default function LandingPage() {
@@ -28,14 +26,12 @@ export default function LandingPage() {
         <main>
           <Hero />
           <Sponsors />
+          <How />
           <Chains />
           <Compare />
-          <Transfer />
-          <How />
+          <Developers />
           <Makers />
           <Fees />
-          <Proof />
-          <Developers />
           <Faq />
           <Closing />
         </main>

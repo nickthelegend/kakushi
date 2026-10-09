@@ -4,7 +4,7 @@ import { Noir, type CompiledCircuit } from "@noir-lang/noir_js";
 import { Barretenberg, UltraHonkBackend } from "@aztec/bb.js";
 import type { InputMap } from "./witness.ts";
 
-export type CircuitName = "payment_compliance" | "payout_inclusion";
+export type CircuitName = "payment_compliance" | "payout_inclusion" | "shielded_withdraw";
 
 export interface ProofResult {
   proof: `0x${string}`;

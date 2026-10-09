@@ -13,6 +13,7 @@
   "dependencies": {
     "@kakushi/attest-core": "workspace:*",
     "@kakushi/config": "workspace:*",
+    "@noble/curves": "1.9.1",
     "viem": "^2.38.0"
   },
   "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4", "@types/node": "^22.20.1" }

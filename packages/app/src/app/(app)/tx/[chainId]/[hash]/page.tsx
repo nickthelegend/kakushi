@@ -8,7 +8,7 @@ import type { Hex } from "viem";
 import { PanelCard, PrimaryButton, SecondaryButton, cn } from "@kakushi/ui";
 import { chainById } from "@kakushi/config";
 import { receiptLogIndex } from "@/lib/receipt-selection";
-import { Amount, ChainName, ChainTx, Loading, Notice, PageHead, Pill, readError, short } from "@/components/kit";
+import { Addr, Amount, ChainName, ChainTx, Loading, Notice, PageHead, Pill, readError, short } from "@/components/kit";
 import { useRuntime } from "@/lib/runtime";
 import { useTransfer } from "@/lib/useTransfer";
 
@@ -68,7 +68,7 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
       <PageHead
         eyebrow={<Link href="/explorer" className="text-[14px] text-ui-muted hover:text-ui-text">← Explorer</Link>}
         title="Transfer"
-        sub={<span className="font-mono text-[13px] break-all">{hash}</span>}
+        sub={<Addr value={hash} n={6} />}
         right={status}
       />
       {selectedLog === null && <Notice tone="bad">Invalid receipt log index.</Notice>}
@@ -76,8 +76,26 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
       {v.notFound && <Notice tone="bad">This transaction is not a Kakushi payment to a registered Maker on {chainById(chainId).shortName}.</Notice>}
       {!pay && !v.notFound && !v.error && <Loading>Reading the payment…</Loading>}
       {pay && c && (
-        <PanelCard title={<Amount value={pay.gross} decimals={dec} symbol={sym} className="text-[28px] tracking-[-0.03em]" />} subtitle={<>to {makerName} on <ChainName chainId={pay.srcChainId} size={16} /></>} badge={<span className="ui-figure rounded-full bg-ui-canvas px-3 py-1 text-[13px]">Code <span className="code-digits">{pay.gross.toString().slice(-4)}</span></span>}>
-          <ol className="mt-2">
+        <PanelCard>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="text-[14px] text-ui-muted">{slashed ? "Paid from margin" : v.payout && !lateOrWrong ? (c.kind === 2 ? "Refunded" : "Received") : "Sent"}</div>
+              <div className="serif mt-1 text-[44px] leading-none">
+                <Amount value={v.payout && !lateOrWrong ? v.payout.amount : pay.gross} decimals={dec} max={dec === 18 ? 5 : 2} /> <span className="text-[22px] text-ui-muted">{sym}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-[14px] text-ui-muted">
+                <ChainName chainId={pay.srcChainId} size={18} /> → <ChainName chainId={c.kind === 0 ? pay.srcChainId : c.obligationChainId} size={18} />
+                {v.payout && v.payout.timestamp >= pay.timestamp ? <span className="ui-figure">· {Number(v.payout.timestamp - pay.timestamp)} s</span> : null}
+              </div>
+            </div>
+            {network === "local" ? <Pill tone="warn">fork</Pill> : null}
+          </div>
+          <details className="group mt-6 border-t border-ui-hairline pt-4" open={overdue || lateOrWrong || undefined}>
+            <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] text-ui-muted [&::-webkit-details-marker]:hidden">
+              How it settled
+              <span className="text-[13px] group-open:hidden">Details</span>
+            </summary>
+          <ol className="mt-4">
             <Step state="done" title={<>Paid on {chainById(pay.srcChainId).shortName}</>} tag={<Pill>block {pay.blockNumber.toString()}</Pill>}>
               <div>To {makerName}, {pay.via === "source-router" ? "through the SourceRouter" : "as a plain transfer to its address"}.</div>
               <div><ChainTx chainId={pay.srcChainId} hash={pay.txHash} network={network} /></div>
@@ -126,6 +144,7 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
               </Step>
             )}
           </ol>
+          </details>
         </PanelCard>
       )}
       {pay && <p className="mt-4 text-[12px] text-ui-muted">srcRef <span className="font-mono break-all">{v.srcRef}</span></p>}

@@ -5,39 +5,37 @@
 
 export const nav = {
   links: [
-    { label: "Chains", href: "#chains" },
-    { label: "Vs Orbiter", href: "#compare" },
     { label: "How it works", href: "#how" },
-    { label: "Makers", href: "#makers" },
-    { label: "Fees", href: "#fees" },
-
+    { label: "Chains", href: "#chains" },
+    { label: "Compare", href: "#compare" },
+    { label: "Developers", href: "#developers" },
     { label: "FAQ", href: "#faq" },
   ],
 };
 
 export const hero = {
-  eyebrow: "Kakushi bridge",
-  pill: "The fast bridge for Monad",
-  headline: ["Bridge to Monad", "in a second."],
-  sub: "Send USDC or ETH and get it on the other chain in about a second, paid from a Maker's own liquidity. No wrapped tokens and no bridge vault. If a Maker ever fails to pay, its margin on Monad pays you instead.",
-  primary: "Open the bridge",
-  secondary: "Prove a missed payout",
-  trust: ["About a second to Monad", "No wrapped tokens", "Every transfer backed by Maker margin"],
+  eyebrow: "Kakushi",
+  pill: "Privacy for any app",
+  headline: ["Make any app", "private."],
+  sub: "Stealth addresses hide who gets paid. A zero-knowledge pool hides where the money came from. One SDK call, on Monad and every chain it talks to.",
+  primary: "Launch app",
+  secondary: "Read the SDK",
+  trust: ["Proofs made in your browser", "No custodian, no mixer operator", "Monad first, every chain next"],
 };
 
 export const sponsors = {
-  pill: "Built on Monad with Chainlink CRE, Noir, Privy, Envio and Cleanverse",
-  items: [{ name: "Monad" }, { name: "Chainlink CRE" }, { name: "Noir" }, { name: "Barretenberg" }, { name: "Privy" }, { name: "Envio" }, { name: "Cleanverse" }, { name: "Circle USDC" }],
+  pill: "Built on Monad with Noir, Chainlink CRE, Privy, Envio and Cleanverse",
+  items: [{ name: "Monad" }, { name: "Noir" }, { name: "Barretenberg" }, { name: "Chainlink CRE" }, { name: "Privy" }, { name: "Envio" }, { name: "Cleanverse" }, { name: "Circle USDC" }],
 } as const;
 
 export const how = {
   eyebrow: "How it works",
-  heading: ["Send on one chain.", "Receive on the other."],
-  sub: "No wrapping, no claim step, no approval. The amount carries the route, a Maker fills from its own inventory, and margin on Monad stands behind every transfer.",
+  heading: ["Three ways to go private.", "Use one, or all three."],
+  sub: "Each is a contract plus a proof. Your app calls the SDK; your users keep their keys.",
   cards: [
-    { key: "pay", title: "You pay a Maker", body: "A plain transfer to the Maker's address. The last four digits, 9001, mean Monad.", foot: "No wrapped token" },
-    { key: "paid", title: "The Maker pays you", body: "From its own inventory on the other chain, through a PayoutRouter that logs every payout.", foot: "About a second to Monad" },
-    { key: "proof", title: "Or the proof pays you", body: "Missing, late or short? A Noir proof over attested data slashes the Maker's margin to you.", foot: "The full amount, from margin" },
+    { key: "pay", title: "Receive privately", body: "Every payment lands on a fresh one-time address only you can find.", foot: "Stealth addresses" },
+    { key: "paid", title: "Shield, then withdraw", body: "Deposit into the pool, withdraw anywhere with a proof. No link between the two.", foot: "Zero-knowledge pool" },
+    { key: "proof", title: "Cross chains, unlinked", body: "Makers deliver to a stealth address on the other chain in about a second.", foot: "Private bridge" },
   ],
 } as const;
 
@@ -70,68 +68,65 @@ export const proof = {
 
 export const developers = {
   eyebrow: "Developers",
-  heading: ["A few lines of code."],
-  sub: "Quote, build the exact transfer and watch it land with the SDK. Run a Maker node, or prove a dispute from a script.",
-  bullets: ["Quotes checked against the hub's own rules", "Raw transfers: no approval, no router", "Real Noir proofs from attested windows"],
-  note: "@kakushi/sdk 0.1.0",
+  heading: ["Privacy in", "one call."],
+  sub: "Turn any payment in your app into a private one. Proofs run in the user's browser; a relayer pays the gas.",
+  bullets: ["Stealth send and scan", "Shield and withdraw with Noir proofs", "Drop-in React widget"],
+  note: "@kakushi/sdk",
   samples: [
     {
       key: "send",
       label: "Send",
       filename: "send.ts",
       language: "ts",
-      code: `import { Kakushi, buildTransferTx } from "@kakushi/sdk";
+      code: `import { generateStealthAddress } from "@kakushi/sdk";
 
-const k = new Kakushi({ network: "testnet", deployments });
+// The recipient's meta-address, from the registry or a QR code
+const { stealthAddress, ephemeralPublicKey, viewTag } =
+  generateStealthAddress(recipientMetaAddress);
 
-// Ask the Makers; the hub re-checks every quote's arithmetic.
-const [best] = await k.quote({
-  srcChainId: 11155111, dstChainId: 10143,     // Sepolia -> Monad
-  token: "USDC", amount: 25_000_000n, makerUrls,
-});
-
-// 25.009001 USDC: the last four digits are Monad's code.
-const tx = buildTransferTx(k, {
-  srcChainId: 11155111, token: USDC, maker: best.maker,
-  gross: BigInt(best.gross), sender: me,
-});
-await wallet.sendTransaction(tx);`,
+// One transaction: pay the one-time address and announce it
+await stealthPay.write.sendNative(
+  [stealthAddress, ephemeralPublicKey, viewTag],
+  { value: parseEther("0.1") },
+);`,
     },
     {
       key: "prove",
-      label: "Prove",
-      filename: "dispute.ts",
+      label: "Shield",
+      filename: "shield.ts",
       language: "ts",
-      code: `import { findSourcePayment, prepareDispute } from "@kakushi/sdk";
-import { prove } from "@kakushi/attest-core/prover";
+      code: `import { createNote, buildWithdraw } from "@kakushi/sdk";
 
-const payment = await findSourcePayment(k, 11155111, txHash);
-const plan = await prepareDispute(k, payment);   // rebuilds CRE windows
-if (!plan.ready) throw new Error(plan.reason);
+// Deposit: only the commitment goes on chain
+const note = createNote({ chainId: 10143, pool });
+await pool.write.deposit([note.commitment], { value: parseEther("1") });
 
-const { proof } = await prove("payment_compliance", plan.inputs);
-await dm.write.openDispute([...], { value: k.bond });
-await dm.write.proveDispute([plan.claim, plan.payoutWindowIds, proof]);`,
+// Later, from any wallet: a proof, sent by the relayer
+const req = await buildWithdraw(note, { recipient: fresh, relayer });
+await fetch(relayerUrl + "/relay", { method: "POST", body: JSON.stringify(req) });`,
     },
     {
       key: "maker",
-      label: "Maker",
-      filename: "terminal",
-      language: "bash",
-      code: `# Post margin and register routes in the Maker console, then:
-MAKER_NAME="Maker B" MAKER_KEY=0x… MAKER_PORT=3712 \\
-  node packages/maker/src/main.ts
+      label: "Widget",
+      filename: "Checkout.tsx",
+      language: "tsx",
+      code: `import { KakushiPay } from "@kakushi/widget";
 
-# or sign with a Privy server wallet whose policy only allows
-# PayoutRouter.fill / refund and DisputeModule.answerDispute
-PRIVY_APP_ID=… PRIVY_MAKER_WALLET_ID=… node packages/maker/src/main.ts`,
+// Drop it next to your existing pay button
+<KakushiPay
+  to={merchantMetaAddress}
+  amount="25"
+  token="USDC"
+  chain="monad"
+  onPaid={(tx) => markOrderPaid(tx)}
+/>`,
     },
   ],
 };
 
 export const makers = {
   eyebrow: "Makers",
-  heading: ["Earn on every transfer.", "Keep your inventory."],
+  heading: ["Run a Maker.", "Power private transfers."],
   sub: "Makers set their own fees and limits per route, post margin on Monad, and fill from their own wallets. The fastest, cheapest, best-backed quote wins the transfer.",
   bullets: [
     { title: "Your fees, your routes", body: "A flat withholding plus basis points, per route. Changes take effect after a delay, so open quotes stay honest." },
@@ -142,32 +137,32 @@ export const makers = {
 
 export const fees = {
   eyebrow: "Fees",
-  line: "From 0.10%, plus a few cents for gas.",
-  sub: "Each Maker quotes its own price; today that's 0.10–0.15% plus a few cents of withholding for destination gas. A mistyped code costs a small refund fee, never the transfer.",
-  compare: "No bridge fee, no wrapped-token spread, no protocol take.",
+  line: "Free to integrate. Gas, and a relayer fee you can see.",
+  sub: "No protocol cut. A withdrawal pays its relayer a fixed fee shown before you sign; or send it yourself and pay only gas.",
+  compare: "Open source, MIT. No API key.",
 };
 
 export const faq = {
   eyebrow: "FAQ",
   heading: ["Questions,", "answered."],
-  sub: "About codes, Makers, proofs and what you still trust.",
+  sub: "About keys, proofs and what stays public.",
   items: [
-    { q: "How do I choose where the money goes?", a: "You don't type a destination. The bridge computes the exact amount, and its last four digits name the chain: 9001 Monad, 9002 Sepolia, 9003 Base Sepolia, 9004 Arbitrum Sepolia, 9005 OP Sepolia." },
-    { q: "What if I mistype the amount?", a: "If the last four digits aren't a route, the Maker must refund you on the source chain minus a small fee. That refund is enforced by the same proof and margin as a fill." },
-    { q: "Why a zero-knowledge proof if Chainlink attests?", a: "Chainlink CRE commits data: one root per block window. The proof does the judging over it (your payment, the code, the fee math, the missing payout) at a fixed cost on Monad. The roots could later come from a light client without changing the circuit." },
-    { q: "Who are the Makers?", a: "Anyone who posts margin on Monad, registers routes and fees in the EBC, and runs the open-source Maker node." },
-    { q: "Which chains and assets?", a: "USDC between Monad testnet and Sepolia, Arbitrum Sepolia and OP Sepolia, both ways, and native ETH between Sepolia, Base Sepolia, Arbitrum Sepolia and OP Sepolia. A new chain is a config entry and a router." },
-    { q: "What do I still trust?", a: "That each attested root is the true set of logs in its window, which today is Chainlink's DON. Everything else, from fee math to who gets slashed, is checked by the proof and the contracts." },
+    { q: "What does a stealth address hide?", a: "Who gets paid. Each payment goes to a fresh address derived from the recipient's meta-address; only their viewing key can find it. The amount and sender are still public." },
+    { q: "What does the pool hide?", a: "The link between a deposit and a withdrawal. You deposit a fixed amount with a commitment and later withdraw with a zero-knowledge proof that you own one of the deposits, without saying which." },
+    { q: "Who can see my keys?", a: "Nobody. Your stealth keys are derived from a signature in your own wallet, and proofs are generated in your browser." },
+    { q: "Why a relayer?", a: "A fresh address has no gas. The relayer submits the withdrawal and takes a fee from it, so the new address never touches your old one." },
+    { q: "Which chains?", a: "Monad testnet first, then Sepolia, Base Sepolia, Arbitrum Sepolia and OP Sepolia. The private bridge moves funds between them to stealth addresses." },
+    { q: "What about compliance?", a: "Pools are fixed-size and every proof is public on chain. A compliant lane with Cleanverse checks is available for apps that need it." },
   ],
 };
 
 export const closing = {
-  heading: "Bridge to Monad now.",
-  sub: "USDC and ETH in about a second, from Makers whose margin you can see on every quote.",
+  heading: "Make your app private.",
+  sub: "Stealth payments, a ZK pool and a private bridge, in one SDK.",
 };
 
 export const chains = {
   eyebrow: "Chains",
-  heading: ["Every route runs", "through Monad."],
-  sub: "Monad is the hub: rules, Maker margin and disputes all live there. Each spoke only needs a router, so a new chain is a config entry, not a new bridge.",
+  heading: ["Monad first.", "Every chain next."],
+  sub: "The same contracts at the same address on every chain. Private transfers between them run through Makers to stealth addresses.",
 };

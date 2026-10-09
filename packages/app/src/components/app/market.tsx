@@ -115,7 +115,7 @@ export function MakerMarket() {
       <ArtBanner src="/art/vault.webp" position="50% 45%" />
       <PageHead
         title="Market"
-        sub="Every route and the Makers quoting it, read from the rules and margin on Monad. Anyone can post margin and compete on fees."
+        sub="Routes and the Makers quoting them, live from Monad."
         right={<PrimaryButton asChild icon={<Store />}><Link href="/maker">Become a Maker</Link></PrimaryButton>}
       />
       {runtimeError && <Notice tone="warn" title="The Maker registry is unavailable">{runtimeError}</Notice>}
@@ -150,7 +150,9 @@ export function MakerMarket() {
                   <div className="h-1.5 overflow-hidden rounded-full bg-ui-canvas"><div className={cn("h-full rounded-full", covered >= 100 ? "bg-ui-lime-button" : "bg-ui-warn")} style={{ width: `${covered}%` }} /></div>
                 </div>
               )}
-              <div className="mt-4 grid gap-1.5">
+              <details className="group mt-4">
+                <summary className="cursor-pointer list-none text-[13px] text-ui-muted [&::-webkit-details-marker]:hidden">{m.pairs.length} routes · Details</summary>
+              <div className="mt-3 grid gap-1.5">
                 {m.pairs.map((p) => {
                   const native = p.srcToken === zeroAddress;
                   const stats = m.routeStats?.find((s) => s.pairId.toLowerCase() === p.pairId.toLowerCase());
@@ -170,6 +172,7 @@ export function MakerMarket() {
                   );
                 })}
               </div>
+              </details>
             </PanelCard>
           );
         })}
@@ -200,7 +203,7 @@ function RouteTable({ makers }: { makers: MakerView[] }) {
   }
   const list = [...rows.values()].sort((a, b) => b.fills - a.fills || b.makers - a.makers);
   return (
-    <PanelCard title="Routes" subtitle="Active routes, best quoted fee and the largest transfer a Maker will fill">
+    <PanelCard title="Routes">
       <DataTable
         caption="Routes"
         rows={list}

@@ -25,7 +25,7 @@ export function Hero() {
         </h1>
         <Rise y={12} delay={0.5} duration={0.7} className="mt-9">
           <Button asChild variant="white" size="md" className="h-12 px-6 text-[16px] font-medium">
-            <Link href="/bridge">{hero.primary}</Link>
+            <Link href="/send">{hero.primary}</Link>
           </Button>
         </Rise>
       </div>
