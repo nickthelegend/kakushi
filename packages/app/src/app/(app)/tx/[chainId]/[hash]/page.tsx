@@ -66,7 +66,7 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
   return (
     <div className="mx-auto max-w-[860px]">
       <PageHead
-        eyebrow={<Link href="/activity" className="text-[14px] text-ui-muted hover:text-ui-text">← Activity</Link>}
+        eyebrow={<Link href="/explorer" className="text-[14px] text-ui-muted hover:text-ui-text">← Activity</Link>}
         title="Transfer"
         sub={<span className="font-mono text-[13px] break-all">{hash}</span>}
         right={status}

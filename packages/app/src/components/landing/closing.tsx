@@ -45,13 +45,13 @@ export function Footer() {
         <nav aria-label="Product" className="grid content-start gap-2 text-[15px]">
           <p className="mb-1 text-[13px] font-medium text-ui-muted uppercase">Product</p>
           <Link className="text-ui-muted hover:text-ui-text" href="/bridge">Bridge</Link>
-          <Link className="text-ui-muted hover:text-ui-text" href="/activity">Activity</Link>
+          <Link className="text-ui-muted hover:text-ui-text" href="/explorer">Activity</Link>
           <Link className="text-ui-muted hover:text-ui-text" href="/disputes">Disputes</Link>
           <Link className="text-ui-muted hover:text-ui-text" href="/attestations">Attestations</Link>
         </nav>
         <nav aria-label="Makers" className="grid content-start gap-2 text-[15px]">
           <p className="mb-1 text-[13px] font-medium text-ui-muted uppercase">Makers</p>
-          <Link className="text-ui-muted hover:text-ui-text" href="/makers">Market</Link>
+          <Link className="text-ui-muted hover:text-ui-text" href="/market">Market</Link>
           <Link className="text-ui-muted hover:text-ui-text" href="/maker">Maker console</Link>
           <a className="text-ui-muted hover:text-ui-text" href="#developers">Developers</a>
           <a className="text-ui-muted hover:text-ui-text" href="https://github.com/nickthelegend/kakushi">GitHub</a>

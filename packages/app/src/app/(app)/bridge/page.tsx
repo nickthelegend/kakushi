@@ -10,6 +10,7 @@ import { CHAINS, chainById, chainByIdentCode, type ChainKey } from "@kakushi/con
 import { buildTransferTx, erc20Abi, type MakerQuote } from "@kakushi/sdk";
 import { AssetCoin, ChainCoin } from "@/components/coins";
 import { readError } from "@/components/kit";
+import { ConnectButton } from "@/components/AppShell";
 import { ROUTES, routesFor, tokenOf, type Route } from "@/lib/routes";
 import { maximumPrincipal, parseBridgeAmount, requireSuccessfulReceipt } from "@/lib/bridge-state";
 import { useRuntime } from "@/lib/runtime";
@@ -187,7 +188,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
   const cta = sending ?? (!w.address ? "Connect a wallet to bridge" : insufficient ? `Not enough ${route.asset}` : !amount ? "Enter an amount" : q ? `Bridge ${fmt(BigInt(q.principal), src.decimals, route.asset === "ETH" ? 4 : 2)} ${route.asset}` : loadingQ ? "Finding a Maker…" : "Bridge");
 
   return (
-    <div className="rounded-[28px] bg-ui-surface-1 p-2.5 ring-1 ring-ui-hairline-strong shadow-[0_40px_100px_-40px_rgb(47_71_245/0.45)]">
+    <div className="rounded-[30px] bg-[#0b0f1f]/75 p-3 shadow-[0_50px_120px_-40px_rgb(47_71_245/0.55)] ring-1 ring-white/10 backdrop-blur-xl">
       <div className="flex items-center justify-between px-2.5 pt-1.5 pb-3">
         <div className="flex items-center gap-1">
           <span className="rounded-full bg-ui-surface-2 px-3.5 py-1.5 text-[14px] font-medium">Bridge</span>
@@ -210,7 +211,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
       </div>
 
       {/* From */}
-      <div className="rounded-[22px] bg-ui-canvas p-4">
+      <div className="rounded-[22px] bg-[#04060f]/80 p-5 ring-1 ring-white/[0.04]">
         <div className="flex items-center justify-between text-[13px] text-ui-muted">
           <span className="flex items-center gap-2">
             From <ChainPicker label="Source chain" value={route.src} options={srcOptions} onPick={(s) => setRoute(pickRoute(routes, { src: s }, route))} />
@@ -232,7 +233,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
             value={amountStr}
             onChange={(e) => setAmountStr(e.target.value.replace(/[^0-9.]/g, ""))}
             placeholder="0"
-            className={cn("ui-figure min-w-0 flex-1 bg-transparent text-[34px] font-medium tracking-[-0.03em] outline-none placeholder:text-ui-dim", amountStr.trim() !== "" && amount === null && "text-ui-down")}
+            className={cn("ui-figure min-w-0 flex-1 bg-transparent text-[40px] font-medium tracking-[-0.03em] outline-none placeholder:text-ui-dim", amountStr.trim() !== "" && amount === null && "text-ui-down")}
           />
           <AssetPicker value={route.asset} chain={route.src} assets={assetOptions} onPick={(a) => setRoute(pickRoute(routes, { asset: a, src: route.src }, route))} />
         </div>
@@ -244,14 +245,14 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
           aria-label="Swap direction"
           disabled={!reverse}
           onClick={() => reverse && setRoute(reverse)}
-          className="grid size-10 place-items-center rounded-[14px] border-4 border-ui-surface-1 bg-ui-surface-2 text-ui-text transition-transform hover:rotate-180 disabled:opacity-40"
+          className="grid size-11 place-items-center rounded-[15px] border-4 border-[#0b0f1f] bg-[#1a2142] text-ui-text transition-transform hover:rotate-180 disabled:opacity-40"
         >
           <ArrowDown aria-hidden size={17} />
         </button>
       </div>
 
       {/* To */}
-      <div className="rounded-[22px] bg-ui-canvas p-4">
+      <div className="rounded-[22px] bg-[#04060f]/80 p-5 ring-1 ring-white/[0.04]">
         <div className="flex items-center justify-between text-[13px] text-ui-muted">
           <span className="flex items-center gap-2">
             To <ChainPicker label="Destination chain" value={route.dst} options={dstOptions} onPick={(d) => setRoute(pickRoute(routes, { src: route.src, dst: d }, route))} />
@@ -259,7 +260,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
           <span>{q ? `from ${q.name}` : null}</span>
         </div>
         <div className="mt-3 flex items-center gap-3">
-          <span className={cn("ui-figure min-w-0 flex-1 truncate text-[34px] font-medium tracking-[-0.03em]", !q && "text-ui-dim")}>{q ? fmt(BigInt(q.net), src.decimals, dp) : loadingQ ? "…" : "0"}</span>
+          <span className={cn("ui-figure min-w-0 flex-1 truncate text-[40px] font-medium tracking-[-0.03em]", !q && "text-ui-dim")}>{q ? fmt(BigInt(q.net), src.decimals, dp) : loadingQ ? "…" : "0"}</span>
           <span className="inline-flex h-11 items-center gap-2 rounded-full bg-ui-surface-2 pr-4 pl-1.5">
             <span className="relative">
               <AssetCoin asset={route.asset} size={32} />
@@ -328,9 +329,13 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
       </dl>
 
       {sendErr ? <p role="alert" className="px-3 pb-2 text-[13px] text-ui-down">{sendErr}</p> : null}
-      <PrimaryButton size="lg" block className="h-14 text-[16px]" disabled={!q?.quotable || !w.address || insufficient || !recipientOk || !!sending} onClick={send}>
-        {cta}
-      </PrimaryButton>
+      {w.address ? (
+        <PrimaryButton size="lg" block className="h-[58px] text-[17px] shadow-[0_14px_40px_-12px_rgb(47_71_245/0.8)]" disabled={!q?.quotable || insufficient || !recipientOk || !!sending} onClick={send}>
+          {cta}
+        </PrimaryButton>
+      ) : (
+        <ConnectButton block large />
+      )}
       {reason ? (
         <p className="flex gap-2 px-3 pt-3 pb-1 text-[13px] leading-snug text-ui-muted">
           <Info aria-hidden size={15} strokeWidth={1.75} className="mt-0.5 shrink-0" />
@@ -354,7 +359,7 @@ function Recent() {
     <section aria-labelledby="recent-title" className="mt-8">
       <div className="mb-2 flex items-center justify-between px-1">
         <h2 id="recent-title" className="text-[15px] font-medium">Recent transfers</h2>
-        <Link href="/activity" className="inline-flex items-center gap-1 text-[13px] text-ui-muted hover:text-ui-text">All <ArrowRight aria-hidden size={13} /></Link>
+        <Link href="/explorer" className="inline-flex items-center gap-1 text-[13px] text-ui-muted hover:text-ui-text">All <ArrowRight aria-hidden size={13} /></Link>
       </div>
       <ul className="grid gap-1.5">
         {[...data].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5).map((r) => {
@@ -388,7 +393,7 @@ export default function BridgePage() {
   const [picked, setRoute] = useState<Route>(ROUTES[0]!);
   const route = routes.some((r) => r.id === picked.id) ? picked : routes[0]!;
   return (
-    <div className="mx-auto w-full max-w-[480px] pt-4 pb-16 sm:pt-8">
+    <div className="mx-auto w-full max-w-[500px] pt-6 pb-20 sm:pt-[7vh]">
       <h1 className="sr-only">Bridge</h1>
       <button
         type="button"

@@ -6,10 +6,11 @@
 export const nav = {
   links: [
     { label: "Chains", href: "#chains" },
+    { label: "Vs Orbiter", href: "#compare" },
     { label: "How it works", href: "#how" },
     { label: "Makers", href: "#makers" },
     { label: "Fees", href: "#fees" },
-    { label: "Safety", href: "#proof" },
+
     { label: "FAQ", href: "#faq" },
   ],
 };

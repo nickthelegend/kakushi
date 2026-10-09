@@ -1,12 +1,14 @@
 "use client";
 
 import { Button, Logo, PrimaryButton, TopNav } from "@kakushi/ui";
-import { ArrowLeftRight, CircleHelp, CodeXml, FileCheck2, Route, Tag, Users } from "lucide-react";
+import { ArrowLeftRight, CircleHelp, CodeXml, FileCheck2, Network, Route, Scale, Tag, Users } from "lucide-react";
 import Link from "next/link";
 import { NetworkPill } from "@/components/AppShell";
 import { nav } from "./content";
 
 const ICONS: Record<string, React.ReactNode> = {
+  "#chains": <Network />,
+  "#compare": <Scale />,
   "#how": <Route />,
   "#proof": <FileCheck2 />,
   "#developers": <CodeXml />,

@@ -154,3 +154,16 @@ body {
     animation: none;
   }
 }
+
+/* The app's faint star field. */
+.app-stars {
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 0.5), transparent 60%),
+    radial-gradient(1px 1px at 72% 12%, rgb(255 255 255 / 0.4), transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 62%, rgb(196 208 255 / 0.45), transparent 60%),
+    radial-gradient(1px 1px at 88% 48%, rgb(255 255 255 / 0.35), transparent 60%),
+    radial-gradient(1px 1px at 55% 30%, rgb(196 208 255 / 0.4), transparent 60%),
+    radial-gradient(1.5px 1.5px at 22% 78%, rgb(255 255 255 / 0.3), transparent 60%),
+    radial-gradient(1px 1px at 64% 86%, rgb(255 255 255 / 0.35), transparent 60%);
+  background-size: 640px 520px;
+}

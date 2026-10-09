@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Chains } from "@/components/landing/chains";
+import { Compare } from "@/components/landing/compare";
 import { Closing, Footer } from "@/components/landing/closing";
 import { Developers } from "@/components/landing/developers";
 import { Faq } from "@/components/landing/faq";
@@ -28,6 +29,7 @@ export default function LandingPage() {
           <Hero />
           <Sponsors />
           <Chains />
+          <Compare />
           <Transfer />
           <How />
           <Makers />
