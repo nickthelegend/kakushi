@@ -35,6 +35,8 @@ export interface PrivacyDeployment {
   stealthAnnouncer: `0x${string}`;
   stealthPay: `0x${string}`;
   shieldedVerifier: `0x${string}`;
+  /** permissionless KakushiPoolFactory ("any token -> private"); absent in records written before it */
+  poolFactory?: `0x${string}`;
   pools: Record<string, PrivacyPoolDeployment>;
 }
 
@@ -120,6 +122,7 @@ export function parsePrivacy(raw: unknown): PrivacyDeployment | undefined {
     stealthAnnouncer: p.stealthAnnouncer as `0x${string}`,
     stealthPay: p.stealthPay as `0x${string}`,
     shieldedVerifier: p.shieldedVerifier as `0x${string}`,
+    ...(isAddr(p.poolFactory) ? { poolFactory: p.poolFactory } : {}),
     pools,
   };
 }

@@ -85,10 +85,10 @@ async function main() {
     // anvil's dev keys are public: on the real testnets people attach EIP-7702 delegations to
     // them, which the forks inherit (a "user" that forwards every incoming ETH elsewhere).
     // Clear any code so our local accounts are plain EOAs.
-    for (const r of ["deployer", "makerA", "makerB", "user", "user2", "watchtower", "attester"] as const) {
+    for (const r of ["deployer", "makerA", "makerB", "user", "user2", "watchtower", "attester", "relayer"] as const) {
       await rpc(pc, "anvil_setCode", [localAccount(r).address, "0x"]);
     }
-    for (const r of ["makerA", "makerB", "user", "user2", "watchtower", "attester"] as const) {
+    for (const r of ["makerA", "makerB", "user", "user2", "watchtower", "attester", "relayer"] as const) {
       const amt = r.startsWith("maker") ? parseUnits("20000", 6) : parseUnits("1000", 6);
       await rpc(pc, "anvil_dealERC20", [localAccount(r).address, c.usdc.address, `0x${amt.toString(16)}`]);
       await rpc(pc, "anvil_setBalance", [localAccount(r).address, `0x${parseUnits("100", 18).toString(16)}`]);

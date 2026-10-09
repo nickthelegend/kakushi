@@ -9,10 +9,15 @@
 //                         empty leaf = keccak256("kakushi.pool.zero") mod p, leaves appended left to right
 //   path bit i (LSB first) of leafIndex: 1 = the running node is the RIGHT child at level i
 //   public inputs, in order:
-//     [root, nullifierHash, recipient, relayer, fee, refund, chainId, pool]
+//     [root, nullifierHash, recipient, relayer, fee, refund, chainId, pool, extDataHash]
 //     recipient/relayer/pool = uint256(uint160(address)), fee/refund in token base units / wei,
-//     chainId = block.chainid of the withdrawing chain, pool = the KakushiPool address.
-import { keccak256, toBytes, type Hex } from "viem";
+//     chainId = block.chainid of the withdrawing chain, pool = the KakushiPool address,
+//     extDataHash = 0 for a plain withdraw, else the private-call binding (callExtDataHash below).
+//   private call (KakushiPool.withdrawAndCall): recipient = the pool's executor
+//     (= CREATE(pool, nonce 1), poolExecutorAddress), refund = 0,
+//     extDataHash = uint256(keccak256(abi.encode(address target, bytes data, address refundTo,
+//                   uint256 chainId, address pool))) mod p
+import { encodeAbiParameters, getAddress, getContractAddress, keccak256, toBytes, type Hex } from "viem";
 import { FIELD_MODULUS, hashPair, poseidon2 } from "./poseidon.ts";
 import type { InputMap } from "./witness.ts";
 
@@ -109,6 +114,23 @@ export function poolRoot(leaf: bigint, siblings: bigint[], bits: boolean[]): big
   return cur;
 }
 
+/**
+ * The private-call binding KakushiPool.extDataHash computes on chain:
+ *   uint256(keccak256(abi.encode(address target, bytes data, address refundTo, uint256 chainId, address pool))) mod p
+ */
+export function callExtDataHash(target: Hex, data: Hex, refundTo: Hex, chainId: bigint, pool: Hex): bigint {
+  const enc = encodeAbiParameters(
+    [{ type: "address" }, { type: "bytes" }, { type: "address" }, { type: "uint256" }, { type: "address" }],
+    [getAddress(target), data, getAddress(refundTo), chainId, getAddress(pool)],
+  );
+  return BigInt(keccak256(enc)) % FIELD_MODULUS;
+}
+
+/** The pool's PrivateCallExecutor: the only contract its constructor creates, so CREATE(pool, nonce 1). */
+export function poolExecutorAddress(pool: Hex): Hex {
+  return getContractAddress({ from: getAddress(pool), nonce: 1n });
+}
+
 export interface WithdrawRequest {
   note: Note;
   tree: PoolTree;
@@ -118,11 +140,13 @@ export interface WithdrawRequest {
   refund: bigint;
   chainId: bigint;
   pool: Hex;
+  /** 0 (default) for a plain withdraw; callExtDataHash(...) for a private call */
+  extDataHash?: bigint;
 }
 
 const hx = (x: bigint): string => `0x${x.toString(16)}`;
 
-/** Witness for shielded_withdraw plus the public inputs in verifier order. */
+/** Witness for shielded_withdraw plus the public inputs in verifier order (9, see the header). */
 export function withdrawInputs(r: WithdrawRequest): { inputs: InputMap; publicInputs: bigint[] } {
   const commitment = commitmentOf(r.note);
   const index = r.tree.indexOf(commitment);
@@ -137,8 +161,11 @@ export function withdrawInputs(r: WithdrawRequest): { inputs: InputMap; publicIn
     r.refund,
     r.chainId,
     BigInt(r.pool),
+    r.extDataHash ?? 0n,
   ];
-  const [root, nullifierHash, recipient, relayer, fee, refund, chainId, pool] = publicInputs.map(hx);
+  if (publicInputs[8]! < 0n || publicInputs[8]! >= FIELD_MODULUS) throw new Error("extDataHash is not a field element");
+  if (publicInputs[8] !== 0n && r.refund !== 0n) throw new Error("a private call carries no refund");
+  const [root, nullifierHash, recipient, relayer, fee, refund, chainId, pool, extDataHash] = publicInputs.map(hx);
   return {
     inputs: {
       root: root!,
@@ -149,6 +176,7 @@ export function withdrawInputs(r: WithdrawRequest): { inputs: InputMap; publicIn
       refund: refund!,
       chain_id: chainId!,
       pool: pool!,
+      ext_data_hash: extDataHash!,
       nullifier: hx(r.note.nullifier),
       secret: hx(r.note.secret),
       path: siblings.map(hx),
@@ -156,4 +184,24 @@ export function withdrawInputs(r: WithdrawRequest): { inputs: InputMap; publicIn
     },
     publicInputs,
   };
+}
+
+export interface PrivateCallRequest {
+  note: Note;
+  tree: PoolTree;
+  relayer: Hex;
+  fee: bigint;
+  chainId: bigint;
+  pool: Hex;
+  target: Hex;
+  data: Hex;
+  refundTo: Hex;
+}
+
+/** Witness for a KakushiPool.withdrawAndCall proof: recipient = executor, refund = 0, extDataHash bound to the call. */
+export function privateCallInputs(r: PrivateCallRequest): { inputs: InputMap; publicInputs: bigint[]; extDataHash: bigint; executor: Hex } {
+  const extDataHash = callExtDataHash(r.target, r.data, r.refundTo, r.chainId, r.pool);
+  const executor = poolExecutorAddress(r.pool);
+  const w = withdrawInputs({ note: r.note, tree: r.tree, recipient: executor, relayer: r.relayer, fee: r.fee, refund: 0n, chainId: r.chainId, pool: r.pool, extDataHash });
+  return { ...w, extDataHash, executor };
 }

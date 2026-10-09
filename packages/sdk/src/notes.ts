@@ -8,8 +8,11 @@
 // Hash: Poseidon2 over BN254 exactly as noir-lang/poseidon v0.4.0 `Poseidon2::hash(input, len)`
 // (@zkpassport/poseidon2). Vector: Poseidon2([1, 2]) =
 // 0x038682aa1cb5ae4e0a3f13da432a95c77c5c111f6f030faf9cad641ce1ed7383.
-import { type Hex, type PublicClient, getAddress, isAddress, numberToHex } from "viem";
-import { FIELD_MODULUS, POOL_DEPTH, POOL_ZERO_VALUE, PoolTree, commitmentOf, nullifierHashOf, poolRoot, poolZeros, randomNote } from "@kakushi/attest-core";
+import { type Hex, type PublicClient, getAddress, isAddress, isHex, numberToHex, zeroAddress } from "viem";
+import {
+  FIELD_MODULUS, POOL_DEPTH, POOL_ZERO_VALUE, PoolTree, callExtDataHash, commitmentOf, nullifierHashOf, poolExecutorAddress, poolRoot, poolZeros,
+  privateCallInputs, randomNote, type InputMap,
+} from "@kakushi/attest-core";
 import { kakushiPoolAbi } from "./pool-abi.ts";
 
 export { FIELD_MODULUS };
@@ -181,4 +184,82 @@ export class IncrementalMerkleTree {
 export function computeMerkleRoot(leaf: bigint, pathElements: bigint[], pathIndices: boolean[]): bigint {
   if (pathElements.length !== POOL_TREE_DEPTH || pathIndices.length !== POOL_TREE_DEPTH) throw new Error(`path must have ${POOL_TREE_DEPTH} levels`);
   return poolRoot(leaf, pathElements, pathIndices);
+}
+
+// ------------------------------------------------------------------ private calls
+
+/**
+ * A private call ("any contract call -> private", KakushiPool.withdrawAndCall): the note pays
+ * `target` with `data` (the pool's executor is msg.sender and carries denomination - fee as
+ * msg.value, or as an allowance for ERC-20 pools); leftovers go to `refundTo`. All three are bound
+ * by the proof. The target must credit a beneficiary named in `data`, never msg.sender.
+ */
+export interface PrivateCallSpec {
+  target: Hex;
+  data: Hex;
+  refundTo: Hex;
+}
+
+function checkCall(c: PrivateCallSpec): PrivateCallSpec {
+  if (!isAddress(c.target, { strict: false }) || getAddress(c.target) === zeroAddress) throw new Error(`bad call target ${c.target}`);
+  if (!isAddress(c.refundTo, { strict: false }) || getAddress(c.refundTo) === zeroAddress) throw new Error(`bad refundTo ${c.refundTo}`);
+  if (!isHex(c.data, { strict: true }) || c.data.length % 2 !== 0) throw new Error("call data must be 0x-prefixed bytes");
+  return { target: getAddress(c.target), data: c.data.toLowerCase() as Hex, refundTo: getAddress(c.refundTo) };
+}
+
+/**
+ * The withdraw circuit's `ext_data_hash` for a private call, exactly KakushiPool.extDataHash:
+ *   uint256(keccak256(abi.encode(address target, bytes data, address refundTo, uint256 chainId, address pool))) mod p
+ * (0 for a plain withdraw).
+ */
+export function extDataHash(target: Hex, data: Hex, refundTo: Hex, chainId: number | bigint, pool: Hex): bigint {
+  const c = checkCall({ target, data, refundTo });
+  if (!isAddress(pool, { strict: false })) throw new Error(`bad pool address ${pool}`);
+  return callExtDataHash(c.target, c.data, c.refundTo, BigInt(chainId), pool);
+}
+
+/** The pool's PrivateCallExecutor (the proof's `recipient` for a private call) = CREATE(pool, nonce 1). */
+export function poolExecutor(pool: Hex): Hex {
+  if (!isAddress(pool, { strict: false })) throw new Error(`bad pool address ${pool}`);
+  return poolExecutorAddress(pool);
+}
+
+/**
+ * Circuit inputs for a private-call proof of `note` (recipient = executor, refund = 0,
+ * ext_data_hash bound to the call). Feed `inputs` to the prover (shielded_withdraw).
+ */
+export function privateCallWitness(
+  note: Note,
+  tree: IncrementalMerkleTree,
+  p: { relayer: Hex; fee: bigint; call: PrivateCallSpec },
+): { inputs: InputMap; publicInputs: bigint[]; extDataHash: bigint; executor: Hex } {
+  const c = checkCall(p.call);
+  return privateCallInputs({
+    note: { nullifier: note.nullifier, secret: note.secret },
+    tree: tree.tree,
+    relayer: getAddress(p.relayer),
+    fee: p.fee,
+    chainId: BigInt(note.chainId),
+    pool: note.pool,
+    ...c,
+  });
+}
+
+export type WithdrawAndCallArgs = readonly [proof: Hex, root: Hex, nullifierHash: Hex, relayer: Hex, fee: bigint, target: Hex, data: Hex, refundTo: Hex];
+
+/** Arguments of KakushiPool.withdrawAndCall in order, for viem's writeContract/simulateContract. */
+export function buildWithdrawAndCallArgs(p: {
+  proof: Hex;
+  root: bigint | Hex;
+  nullifierHash: bigint | Hex;
+  relayer: Hex;
+  fee: bigint;
+  call: PrivateCallSpec;
+}): WithdrawAndCallArgs {
+  if (!isHex(p.proof, { strict: true }) || p.proof.length < 4) throw new Error("proof must be non-empty 0x bytes");
+  if (!isAddress(p.relayer, { strict: false })) throw new Error(`bad relayer ${p.relayer}`);
+  if (p.fee < 0n) throw new Error("fee must be non-negative");
+  const f = (x: bigint | Hex) => fieldToHex(typeof x === "bigint" ? x : BigInt(x));
+  const c = checkCall(p.call);
+  return [p.proof, f(p.root), f(p.nullifierHash), getAddress(p.relayer), p.fee, c.target, c.data, c.refundTo] as const;
 }

@@ -80,6 +80,7 @@ describe("chain registry", () => {
       stealthAnnouncer: a(2),
       stealthPay: a(3),
       shieldedVerifier: a(4),
+      poolFactory: a(8),
       pools: {
         "MON-1": { address: a(5), token: a(0), symbol: "MON", decimals: 18, denomination: "1000000000000000000" },
         "USDC-10": { address: a(6), token: a(7), symbol: "USDC", decimals: 6, denomination: "10000000" },
@@ -90,7 +91,11 @@ describe("chain registry", () => {
       mkdirSync(join(dir, "local"));
       const base = { deployBlock: 1, deployer: "0x1", payoutRouter: "0x2", sourceRouter: "0x3" };
       writeFileSync(join(dir, "local", "10143.json"), JSON.stringify({ ...base, chainId: 10143, role: "hub", privacy }));
+      // a record written before the factory existed (and one with a malformed factory) still parses
+      const { poolFactory: _f, ...older } = privacy;
       writeFileSync(join(dir, "local", "11155111.json"), JSON.stringify({ ...base, chainId: 11155111, role: "spoke" }));
+      writeFileSync(join(dir, "local", "421614.json"), JSON.stringify({ ...base, chainId: 421614, role: "spoke", privacy: older }));
+      writeFileSync(join(dir, "local", "11155420.json"), JSON.stringify({ ...base, chainId: 11155420, role: "spoke", privacy: { ...older, poolFactory: "0x12" } }));
       writeFileSync(join(dir, "local", "84532.json"), JSON.stringify({ ...base, chainId: 84532, role: "spoke", privacy: { stealthPay: "0x" } }));
       const d = loadDeployments("local", dir);
       expect(d.hub.privacy?.stealthPay).toBe(a(3));
@@ -98,6 +103,10 @@ describe("chain registry", () => {
       expect(BigInt(d.hub.privacy!.pools["MON-1"]!.denomination)).toBe(10n ** 18n);
       expect(d.chains[11155111]!.privacy).toBeUndefined();
       expect(d.chains[84532]!.privacy).toBeUndefined();
+      expect(d.hub.privacy!.poolFactory).toBe(a(8));
+      expect(d.chains[421614]!.privacy!.stealthPay).toBe(a(3));
+      expect(d.chains[421614]!.privacy!.poolFactory).toBeUndefined();
+      expect("poolFactory" in d.chains[11155420]!.privacy!).toBe(false);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

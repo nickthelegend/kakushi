@@ -8,11 +8,14 @@ console.log = (...a: unknown[]) => process.stderr.write(a.map(String).join(" ") 
 //       -> abi.encode(uint256[] rootAfterEachInsert)
 //   { mode: "prove", leaves: [x...], nullifier, secret, recipient, relayer, fee, refund, chainId, pool }
 //       -> abi.encode(bytes32 root, bytes32 nullifierHash, bytes proof, bytes32[] publicInputs)
+//   { mode: "prove", ..., call: { target, data, refundTo } }   (recipient and refund ignored)
+//       -> the same, for KakushiPool.withdrawAndCall: recipient = the pool's executor, refund = 0,
+//          extDataHash = keccak256(abi.encode(target, data, refundTo, chainId, pool)) mod p
 // all numbers are decimal strings; addresses are 0x hex.
 import { encodeAbiParameters, type Hex } from "viem";
 import { BarretenbergSync } from "@aztec/bb.js";
 import { poseidon2 } from "../src/poseidon.ts";
-import { PoolTree, withdrawInputs } from "../src/pool.ts";
+import { PoolTree, privateCallInputs, withdrawInputs } from "../src/pool.ts";
 import { prove } from "../src/prover.ts";
 
 const spec = JSON.parse(process.argv[2]!) as Record<string, unknown>;
@@ -35,16 +38,12 @@ if (spec.mode === "hash") {
   out = encodeAbiParameters([{ type: "uint256[]" }], [roots]);
 } else if (spec.mode === "prove") {
   const tree = new PoolTree((spec.leaves as string[]).map(big));
-  const { inputs, publicInputs } = withdrawInputs({
-    note: { nullifier: big(spec.nullifier), secret: big(spec.secret) },
-    tree,
-    recipient: spec.recipient as Hex,
-    relayer: spec.relayer as Hex,
-    fee: big(spec.fee),
-    refund: big(spec.refund),
-    chainId: big(spec.chainId),
-    pool: spec.pool as Hex,
-  });
+  const note = { nullifier: big(spec.nullifier), secret: big(spec.secret) };
+  const call = spec.call as { target: Hex; data: Hex; refundTo: Hex } | undefined;
+  const common = { note, tree, relayer: spec.relayer as Hex, fee: big(spec.fee), chainId: big(spec.chainId), pool: spec.pool as Hex };
+  const { inputs, publicInputs } = call
+    ? privateCallInputs({ ...common, target: call.target, data: call.data, refundTo: call.refundTo })
+    : withdrawInputs({ ...common, recipient: spec.recipient as Hex, refund: big(spec.refund) });
   const res = await prove("shielded_withdraw", inputs, 4);
   out = encodeAbiParameters(
     [{ type: "bytes32" }, { type: "bytes32" }, { type: "bytes" }, { type: "bytes32[]" }],

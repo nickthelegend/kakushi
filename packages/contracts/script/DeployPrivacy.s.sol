@@ -7,6 +7,7 @@ import {StealthRegistry} from "../src/privacy/StealthRegistry.sol";
 import {StealthAnnouncer} from "../src/privacy/StealthAnnouncer.sol";
 import {StealthPay} from "../src/privacy/StealthPay.sol";
 import {KakushiPool} from "../src/privacy/KakushiPool.sol";
+import {KakushiPoolFactory} from "../src/privacy/KakushiPoolFactory.sol";
 import {IVerifier} from "../src/interfaces/IVerifier.sol";
 import {IRootOracle} from "../src/interfaces/IRootOracle.sol";
 import {IERC5564Announcer} from "../src/interfaces/IERC5564Announcer.sol";
@@ -20,6 +21,9 @@ import {ShieldedWithdrawVerifier} from "../src/verifiers/ShieldedWithdrawVerifie
 ///   - KakushiPool per (token, denomination): through CreateX, so a re-run with the same verifier
 ///     reuses them. Denominations: USDC 10 and 100 everywhere; native 1 and 10 MON on Monad,
 ///     0.01 and 0.1 ETH on the ETH chains. Root oracle: none (address(0)), see IRootOracle.
+///   - KakushiPoolFactory (permissionless "any token -> private" pools on the same verifier):
+///     through CreateX, recorded as `poolFactory`. The curated pools above are not registered in
+///     it (they predate it and keep working); the factory serves every other (token, denomination).
 /// Run it AFTER script/Deploy.s.sol: it merges a `privacy` object into deployments/<network>/<chainId>.json
 /// (Deploy.s.sol rewrites that file, so re-run this one after it).
 ///
@@ -59,6 +63,15 @@ contract DeployPrivacy is Script {
         );
     }
 
+    /// addresses written to the `privacy` object
+    struct Out {
+        address registry;
+        address announcer;
+        address stealthPay;
+        address verifier;
+        address poolFactory;
+    }
+
     function deploy(Config memory c) public {
         uint256 pk = c.deployerPk;
         address deployer = vm.addr(pk);
@@ -66,15 +79,19 @@ contract DeployPrivacy is Script {
         string memory path = string.concat(c.dir, "/", c.network, "/", vm.toString(block.chainid), ".json");
 
         vm.startBroadcast(pk);
-        address registry = _create2(_salt(deployer, "kakushi.StealthRegistry.v1"), type(StealthRegistry).creationCode);
-        address announcer =
-            _create2(_salt(deployer, "kakushi.StealthAnnouncer.v1"), type(StealthAnnouncer).creationCode);
-        address stealthPay = _create2(
+        Out memory o;
+        o.registry = _create2(_salt(deployer, "kakushi.StealthRegistry.v1"), type(StealthRegistry).creationCode);
+        o.announcer = _create2(_salt(deployer, "kakushi.StealthAnnouncer.v1"), type(StealthAnnouncer).creationCode);
+        o.stealthPay = _create2(
             _salt(deployer, "kakushi.StealthPay.v1"),
-            abi.encodePacked(type(StealthPay).creationCode, abi.encode(IERC5564Announcer(announcer)))
+            abi.encodePacked(type(StealthPay).creationCode, abi.encode(IERC5564Announcer(o.announcer)))
         );
-        address verifier = c.verifier;
-        if (verifier.code.length == 0) verifier = address(new ShieldedWithdrawVerifier());
+        o.verifier = c.verifier;
+        if (o.verifier.code.length == 0) o.verifier = address(new ShieldedWithdrawVerifier());
+        o.poolFactory = _create2(
+            _salt(deployer, "kakushi.KakushiPoolFactory.v1"),
+            abi.encodePacked(type(KakushiPoolFactory).creationCode, abi.encode(IVerifier(o.verifier)))
+        );
 
         PoolSpec[] memory specs = poolSpecs(block.chainid);
         address[] memory pools = new address[](specs.length);
@@ -85,18 +102,22 @@ contract DeployPrivacy is Script {
             }
             bytes memory init = abi.encodePacked(
                 type(KakushiPool).creationCode,
-                abi.encode(IVerifier(verifier), specs[i].token, specs[i].denomination, IRootOracle(address(0)))
+                abi.encode(IVerifier(o.verifier), specs[i].token, specs[i].denomination, IRootOracle(address(0)))
             );
             pools[i] = _create2(_salt(deployer, string.concat("kakushi.KakushiPool.v1.", specs[i].label)), init);
         }
         vm.stopBroadcast();
+        _write(path, o, specs, pools);
+    }
 
+    function _write(string memory path, Out memory o, PoolSpec[] memory specs, address[] memory pools) internal {
         string memory p = "privacy";
         vm.serializeUint(p, "deployBlock", block.number);
-        vm.serializeAddress(p, "stealthRegistry", registry);
-        vm.serializeAddress(p, "stealthAnnouncer", announcer);
-        vm.serializeAddress(p, "stealthPay", stealthPay);
-        vm.serializeAddress(p, "shieldedVerifier", verifier);
+        vm.serializeAddress(p, "stealthRegistry", o.registry);
+        vm.serializeAddress(p, "stealthAnnouncer", o.announcer);
+        vm.serializeAddress(p, "stealthPay", o.stealthPay);
+        vm.serializeAddress(p, "shieldedVerifier", o.verifier);
+        vm.serializeAddress(p, "poolFactory", o.poolFactory);
         string memory poolsJson = "{}";
         for (uint256 i; i < specs.length; i++) {
             if (pools[i] == address(0)) continue;

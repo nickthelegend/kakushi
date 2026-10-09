@@ -9,6 +9,7 @@ import {SafeTransfer} from "../lib/SafeTransfer.sol";
 import {Errors} from "../lib/Errors.sol";
 import {Poseidon2} from "../lib/Poseidon2.sol";
 import {PoolZeros} from "./PoolZeros.sol";
+import {PrivateCallExecutor} from "./PrivateCallExecutor.sol";
 
 /// @notice Fixed-denomination shielded pool (Tornado / Privacy Pools style). One instance per
 ///         (token, denomination); token == address(0) is the chain's native coin.
@@ -21,8 +22,12 @@ import {PoolZeros} from "./PoolZeros.sol";
 ///         Proof   : packages/zk/circuits/shielded_withdraw (UltraHonk, keccak transcript, ZK) with
 ///                   public inputs, as bytes32 field elements in this order:
 ///                   [root, nullifierHash, uint160(recipient), uint160(relayer), fee, refund,
-///                    block.chainid, uint160(address(this))]
+///                    block.chainid, uint160(address(this)), extDataHash]
 ///                   so a proof is bound to one recipient/relayer/fee/refund, one chain and one pool.
+///         Private call (withdrawAndCall): recipient = this pool's `executor`, refund = 0 and
+///                   extDataHash = uint256(keccak256(abi.encode(address target, bytes data,
+///                                 address refundTo, uint256 block.chainid, address(this)))) % p
+///                   (see extDataHash()); a plain withdrawal binds extDataHash = 0.
 contract KakushiPool is ReentrancyGuard {
     using SafeTransfer for address;
 
@@ -36,6 +41,8 @@ contract KakushiPool is ReentrancyGuard {
     uint256 public immutable denomination;
     /// cross-chain hook, address(0) in every deployment today (see IRootOracle)
     IRootOracle public immutable rootOracle;
+    /// runs private calls; deployed here, so its address is CREATE(address(this), nonce 1)
+    PrivateCallExecutor public immutable executor;
 
     uint256[LEVELS] public filledSubtrees;
     bytes32[ROOT_HISTORY_SIZE] public roots;
@@ -47,6 +54,15 @@ contract KakushiPool is ReentrancyGuard {
 
     event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
     event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
+    /// emitted after Withdrawal(executor, ...) by withdrawAndCall
+    event PrivateCall(
+        bytes32 indexed nullifierHash,
+        address indexed target,
+        address refundTo,
+        uint256 amount,
+        uint256 refundedToken,
+        uint256 refundedNative
+    );
 
     constructor(IVerifier verifier_, address token_, uint256 denomination_, IRootOracle rootOracle_) {
         if (address(verifier_) == address(0)) revert Errors.ZeroAddress();
@@ -57,6 +73,7 @@ contract KakushiPool is ReentrancyGuard {
         token = token_;
         denomination = denomination_;
         rootOracle = rootOracle_;
+        executor = new PrivateCallExecutor();
         for (uint256 i; i < LEVELS; i++) {
             filledSubtrees[i] = PoolZeros.zeros(i);
         }
@@ -99,28 +116,8 @@ contract KakushiPool is ReentrancyGuard {
         uint256 fee,
         uint256 refund
     ) external payable nonReentrant {
-        if (fee > denomination) revert Errors.FeeTooHigh(fee, denomination);
-        if (recipient == address(0) || (fee > 0 && relayer == address(0))) revert Errors.InvalidRecipient();
-        if (uint256(nullifierHash) >= FIELD_SIZE) revert Errors.NotAFieldElement();
-        if (nullifierHashes[nullifierHash]) revert Errors.NullifierSpent(nullifierHash);
-        if (!isKnownRoot(root)) {
-            if (address(rootOracle) == address(0) || !rootOracle.isKnownRoot(address(this), root)) {
-                revert Errors.UnknownRoot(root);
-            }
-        }
-        if (token == address(0)) {
-            if (msg.value != 0 || refund != 0) revert Errors.WrongValue(msg.value, 0);
-        } else if (msg.value != refund) {
-            revert Errors.WrongValue(msg.value, refund);
-        }
-
-        // the bb verifiers revert (rather than return false) on most failures: normalise both
-        try verifier.verify(proof, publicInputs(root, nullifierHash, recipient, relayer, fee, refund)) returns (bool ok) {
-            if (!ok) revert Errors.InvalidProof();
-        } catch {
-            revert Errors.InvalidProof();
-        }
-        nullifierHashes[nullifierHash] = true;
+        if (recipient == address(executor)) revert Errors.InvalidRecipient();
+        _spend(proof, root, nullifierHash, recipient, relayer, fee, refund, 0);
 
         if (token == address(0)) {
             address(recipient).sendNative(denomination - fee);
@@ -137,7 +134,107 @@ contract KakushiPool is ReentrancyGuard {
         emit Withdrawal(recipient, nullifierHash, relayer, fee);
     }
 
-    /// @notice The verifier's public inputs for a withdrawal from this pool on this chain.
+    // ------------------------------------------------------------------ private call
+
+    /// @notice Spend a note INTO a contract call ("any contract call -> private"): pays `fee` to
+    ///         `relayer`, then this pool's executor calls `target` with `data` carrying
+    ///         `denomination - fee` (as msg.value for native pools, as an allowance for ERC-20
+    ///         pools, reset to 0 afterwards). Whatever the executor holds of the pool asset or the
+    ///         native coin after the call is sent to `refundTo`. target, data and refundTo are bound
+    ///         by the proof through extDataHash, so a relayer can change none of them. If the call
+    ///         reverts, the whole withdrawal reverts and the note stays unspent.
+    ///         target must be a contract other than this pool, its executor and the pool token.
+    function withdrawAndCall(
+        bytes calldata proof,
+        bytes32 root,
+        bytes32 nullifierHash,
+        address payable relayer,
+        uint256 fee,
+        address target,
+        bytes calldata data,
+        address refundTo
+    ) external nonReentrant {
+        if (refundTo == address(0)) revert Errors.InvalidRecipient();
+        if (target.code.length == 0 || target == address(this) || target == address(executor) || target == token) {
+            revert Errors.InvalidCallTarget(target);
+        }
+        _spend(proof, root, nullifierHash, address(executor), relayer, fee, 0, extDataHash(target, data, refundTo));
+
+        uint256 amount = denomination - fee;
+        uint256 refundedToken;
+        uint256 refundedNative;
+        if (token == address(0)) {
+            if (fee > 0) address(relayer).sendNative(fee);
+            (refundedToken, refundedNative) =
+                executor.execute{value: amount}(address(0), amount, target, data, refundTo);
+        } else {
+            if (fee > 0) token.safeTransfer(relayer, fee);
+            token.safeTransfer(address(executor), amount);
+            (refundedToken, refundedNative) = executor.execute(token, amount, target, data, refundTo);
+        }
+        emit Withdrawal(address(executor), nullifierHash, relayer, fee);
+        emit PrivateCall(nullifierHash, target, refundTo, amount, refundedToken, refundedNative);
+    }
+
+    /// @notice The private-call binding: uint256(keccak256(abi.encode(target, data, refundTo,
+    ///         block.chainid, address(this)))) mod p (BN254 scalar field), never 0 in practice.
+    function extDataHash(address target, bytes calldata data, address refundTo) public view returns (uint256) {
+        return uint256(keccak256(abi.encode(target, data, refundTo, block.chainid, address(this)))) % FIELD_SIZE;
+    }
+
+    /// @notice The verifier's public inputs for a private call from this pool on this chain.
+    function callPublicInputs(
+        bytes32 root,
+        bytes32 nullifierHash,
+        address relayer,
+        uint256 fee,
+        address target,
+        bytes calldata data,
+        address refundTo
+    ) external view returns (bytes32[] memory) {
+        return _publicInputs(root, nullifierHash, address(executor), relayer, fee, 0, extDataHash(target, data, refundTo));
+    }
+
+    // ------------------------------------------------------------------ spend
+
+    /// checks, proof verification and nullifier burn shared by withdraw and withdrawAndCall
+    function _spend(
+        bytes calldata proof,
+        bytes32 root,
+        bytes32 nullifierHash,
+        address recipient,
+        address relayer,
+        uint256 fee,
+        uint256 refund,
+        uint256 extHash
+    ) internal {
+        if (fee > denomination) revert Errors.FeeTooHigh(fee, denomination);
+        if (recipient == address(0) || (fee > 0 && relayer == address(0))) revert Errors.InvalidRecipient();
+        if (uint256(nullifierHash) >= FIELD_SIZE) revert Errors.NotAFieldElement();
+        if (nullifierHashes[nullifierHash]) revert Errors.NullifierSpent(nullifierHash);
+        if (!isKnownRoot(root)) {
+            if (address(rootOracle) == address(0) || !rootOracle.isKnownRoot(address(this), root)) {
+                revert Errors.UnknownRoot(root);
+            }
+        }
+        if (token == address(0)) {
+            if (msg.value != 0 || refund != 0) revert Errors.WrongValue(msg.value, 0);
+        } else if (msg.value != refund) {
+            revert Errors.WrongValue(msg.value, refund);
+        }
+
+        // the bb verifiers revert (rather than return false) on most failures: normalise both
+        try verifier.verify(proof, _publicInputs(root, nullifierHash, recipient, relayer, fee, refund, extHash)) returns (
+            bool ok
+        ) {
+            if (!ok) revert Errors.InvalidProof();
+        } catch {
+            revert Errors.InvalidProof();
+        }
+        nullifierHashes[nullifierHash] = true;
+    }
+
+    /// @notice The verifier's public inputs for a plain withdrawal (extDataHash = 0) from this pool on this chain.
     function publicInputs(
         bytes32 root,
         bytes32 nullifierHash,
@@ -145,8 +242,20 @@ contract KakushiPool is ReentrancyGuard {
         address relayer,
         uint256 fee,
         uint256 refund
-    ) public view returns (bytes32[] memory pi) {
-        pi = new bytes32[](8);
+    ) public view returns (bytes32[] memory) {
+        return _publicInputs(root, nullifierHash, recipient, relayer, fee, refund, 0);
+    }
+
+    function _publicInputs(
+        bytes32 root,
+        bytes32 nullifierHash,
+        address recipient,
+        address relayer,
+        uint256 fee,
+        uint256 refund,
+        uint256 extHash
+    ) internal view returns (bytes32[] memory pi) {
+        pi = new bytes32[](9);
         pi[0] = root;
         pi[1] = nullifierHash;
         pi[2] = bytes32(uint256(uint160(recipient)));
@@ -155,6 +264,7 @@ contract KakushiPool is ReentrancyGuard {
         pi[5] = bytes32(refund);
         pi[6] = bytes32(block.chainid);
         pi[7] = bytes32(uint256(uint160(address(this))));
+        pi[8] = bytes32(extHash);
     }
 
     // ------------------------------------------------------------------ tree

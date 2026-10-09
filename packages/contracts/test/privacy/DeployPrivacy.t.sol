@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {DeployPrivacy} from "../../script/DeployPrivacy.s.sol";
 import {KakushiPool} from "../../src/privacy/KakushiPool.sol";
+import {KakushiPoolFactory} from "../../src/privacy/KakushiPoolFactory.sol";
 import {StealthPay} from "../../src/privacy/StealthPay.sol";
 import {TestToken} from "../utils/TestToken.sol";
 
@@ -77,6 +78,7 @@ contract DeployPrivacyTest is Test {
         _clean();
         vm.etch(CREATEX, address(new TestCreateX()).code);
         address[2] memory stealthPay;
+        address[2] memory factories;
         uint64[2] memory chains = [uint64(10143), 11155111];
         for (uint256 c; c < 2; c++) {
             vm.chainId(chains[c]);
@@ -93,6 +95,11 @@ contract DeployPrivacyTest is Test {
             stealthPay[c] = vm.parseJsonAddress(json, ".privacy.stealthPay");
             assertGt(stealthPay[c].code.length, 0);
             assertEq(address(StealthPay(stealthPay[c]).announcer()), vm.parseJsonAddress(json, ".privacy.stealthAnnouncer"));
+            KakushiPoolFactory factory = KakushiPoolFactory(vm.parseJsonAddress(json, ".privacy.poolFactory"));
+            assertGt(address(factory).code.length, 0, "factory deployed");
+            assertEq(address(factory.verifier()), vm.parseJsonAddress(json, ".privacy.shieldedVerifier"));
+            assertEq(factory.poolCount(), 0);
+            factories[c] = address(factory);
             for (uint256 i; i < 4; i++) {
                 string memory k = string.concat('.privacy.pools["', specs[i].label, '"]');
                 KakushiPool pool = KakushiPool(vm.parseJsonAddress(json, string.concat(k, ".address")));
@@ -107,6 +114,7 @@ contract DeployPrivacyTest is Test {
             assertEq(vm.readFile(path), json);
         }
         assertEq(stealthPay[0], stealthPay[1], "same StealthPay address on hub and spoke");
+        assertTrue(factories[0] != address(0) && factories[1] != address(0));
         _clean();
     }
 }

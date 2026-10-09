@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { createWalletClient, http, parseAbi, type Hex } from "viem";
+import { createWalletClient, http, parseAbi, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { CHAIN_LIST, chainById, type ChainConfig } from "@kakushi/config";
 import type { PrivacyDeployment } from "@kakushi/config/deployments";
@@ -50,3 +50,43 @@ export const poolAbi = parseAbi([
   "function withdraw(bytes proof, bytes32 root, bytes32 nullifierHash, address recipient, address relayer, uint256 fee, uint256 refund) payable",
 ]);
 export const erc20ApproveAbi = parseAbi(["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address owner, address spender) view returns (uint256)"]);
+
+export const factoryAbi = parseAbi([
+  "function createPool(address token, uint256 denomination) returns (address pool)",
+  "function allPools() view returns (address[])",
+]);
+const poolViewAbi = parseAbi(["function token() view returns (address)", "function denomination() view returns (uint256)"]);
+const erc20MetaAbi = parseAbi(["function symbol() view returns (string)", "function decimals() view returns (uint8)"]);
+
+export interface PoolInfo {
+  address: Hex;
+  token: Hex;
+  symbol: string;
+  decimals: number;
+  denomination: string;
+  /** created by anyone through the factory (not in the curated deployment list) */
+  community?: boolean;
+}
+
+/** Curated pools plus every pool anyone opened through the factory on this chain. */
+export async function loadPools(client: PublicClient, pc: PrivacyChain): Promise<PoolInfo[]> {
+  const curated: PoolInfo[] = Object.values(pc.privacy.pools).map((p) => ({ ...p }));
+  const factory = (pc.privacy as { poolFactory?: Hex }).poolFactory;
+  if (!factory) return curated;
+  const addrs = (await client.readContract({ address: factory, abi: factoryAbi, functionName: "allPools" })) as Hex[];
+  const known = new Set(curated.map((p) => p.address.toLowerCase()));
+  const extra = await Promise.all(
+    addrs.filter((a) => !known.has(a.toLowerCase())).map(async (address): Promise<PoolInfo> => {
+      const [token, denomination] = await Promise.all([
+        client.readContract({ address, abi: poolViewAbi, functionName: "token" }) as Promise<Hex>,
+        client.readContract({ address, abi: poolViewAbi, functionName: "denomination" }) as Promise<bigint>,
+      ]);
+      const native = /^0x0{40}$/i.test(token);
+      const [symbol, decimals] = native
+        ? [chainById(pc.chain.chainId).nativeSymbol, chainById(pc.chain.chainId).nativeDecimals]
+        : await Promise.all([client.readContract({ address: token, abi: erc20MetaAbi, functionName: "symbol" }) as Promise<string>, client.readContract({ address: token, abi: erc20MetaAbi, functionName: "decimals" }).then(Number)]);
+      return { address, token, symbol, decimals, denomination: denomination.toString(), community: true };
+    }),
+  );
+  return [...curated, ...extra];
+}

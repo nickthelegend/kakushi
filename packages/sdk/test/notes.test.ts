@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Hex, createPublicClient, custom, encodeAbiParameters, encodeEventTopics, numberToHex, pad } from "viem";
+import { type Hex, createPublicClient, custom, decodeFunctionData, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, getContractAddress, keccak256, numberToHex, pad } from "viem";
 import { PoolTree, poseidon2 } from "@kakushi/attest-core";
 import {
   COMMITMENT_SCHEME,
@@ -16,6 +16,11 @@ import {
   parseNote,
   poolZeroValues,
   serializeNote,
+  extDataHash,
+  poolExecutor,
+  privateCallWitness,
+  buildWithdrawAndCallArgs,
+  kakushiPoolFactoryAbi,
 } from "../src/index.ts";
 
 const POOL = "0xc0ffee254729296a45a3885639AC7E10F9d54979" as Hex;
@@ -117,5 +122,47 @@ describe("pool tree", () => {
 
     // a gap (scan started after the first deposit) is an error, not a wrong root
     await expect(IncrementalMerkleTree.fromDeposits(client as any, POOL, 100n, 300n)).rejects.toThrow(/deposit 0 missing/);
+  });
+});
+
+describe("private calls", () => {
+  const target = "0x00000000000000000000000000000000000000dd" as Hex;
+  const refundTo = "0x00000000000000000000000000000000000000ee" as Hex;
+  const relayer = "0x00000000000000000000000000000000000000cc" as Hex;
+  const data = "0xa9059cbb00" as Hex;
+
+  it("extDataHash = keccak256(abi.encode(target, data, refundTo, chainId, pool)) mod p", () => {
+    const h = extDataHash(target, data, refundTo, 10143, POOL);
+    const enc = encodeAbiParameters(
+      [{ type: "address" }, { type: "bytes" }, { type: "address" }, { type: "uint256" }, { type: "address" }],
+      [target, data, refundTo, 10143n, POOL],
+    );
+    expect(h).toBe(BigInt(keccak256(enc)) % FIELD_MODULUS);
+    expect(extDataHash(target, data, refundTo, 10143n, POOL)).toBe(h);
+    expect(extDataHash(target, "0x", refundTo, 10143, POOL)).not.toBe(h);
+    expect(() => extDataHash("0x0000000000000000000000000000000000000000", data, refundTo, 1, POOL)).toThrow(/target/);
+    expect(() => extDataHash(target, "0xabc" as Hex, refundTo, 1, POOL)).toThrow(/bytes/);
+    expect(() => extDataHash(target, data, "0x0000000000000000000000000000000000000000", 1, POOL)).toThrow(/refundTo/);
+    expect(poolExecutor(POOL)).toBe(getContractAddress({ from: POOL, nonce: 1n }));
+  });
+
+  it("witness binds executor, refund 0 and the call; args encode withdrawAndCall", () => {
+    const note = { chainId: 10143, pool: POOL, nullifier: 11n, secret: 22n };
+    const tree = new IncrementalMerkleTree([5n, noteCommitment(note)]);
+    const call = { target, data, refundTo };
+    const w = privateCallWitness(note, tree, { relayer, fee: 7n, call });
+    expect(w.executor).toBe(poolExecutor(POOL));
+    expect(w.publicInputs).toEqual([tree.root, noteNullifierHash(note), BigInt(w.executor), 0xccn, 7n, 0n, 10143n, BigInt(POOL), extDataHash(target, data, refundTo, 10143, POOL)]);
+    expect(w.inputs.ext_data_hash).toBe(`0x${w.extDataHash.toString(16)}`);
+    expect(w.inputs.recipient).toBe(`0x${BigInt(w.executor).toString(16)}`);
+
+    const args = buildWithdrawAndCallArgs({ proof: "0xabcd", root: tree.root, nullifierHash: fieldToHex(noteNullifierHash(note)), relayer, fee: 7n, call });
+    const calldata = encodeFunctionData({ abi: kakushiPoolAbi, functionName: "withdrawAndCall", args });
+    const dec = decodeFunctionData({ abi: kakushiPoolAbi, data: calldata });
+    expect(dec.functionName).toBe("withdrawAndCall");
+    expect(dec.args).toEqual(["0xabcd", fieldToHex(tree.root), fieldToHex(noteNullifierHash(note)), relayer, 7n, getAddress(target), data, getAddress(refundTo)]);
+    expect(() => buildWithdrawAndCallArgs({ proof: "0x", root: 1n, nullifierHash: 1n, relayer, fee: 0n, call })).toThrow(/proof/);
+    expect(() => buildWithdrawAndCallArgs({ proof: "0xab", root: FIELD_MODULUS, nullifierHash: 1n, relayer, fee: 0n, call })).toThrow(/field/);
+    expect(kakushiPoolFactoryAbi.some((x) => x.type === "function" && x.name === "createPool")).toBe(true);
   });
 });

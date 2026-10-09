@@ -2,18 +2,18 @@
   "schedule": "*/30 * * * * *",
   "hub": {
     "chainSelectorName": "monad-testnet",
-    "oracle": "0x6DcBc91229d812910b54dF91b5c2b592572CD6B0",
-    "ebc": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744"
+    "oracle": "0x837a41023CF81234f89F956C94D676918b4791c1",
+    "ebc": "0x38F6F2caE52217101D7CA2a5eC040014b4164E6C"
   },
   "chain": {
     "chainSelectorName": "ethereum-testnet-sepolia-base-1",
     "chainId": 84532,
-    "payoutRouter": "0x19789e052D1F8779cd2369b96F80116a061D8B50",
-    "sourceRouter": "0xD1853d687AC767F4A827a02AC2d19584BB17761E",
+    "payoutRouter": "0x1E01FF1711393627b62911BA58B0976486d5b22F",
+    "sourceRouter": "0x414538b83a682e8C7ba6a8608A17Cb6dE2526639",
     "tokens": [
       "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
     ],
-    "startBlock": "47898890",
+    "startBlock": "47900142",
     "head": "latest",
     "confirmations": 0,
     "maxBlocks": 100

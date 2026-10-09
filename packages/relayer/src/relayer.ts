@@ -1,4 +1,5 @@
-// The relayer: validate, simulate with eth_call, then submit KakushiPool.withdraw from its own key.
+// The relayer: validate, simulate with eth_call, then submit KakushiPool.withdraw (or, for a
+// request with `call`, KakushiPool.withdrawAndCall) from its own key.
 import { type Hex, type PublicClient, type Transport, type WalletClient, createPublicClient, createWalletClient, http } from "viem";
 import type { LocalAccount } from "viem/accounts";
 import { chainById, currentNetwork, rpcUrl, type Network } from "@kakushi/config";
@@ -97,26 +98,39 @@ export class Relayer {
   private async submit(req: RelayRequest): Promise<{ txHash: Hex }> {
     const c = this.clients.get(req.chainId)!;
     const a = req.args;
-    let request;
+    const fn = req.call ? "withdrawAndCall" : "withdraw";
+    let send: () => Promise<Hex>;
     try {
-      ({ request } = await c.public.simulateContract({
-        account: this.account,
-        address: req.pool.pool,
-        abi: kakushiPoolAbi,
-        functionName: "withdraw",
-        args: [req.proof, a.root, a.nullifierHash, a.recipient, a.relayer, a.fee, a.refund],
-        value: a.refund,
-      }));
+      if (req.call) {
+        const { request } = await c.public.simulateContract({
+          account: this.account,
+          address: req.pool.pool,
+          abi: kakushiPoolAbi,
+          functionName: "withdrawAndCall",
+          args: [req.proof, a.root, a.nullifierHash, a.relayer, a.fee, req.call.target, req.call.data, req.call.refundTo],
+        });
+        send = () => c.wallet.writeContract(request);
+      } else {
+        const { request } = await c.public.simulateContract({
+          account: this.account,
+          address: req.pool.pool,
+          abi: kakushiPoolAbi,
+          functionName: "withdraw",
+          args: [req.proof, a.root, a.nullifierHash, a.recipient, a.relayer, a.fee, a.refund],
+          value: a.refund,
+        });
+        send = () => c.wallet.writeContract(request);
+      }
     } catch (e) {
-      throw new RelayError(422, `withdraw would revert: ${oneLine(e)}`);
+      throw new RelayError(422, `${fn} would revert: ${oneLine(e)}`);
     }
     let txHash: Hex;
     try {
-      txHash = await c.wallet.writeContract(request);
+      txHash = await send();
     } catch (e) {
       throw new RelayError(502, `submission failed: ${oneLine(e)}`);
     }
-    this.log(`chain ${req.chainId} pool ${req.pool.pool} nullifierHash ${a.nullifierHash} fee ${a.fee} -> ${txHash}`);
+    this.log(`chain ${req.chainId} pool ${req.pool.pool} ${fn} nullifierHash ${a.nullifierHash} fee ${a.fee}${req.call ? ` target ${req.call.target}` : ""} -> ${txHash}`);
     return { txHash };
   }
 }

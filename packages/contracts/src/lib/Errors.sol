@@ -75,4 +75,10 @@ library Errors {
     error NullifierSpent(bytes32 nullifierHash);
     error FeeTooHigh(uint256 fee, uint256 denomination);
     error InvalidRecipient();
+
+    // converters (pool factory + private calls)
+    error PoolExists(address token, uint256 denomination, address pool);
+    error InvalidCallTarget(address target);
+    error NotPool();
+    error NotExecuting();
 }

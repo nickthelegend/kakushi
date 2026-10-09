@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import {
   type Hex,
   custom,
+  getAddress,
   decodeFunctionData,
   encodeErrorResult,
   keccak256,
@@ -13,7 +14,7 @@ import {
   RpcRequestError,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { FIELD_MODULUS } from "@kakushi/sdk";
+import { FIELD_MODULUS, poolExecutor } from "@kakushi/sdk";
 import { loadRelayerConfig, parsePools, type PoolConfig } from "../src/config.ts";
 import { kakushiPoolAbi } from "../src/pool-abi.ts";
 import { Relayer } from "../src/relayer.ts";
@@ -96,6 +97,41 @@ describe("request validation", () => {
     reject(body({}, { refund: "1" }), /refund must be 0/);
     reject({ ...body(), args: undefined }, /args \(or publicInputs\)/);
     reject([], /JSON object/);
+  });
+});
+
+const TARGET = "0x00000000000000000000000000000000000000Dd".toLowerCase() as Hex;
+const REFUND_TO = "0x00000000000000000000000000000000000000ee" as Hex;
+const callBody = (call: Record<string, unknown> = {}, args: Record<string, unknown> = {}) => {
+  const b = body({}, args) as any;
+  if (!("recipient" in args)) delete b.args.recipient;
+  b.call = { target: TARGET, data: "0xa9059cbb0000", refundTo: REFUND_TO, ...call };
+  return b;
+};
+
+describe("private call validation", () => {
+  it("accepts {call}: recipient defaults to the pool's executor", () => {
+    const r = validateRelayRequest(callBody(), ctx);
+    expect(r.call).toEqual({ target: getAddress(TARGET), data: "0xa9059cbb0000", refundTo: getAddress(REFUND_TO) });
+    expect(r.args.recipient).toBe(poolExecutor(POOL));
+    expect(validateRelayRequest(callBody({}, { recipient: poolExecutor(POOL).toLowerCase() }), ctx).args.recipient).toBe(poolExecutor(POOL));
+    expect(validateRelayRequest(callBody({ data: "0x" }), ctx).call!.data).toBe("0x");
+  });
+  it("rejects malformed or unsafe calls", () => {
+    reject(callBody({ target: "0x0000000000000000000000000000000000000000" }), /call.target must not be the zero address/);
+    reject(callBody({ target: POOL }), /call.target must not be the pool/);
+    reject(callBody({ target: "0x12" }), /call.target must be an address/);
+    reject(callBody({ refundTo: "0x0000000000000000000000000000000000000000" }), /call.refundTo must not be the zero address/);
+    reject(callBody({ refundTo: undefined }), /call.refundTo must be an address/);
+    reject(callBody({ data: "0xabc" }), /call.data must be 0x-prefixed bytes/);
+    reject(callBody({ data: 7 }), /call.data/);
+    reject(callBody({ data: `0x${"00".repeat(16 * 1024 + 1)}` }), /call.data is larger than/);
+    reject({ ...callBody(), call: [] }, /call must be an object/);
+    reject(callBody({}, { recipient: RECIPIENT }), /recipient is the pool's executor/);
+    reject(callBody({}, { refund: "1" }), /refund must be 0/);
+    reject(callBody({}, { fee: "1" }), /below this pool's minimum/);
+    // and a plain withdraw cannot target the executor
+    reject(body({}, { recipient: poolExecutor(POOL) }), /must not be the pool's executor/);
   });
 });
 
@@ -194,6 +230,28 @@ describe("relaying", () => {
     expect(functionName).toBe("withdraw");
     const b = body();
     expect(args).toEqual([b.proof, b.args.root, b.args.nullifierHash, RECIPIENT, account.address, 1000n, 0n]);
+  });
+
+  it("a request with `call` simulates, then submits withdrawAndCall with exactly the bound call", async () => {
+    const state: Chain = { calls: [], sent: [] };
+    const { txHash } = await relayerWith(state).relay(callBody());
+    expect(state.calls.indexOf("eth_call")).toBeLessThan(state.calls.indexOf("eth_sendRawTransaction"));
+    const tx = parseTransaction(state.sent[0]!);
+    expect(txHash).toBe(keccak256(state.sent[0]!));
+    expect(tx.to?.toLowerCase()).toBe(POOL.toLowerCase());
+    expect(tx.value ?? 0n).toBe(0n);
+    const { functionName, args } = decodeFunctionData({ abi: kakushiPoolAbi, data: tx.data! });
+    expect(functionName).toBe("withdrawAndCall");
+    const b = callBody();
+    expect(args).toEqual([b.proof, b.args.root, b.args.nullifierHash, account.address, 1000n, getAddress(TARGET), "0xa9059cbb0000", getAddress(REFUND_TO)]);
+  });
+
+  it("does not submit a private call whose simulation reverts", async () => {
+    const state: Chain = { calls: [], sent: [], revert: "merchant closed" };
+    const err = await relayerWith(state).relay(callBody()).catch((e) => e);
+    expect(err.status).toBe(422);
+    expect(err.message).toMatch(/withdrawAndCall would revert.*merchant closed/);
+    expect(state.sent).toHaveLength(0);
   });
 
   it("does not submit when the eth_call simulation reverts", async () => {
