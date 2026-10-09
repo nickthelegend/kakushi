@@ -20,3 +20,5 @@ contracts/deployments/local/
 .secrets/
 engine/bin/
 *.tsbuildinfo
+.cre_build_tmp.js
+binary.wasm

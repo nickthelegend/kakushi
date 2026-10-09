@@ -1,0 +1,25 @@
+{
+  "name": "@fhish/cre",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "fhish-decrypt-relay: a Chainlink CRE workflow that delivers KMS-signed FHE decryption results to FhishDecryptionOracle.onReport (log trigger per request + cron sweep), plus a local runner that executes the same logic through Chainlink's MockKeystoneForwarder on a Monad fork.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "node --test test/*.test.ts",
+    "build": "cre workflow build ./workflows/decrypt-relay",
+    "configure": "node scripts/configure.ts",
+    "local": "node local/runner.ts",
+    "simulate": "cre workflow simulate ./workflows/decrypt-relay --non-interactive --trigger-index 1 --broadcast -T"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.22.0",
+    "viem": "^2.38.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "bun": "1.4.2",
+    "typescript": "^5.9.3"
+  }
+}

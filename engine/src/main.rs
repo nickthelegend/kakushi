@@ -480,7 +480,7 @@ fn main() -> Result<()> {
     let dir = PathBuf::from(arg(&args, "--dir").unwrap_or(".fhish"));
     match cmd {
         "serve" => {
-            let port: u16 = arg(&args, "--port").unwrap_or("8799").parse()?;
+            let port: u16 = arg(&args, "--port").unwrap_or("8899").parse()?;
             tokio::runtime::Runtime::new()?.block_on(serve(dir, port))
         }
         "keygen" => {
@@ -506,7 +506,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         _ => {
-            eprintln!("usage: fhish-engine serve|keygen|encrypt [--dir .fhish] [--port 8799] [--pk f --type 3 --value n]");
+            eprintln!("usage: fhish-engine serve|keygen|encrypt [--dir .fhish] [--port 8899] [--pk f --type 3 --value n]");
             Ok(())
         }
     }

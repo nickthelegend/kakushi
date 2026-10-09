@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 export const network = () => (process.env.FHISH_NETWORK === "testnet" ? "testnet" : "local");
 export const rpcUrl = () => process.env.RPC_URL ?? (network() === "local" ? "http://127.0.0.1:18810" : "https://testnet-rpc.monad.xyz");
-export const gatewayUrl = () => process.env.FHISH_GATEWAY_URL ?? "http://127.0.0.1:8790";
+export const gatewayUrl = () => process.env.FHISH_GATEWAY_URL ?? "http://127.0.0.1:8890";
 
 export function config() {
   const p = resolve(process.cwd(), `../contracts/deployments/${network()}.json`);

@@ -34,6 +34,11 @@ contract Caller {
         bytes32 b = ex.trivialEncrypt(y, 3);
         return ex.binary(1, a, b, false); // transient ACL from the executor makes this work
     }
+    /// result plus whether this contract may use it, read inside the same transaction
+    function addAndCheck(uint256 x, uint256 y) external returns (bytes32 r, bool allowedInTx) {
+        r = this.trivialThenAdd(x, y);
+        allowedInTx = ex.acl().isAllowed(r, address(this));
+    }
 }
 
 contract FhishTest is Test {
@@ -97,10 +102,10 @@ contract FhishTest is Test {
 
     function test_ExecutorGivesCallerTransientAccessToResults() public {
         Caller c = new Caller(ex);
-        bytes32 r = c.trivialThenAdd(2, 3);
+        (bytes32 r, bool allowedInTx) = c.addAndCheck(2, 3);
         assertEq(FhishType.typeOf(r), 3);
         // the caller's access to the result is transient (EIP-1153), not persisted in storage
-        assertTrue(acl.isAllowed(r, address(c)));
+        assertTrue(allowedInTx);
         assertFalse(acl.persistAllowed(r, address(c)));
     }
 

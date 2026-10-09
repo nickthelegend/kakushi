@@ -1,6 +1,6 @@
 // Fhish coprocessor for Monad. Env:
-//   FHISH_NETWORK=local|testnet  RPC_URL  ENGINE_URL (default http://127.0.0.1:8799)
-//   GATEWAY_PORT (default 8790)  FHISH_DEPLOYMENT (path to contracts/deployments/<network>.json)
+//   FHISH_NETWORK=local|testnet  RPC_URL  ENGINE_URL (default http://127.0.0.1:8899)
+//   GATEWAY_PORT (default 8890)  FHISH_DEPLOYMENT (path to contracts/deployments/<network>.json)
 //   FHISH_SECRETS (path to signers json; default ../.secrets/signers.json)  DELIVER=direct|cre|both
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { createPublicClient, createWalletClient, defineChain, http, parseEventLogs, type Hex, type PublicClient } from "viem";
@@ -22,7 +22,7 @@ const chain = defineChain({ id: Number(dep.chainId), name: "Monad", nativeCurren
 const client = createPublicClient({ chain, transport: http(rpc, { retryCount: 3 }) }) as PublicClient;
 const relayerAccount = privateKeyToAccount(secrets.relayer.privateKey);
 const relayer = createWalletClient({ chain, account: relayerAccount, transport: http(rpc) });
-const engine = new Engine(process.env.ENGINE_URL ?? "http://127.0.0.1:8799");
+const engine = new Engine(process.env.ENGINE_URL ?? "http://127.0.0.1:8899");
 const metrics = new Metrics();
 const graph = new OpGraph(engine, metrics, Number(process.env.FHISH_CONCURRENCY ?? 4), log);
 const kms = new Kms({
@@ -40,7 +40,7 @@ const kms = new Kms({
 });
 
 startGateway({
-  port: Number(process.env.GATEWAY_PORT ?? 8790),
+  port: Number(process.env.GATEWAY_PORT ?? 8890),
   client,
   chainId: Number(dep.chainId),
   executor: dep.executor,

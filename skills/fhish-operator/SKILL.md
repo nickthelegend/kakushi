@@ -15,8 +15,8 @@ contract ──► FhishDecryptionOracle.requestDecryption ──► KMS (decryp
 
 | Process | Command | Port |
 |---|---|---|
-| engine (tfhe-rs 1.8.1) | `engine/bin/fhish-engine serve --dir .fhish --port 8799` (first run generates keys, ~2 s) | 8799 (localhost only) |
-| coprocessor + gateway + KMS | `FHISH_NETWORK=local RPC_URL=… node coprocessor/src/main.ts` | 8790 |
+| engine (tfhe-rs 1.8.1) | `engine/bin/fhish-engine serve --dir .fhish --port 8899` (first run generates keys, ~2 s) | 8899 (localhost only) |
+| coprocessor + gateway + KMS | `FHISH_NETWORK=local RPC_URL=… node coprocessor/src/main.ts` | 8890 |
 | local fork | `anvil --port 18810 --fork-url https://rpc-testnet.monadinfra.com --prune-history 300` | 18810 |
 
 `.fhish/keys/client_key.bin` is the FHE secret key (decryption root). Never commit `.fhish/` or `.secrets/`.
@@ -39,7 +39,7 @@ and dark OTC flows with real ciphertexts and prints p50/p95 latency.
 
 ## Metrics
 
-`GET :8790/metrics` → `latencyMs` per op (`op.<opcode>`, `select`, `input`, `kms.decrypt`,
+`GET :8890/metrics` → `latencyMs` per op (`op.<opcode>`, `select`, `input`, `kms.decrypt`,
 `request_to_callback`, `user_decrypt`) and counts. Publish these; competitors don't.
 
 ## Troubleshooting

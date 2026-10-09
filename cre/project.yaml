@@ -1,0 +1,21 @@
+# Chainlink CRE project settings. Every `cre` command runs from this folder with -T <target>.
+#
+# local-settings:   the local Monad testnet fork (scripts/e2e-local.ts --keep). The fork carries
+#                   Chainlink's MockKeystoneForwarder cloned from Monad testnet, so
+#                   `cre workflow simulate --broadcast` writes reports to the local oracle.
+# staging-settings: Monad testnet through the simulation forwarder.
+# production-settings: the deployed workflow through the production KeystoneForwarder.
+local-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: http://127.0.0.1:18810
+
+staging-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: https://testnet-rpc.monad.xyz
+
+production-settings:
+  rpcs:
+    - chain-name: monad-testnet
+      url: ${MONAD_TESTNET_RPC_URL}

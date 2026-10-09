@@ -1,6 +1,8 @@
 // End-to-end on a local Monad-testnet fork with REAL tfhe-rs ciphertexts.
-//   node scripts/e2e-local.ts [--keep]
-// Starts: anvil fork (:18810), fhish-engine (:8799), coprocessor+gateway (:8790). Stops them unless --keep.
+//   node scripts/e2e-local.ts [--keep] [--deliver cre]
+// Starts: anvil fork (:18810), fhish-engine (:8899), coprocessor+gateway (:8890). Stops them unless --keep.
+// --deliver cre: the coprocessor only signs results; every callback is delivered by the local CRE
+// runner (cre/local/runner.ts, :8891) through Chainlink's MockKeystoneForwarder -> oracle.onReport.
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { readFileSync, openSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -12,10 +14,12 @@ import { nativeEncryptor } from "../sdk/src/node.ts";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const PORT = 18810;
 const RPC = `http://127.0.0.1:${PORT}`;
-const GATEWAY = "http://127.0.0.1:8790";
+const GATEWAY = "http://127.0.0.1:8890";
 const ENGINE_BIN = `${ROOT}engine/bin/fhish-engine`;
 const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3"; // Circle USDC on Monad testnet
 const keep = process.argv.includes("--keep");
+const viaCre = process.argv.join(" ").includes("--deliver cre");
+const CRE_FORWARDER = "0xB9F79d863261869B234c481D1f9A7af84AeAd192"; // Chainlink MockKeystoneForwarder on Monad testnet
 const procs: ChildProcess[] = [];
 const results: { name: string; pass: boolean; detail: string }[] = [];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -88,18 +92,24 @@ async function main() {
       INPUT_SIGNERS: secrets.inputSigners.map((s: any) => s.address).join(","),
       KMS_SIGNERS: secrets.kmsSigners.map((s: any) => s.address).join(","),
       REGISTRY_SALT: reg.salt,
+      CRE_FORWARDER,
       FHISH_NETWORK: "local",
     },
   });
   const dep = JSON.parse(readFileSync(`${ROOT}contracts/deployments/local.json`, "utf8"));
   if (dep.registry.toLowerCase() !== reg.registry.toLowerCase()) throw new Error("registry not at its CREATE3 address");
   console.log(`  registry ${dep.registry} (same address on every chain) · executor ${dep.executor}`);
-  if (!(await fetch("http://127.0.0.1:8799/health").then((r) => r.ok).catch(() => false))) {
-    start("engine", ENGINE_BIN, ["serve", "--dir", ".fhish", "--port", "8799"]);
-    await until("engine", async () => (await fetch("http://127.0.0.1:8799/health")).ok);
+  if (!(await fetch("http://127.0.0.1:8899/health").then((r) => r.ok).catch(() => false))) {
+    start("engine", ENGINE_BIN, ["serve", "--dir", ".fhish", "--port", "8899"]);
+    await until("engine", async () => (await fetch("http://127.0.0.1:8899/health")).ok);
   }
-  start("coprocessor", "node", ["src/main.ts"], { FHISH_NETWORK: "local", RPC_URL: RPC }, `${ROOT}coprocessor`);
+  start("coprocessor", "node", ["src/main.ts"], { FHISH_NETWORK: "local", RPC_URL: RPC, DELIVER: viaCre ? "cre" : "direct" }, `${ROOT}coprocessor`);
   await until("gateway", async () => (await fetch(`${GATEWAY}/health`)).ok);
+  if (viaCre) {
+    start("cre-runner", "node", ["local/runner.ts"], { RPC_URL: RPC, GATEWAY_URL: GATEWAY, CRE_FROM_BLOCK: String(dep.deployBlock) }, `${ROOT}cre`);
+    await until("cre runner", async () => (await fetch("http://127.0.0.1:8891/health")).ok);
+    console.log(`  delivery: Chainlink CRE (local runner) through forwarder ${CRE_FORWARDER}`);
+  }
 
   const fhish = new FhishClient({ gatewayUrl: GATEWAY, chainId: 10143, encryptor: nativeEncryptor(ENGINE_BIN), publicClient: pub as never });
   const addr = (k: keyof typeof KEYS) => privateKeyToAccount(KEYS[k]).address;
@@ -178,6 +188,12 @@ async function main() {
     results.push({ name: "Dark OTC", pass: take1[3] === false && take1[4] === 0n && take2[3] === true && take2[4] === 3150n, detail: `bob @3000 missed (nothing revealed), carol @3200 crossed at the maker's 3150` });
   } catch (e) {
     results.push({ name: "Dark OTC", pass: false, detail: (e as Error).message });
+  }
+
+  if (viaCre) {
+    const ful = await pub.getLogs({ address: dep.oracle, event: parseAbi(["event DecryptionFulfilled(uint256 indexed requestId, uint256[] cleartexts, bool callbackOk, address via)"])[0], fromBlock: BigInt(dep.deployBlock) });
+    const viaFwd = ful.filter((l) => l.args.via?.toLowerCase() === CRE_FORWARDER.toLowerCase()).length;
+    results.push({ name: "Chainlink CRE delivery", pass: ful.length > 0 && viaFwd === ful.length, detail: `${viaFwd}/${ful.length} callbacks delivered by CRE reports through the KeystoneForwarder (KMS signatures re-verified on-chain)` });
   }
 
   if (keep) {
