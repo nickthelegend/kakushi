@@ -1,33 +1,35 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Satoshi";
-  src: url("/fonts/Satoshi-Variable.woff2") format("woff2");
-  font-weight: 300 900;
-  font-display: swap;
-}
-
-/* Kakushi tokens: sumi black + vermilion, indigo for attested/Monad states. */
+/*
+ * Kakushi tokens. Materials, not a tech palette:
+ *   aizome  deep indigo dye: the night the bridge crosses
+ *   washi   handmade paper: text and the transfer slip
+ *   shu     cinnabar seal paste: ONLY the hidden code and the seal (proof)
+ *   hanada  pale dyed blue: attested / Monad states
+ *   matcha  settled · kincha  waiting · beni  failure
+ */
 :root {
-  --bg: #0e0f12;
-  --s1: #16171b;
-  --s2: #1f2026;
-  --s3: #292b32;
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.14);
-  --text: #f4f2ee;
-  --muted: #8b8e98;
-  --dim: #5a5d66;
-  --accent: #ff4d2e;
-  --accent-soft: rgba(255, 77, 46, 0.14);
-  --indigo: #6b7bff;
-  --indigo-soft: rgba(107, 123, 255, 0.14);
-  --ok: #3ddc97;
-  --ok-soft: rgba(61, 220, 151, 0.13);
-  --bad: #ff5a6e;
-  --bad-soft: rgba(255, 90, 110, 0.13);
-  --warn: #ffb547;
-  --warn-soft: rgba(255, 181, 71, 0.13);
+  --bg: #0b1424;
+  --s1: #0f1b30;
+  --s2: #14223b;
+  --s3: #1b2c4a;
+  --line: rgba(237, 230, 214, 0.09);
+  --line-strong: rgba(237, 230, 214, 0.17);
+  --text: #ede6d6;
+  --muted: #a3a8b8;
+  --dim: #66708a;
+  --accent: #e8452c;
+  --accent-soft: rgba(232, 69, 44, 0.14);
+  --indigo: #93b2ee;
+  --indigo-soft: rgba(147, 178, 238, 0.13);
+  --ok: #a3c96f;
+  --ok-soft: rgba(163, 201, 111, 0.13);
+  --bad: #f07a84;
+  --bad-soft: rgba(240, 122, 132, 0.13);
+  --warn: #dcab4c;
+  --warn-soft: rgba(220, 171, 76, 0.14);
+  --washi: #ede6d6;
+  --sumi: #0a0f1a;
   color-scheme: dark;
 }
 
@@ -51,10 +53,11 @@
   --color-bad-soft: var(--bad-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
-  --font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  --color-washi: var(--washi);
+  --color-sumi: var(--sumi);
+  --font-sans: var(--font-gothic), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-mincho), "Hiragino Mincho ProN", Georgia, serif;
   --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --radius-card: 28px;
-  --radius-tile: 20px;
 }
 
 html,
@@ -66,17 +69,43 @@ body {
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "ss01";
+  line-height: 1.6;
+}
+
+/* faint washi fibre texture over the indigo, so large fields don't read as flat UI black */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-feature-settings: "palt";
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-.glow {
-  background:
-    radial-gradient(60rem 30rem at 85% -10%, rgba(255, 77, 46, 0.12), transparent 60%),
-    radial-gradient(50rem 30rem at -10% 10%, rgba(107, 123, 255, 0.1), transparent 60%);
+/* the hanko: a square cinnabar seal frame around the hidden digits */
+.seal {
+  position: relative;
+  color: var(--accent);
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  padding: 0 0.12em;
+  box-shadow: inset 0 0 0 2px rgba(232, 69, 44, 0.18);
+}
+
+:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 ::selection {
@@ -84,9 +113,30 @@ body {
   color: var(--text);
 }
 
+@keyframes seal-in {
+  0% { transform: scale(1.18) rotate(-6deg); opacity: 0; }
+  60% { transform: scale(0.97) rotate(0.5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.seal-in {
+  animation: seal-in 0.55s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@keyframes flow {
+  to { stroke-dashoffset: -400; }
+}
+.flow {
+  animation: flow 6s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
+
+body { overflow-x: clip; }

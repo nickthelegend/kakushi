@@ -26,13 +26,14 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
+    "playwright": "1.63.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@kakushi/attest-core": "workspace:*",
     "@kakushi/config": "workspace:*",
     "@kakushi/sdk": "workspace:*",
-    "@kakushi/attest-core": "workspace:*",
     "viem": "^2.38.0"
   }
 }

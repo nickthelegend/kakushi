@@ -106,19 +106,19 @@ export function CommitStrip({ className }: { className?: string }) {
     };
   }, []);
   return (
-    <div className={cn("rounded-[20px] border border-line bg-s1 p-4", className)}>
+    <div className={cn("rounded-[14px] border border-line bg-s1/70 p-4 backdrop-blur-sm", className)}>
       <div className="flex items-center justify-between text-xs">
-        <span className="uppercase tracking-wider text-dim">Monad testnet, right now</span>
+        <span className="text-muted">Monad testnet, right now</span>
         <span className={cn("inline-flex items-center gap-1.5", status === "live" ? "text-ok" : status === "connecting" ? "text-muted" : "text-bad")}>
           <span className={cn("size-1.5 rounded-full", status === "live" ? "animate-pulse bg-ok" : status === "connecting" ? "bg-muted" : "bg-bad")} />
-          {status === "live" ? "live · monadNewHeads" : status}
+          {status === "live" ? "live" : status}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-4 gap-2">
         {Array.from({ length: 4 }, (_, i) => blocks[i]).map((b, i) => {
           const st = !b ? 0 : b.verified ? 4 : b.finalized ? 3 : b.voted ? 2 : 1;
           return (
-            <div key={b?.number ?? i} className="rounded-xl bg-s2 p-2.5">
+            <div key={b?.number ?? i} className="rounded-[8px] border border-line p-2.5">
               <div className="font-mono text-[11px] text-muted">{b ? `…${String(b.number).slice(-4)}` : "—"}</div>
               <div className="mt-1.5 flex gap-1">
                 {[1, 2, 3, 4].map((x) => (
@@ -134,7 +134,7 @@ export function CommitStrip({ className }: { className?: string }) {
       </div>
       <div className="mt-3 text-xs text-muted">
         {stats && stats.final > 0
-          ? `Median: block every ${Math.round(stats.blockMs)} ms · voted ${Math.round(stats.voted)} ms · final ${Math.round(stats.final)} ms after proposal.`
+          ? `A block every ${Math.round(stats.blockMs)} ms, voted after ${Math.round(stats.voted)} ms and final after ${Math.round(stats.final)} ms (medians, read live via monadNewHeads).`
           : status === "unavailable"
             ? "The public Monad WebSocket is unreachable from this browser."
             : "Measuring…"}

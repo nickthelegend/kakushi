@@ -9,6 +9,7 @@ import { CHAIN_LIST, CHAINS, chainById } from "@kakushi/config";
 import { disputeModuleAbi, findSourcePayments, prepareDispute, srcRefOf, type DisputeReadiness, type SourcePayment } from "@kakushi/sdk";
 import { Amount, Button, Card, ChainName, Empty, Notice, Pill, Spinner, ago, short, PageHeader } from "@/components/ui";
 import { useRuntime } from "@/lib/runtime";
+import { Art } from "@/components/Art";
 import { useWallet } from "@/lib/wallet";
 import { usePoll } from "@/lib/usePoll";
 import { proveInBrowser, type BrowserProof } from "@/lib/prove";
@@ -147,7 +148,10 @@ export default function DisputesPage() {
   const { data, error, loading } = usePoll(watchtowerConfigured ? load : null, 4000, [cfg]);
   return (
     <div className="space-y-8">
-      <PageHeader title="Disputes" subtitle="When a Maker misses a deadline, anyone can prove it. The Watchtower does it automatically and posts the bond; you can also do it yourself, in your browser." />
+      <div className="grid items-center gap-8 md:grid-cols-[1fr_260px]">
+        <PageHeader title="Disputes" subtitle="When a Maker misses a deadline, anyone can prove it. The Watchtower does it automatically and posts the bond; you can also do it yourself, in your browser." />
+        <Art src="/art/seal.webp" alt="" className="hidden aspect-square w-full rounded-[16px] object-cover md:block" />
+      </div>
       <Suspense fallback={<Card className="flex items-center gap-3"><Spinner /> Loading…</Card>}>
         <DisputeYourself />
       </Suspense>

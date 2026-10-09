@@ -72,7 +72,7 @@ export function WalletMenu() {
               {cfg?.network !== "local" && w.privy.configured ? (
                 <button role="menuitem" onClick={() => { w.privy.login?.(); setOpen(false); }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm hover:bg-s2">
                   <div className="font-medium">Sign in with Privy</div>
-                  <div className="text-xs text-muted">Email, Google or any wallet · gasless disputes on Monad</div>
+                  <div className="text-xs text-muted">Email, Google or any wallet. Disputes on Monad need no gas.</div>
                 </button>
               ) : (
                 <div className="rounded-xl px-3 py-2.5 text-left text-sm text-dim">
@@ -86,7 +86,7 @@ export function WalletMenu() {
               </button>}
               {cfg?.network === "local" && cfg.localDevKeys.length > 0 && (
                 <div className="mt-1 border-t border-line pt-1">
-                  <div className="px-3 py-1.5 text-[11px] uppercase tracking-wider text-dim">Local fork accounts (anvil dev keys)</div>
+                  <div className="px-3 py-1.5 text-xs text-dim">Local fork accounts (anvil dev keys)</div>
                   {cfg.localDevKeys.map((d) => (
                     <button role="menuitem" key={d.key} onClick={() => { w.connectLocal(d.key, d.label); setOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-s2">
                       {d.label}
@@ -109,7 +109,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [mobile, setMobile] = useState(false);
   return (
     <MaybePrivy appId={cfg?.privyAppId ?? null}>
-      <div className="glow min-h-dvh">
+      <div className="relative z-[1] min-h-dvh">
         <header className="sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-xl">
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
             <Link href="/" aria-label="Kakushi home">
@@ -117,7 +117,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
             <nav className="hidden items-center gap-1 md:flex">
               {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className={cn("rounded-full px-3 py-1.5 text-sm transition", path?.startsWith(n.href) ? "bg-s2 text-text" : "text-muted hover:text-text")}>
+                <Link key={n.href} href={n.href} className={cn("rounded-full px-3 py-1.5 text-sm transition", path?.startsWith(n.href) ? "text-text underline decoration-accent decoration-2 underline-offset-[10px]" : "text-muted hover:text-text")}>
                   {n.label}
                 </Link>
               ))}
@@ -146,7 +146,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
         <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">{children}</main>
         <footer className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pb-10 text-xs text-dim sm:flex-row sm:justify-between sm:px-6">
-          <span>Kakushi · trust-minimized instant bridge · hub on Monad · attestations by Chainlink CRE · proofs in Noir</span>
+          <span>Kakushi settles disputes on Monad. Chainlink CRE attests every payout; Noir proves the missing ones.</span>
           <span className="flex gap-4">
             <Link href="/maker" className="hover:text-text">Maker console</Link>
             <a href="https://github.com/nickthelegend/kakushi" className="hover:text-text">GitHub</a>

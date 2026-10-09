@@ -6,7 +6,7 @@ import { ArrowDown, ArrowRightLeft, Clock, Shield, Zap } from "lucide-react";
 import { formatUnits, parseUnits, zeroAddress, isAddress, type Hex } from "viem";
 import { CHAINS, chainByIdentCode } from "@kakushi/config";
 import { buildTransferTx, erc20Abi, type MakerQuote } from "@kakushi/sdk";
-import { Amount, Button, Card, ChainDot, Notice, Pill, Spinner, cn, short, PageHeader } from "@/components/ui";
+import { Amount, Button, ChainDot, Notice, Spinner, cn } from "@/components/ui";
 import { useRuntime } from "@/lib/runtime";
 import { useWallet } from "@/lib/wallet";
 import { ROUTES, tokenOf, type Route } from "@/lib/routes";
@@ -107,126 +107,118 @@ export default function BridgePage() {
   const codeDigits = gross !== null ? gross.toString().slice(-4) : "";
   const fixed = gross !== null ? toFixed(gross, src.decimals) : "";
 
+  const dstName = CHAINS[route.dst].shortName;
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+    <div className="grid gap-10 lg:grid-cols-[1fr_360px]">
       <div>
-        <PageHeader title="Bridge" subtitle="Pay a Maker directly. They pay you on the other chain in seconds. If they don't, their margin on Monad is slashed back to you with a zero-knowledge proof." />
-        {error && <Notice tone="bad">{error}</Notice>}
-        <Card className="space-y-4">
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Route">
-            {ROUTES.map((r) => (
-              <button key={r.id} role="tab" aria-selected={r.id === routeId} onClick={() => setRouteId(r.id)} className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition", r.id === routeId ? "border-accent/50 bg-accent-soft text-text" : "border-line text-muted hover:text-text")}>
-                <ChainDot chainId={CHAINS[r.src].chainId} /> {CHAINS[r.src].shortName}
-                <ArrowRightLeft className="size-3.5 opacity-50" />
-                <ChainDot chainId={CHAINS[r.dst].chainId} /> {CHAINS[r.dst].shortName}
-                <span className="text-dim">{r.asset}</span>
-              </button>
-            ))}
-          </div>
+        <h1 className="font-display text-4xl font-bold sm:text-5xl">Send across</h1>
+        <p className="mt-3 max-w-xl text-[15px] text-muted">You pay a Maker directly and it pays you on the other side. If it doesn't, its margin on Monad does.</p>
+        {error && <div className="mt-4"><Notice tone="bad">{error}</Notice></div>}
 
-          <div className="rounded-[20px] bg-s2 p-5">
+        <div className="mt-8 flex flex-wrap gap-x-1 gap-y-2 border-b border-line" role="tablist" aria-label="Route">
+          {ROUTES.map((r) => (
+            <button key={r.id} role="tab" aria-selected={r.id === routeId} onClick={() => setRouteId(r.id)} className={cn("-mb-px inline-flex items-center gap-2 border-b-2 px-3 pb-3 text-sm transition", r.id === routeId ? "border-washi text-text" : "border-transparent text-muted hover:text-text")}>
+              <ChainDot chainId={CHAINS[r.src].chainId} size={8} /> {CHAINS[r.src].shortName}
+              <ArrowRightLeft className="size-3.5 opacity-40" />
+              <ChainDot chainId={CHAINS[r.dst].chainId} size={8} /> {CHAINS[r.dst].shortName}
+              <span className="text-dim">{r.asset}</span>
+            </button>
+          ))}
+        </div>
+
+        <section className="mt-6 rounded-[18px] border border-line bg-s1/70 backdrop-blur-sm" aria-label="Transfer slip">
+          <div className="p-6">
             <div className="flex items-center justify-between text-sm text-muted">
-              <span>You send on {CHAINS[route.src].shortName}</span>
+              <label htmlFor="amount">You send on {CHAINS[route.src].shortName}</label>
               {w.address && (
                 <button className="tabular hover:text-text" onClick={() => balance !== null && setAmountStr(formatUnits(maximumPrincipal(balance, CHAINS[route.dst].identCode, route.asset === "ETH" ? parseUnits("0.001", 18) : 0n), src.decimals))}>
-                  Balance {balance === null ? "…" : <Amount value={balance} decimals={src.decimals} max={4} />}
+                  Use balance: {balance === null ? "…" : <Amount value={balance} decimals={src.decimals} max={4} />}
                 </button>
               )}
             </div>
-            <div className="mt-2 flex items-center gap-3">
-              <input inputMode="decimal" aria-label="Amount" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} className="w-full bg-transparent text-4xl font-semibold tracking-[-0.03em] outline-none tabular placeholder:text-dim" placeholder="0" />
-              <span className="inline-flex items-center gap-2 rounded-full bg-s3 px-3 py-1.5 text-sm font-medium">
-                <ChainDot chainId={CHAINS[route.src].chainId} /> {src.symbol}
-              </span>
+            <div className="mt-2 flex items-baseline gap-3">
+              <input id="amount" inputMode="decimal" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} className="w-full min-w-0 bg-transparent font-display text-[clamp(40px,7vw,64px)] font-bold leading-none outline-none tabular placeholder:text-dim" placeholder="0" />
+              <span className="shrink-0 text-lg text-muted">{src.symbol}</span>
             </div>
+            {amountStr && amount === null && <p className="mt-2 text-sm text-warn">Enter a positive amount with at most {src.decimals} decimals.</p>}
           </div>
 
-          {amountStr && amount === null && <Notice tone="warn">Enter a positive amount with at most {src.decimals} decimals.</Notice>}
-
-          <div className="-my-2 flex justify-center">
-            <span className="rounded-full border border-line bg-s1 p-2 text-muted">
-              <ArrowDown className="size-4" />
-            </span>
-          </div>
-
-          <div className="rounded-[20px] bg-s2 p-5">
-            <div className="text-sm text-muted">{custom ? "Recipient receives" : "You receive"} on {CHAINS[route.dst].shortName}</div>
-            <div className="mt-2 flex items-center gap-3">
-              <div className="w-full text-4xl font-semibold tracking-[-0.03em]">
+          <div className="relative border-t border-dashed border-line-strong p-6">
+            <span className="absolute -top-3 left-6 grid size-6 place-items-center rounded-full border border-line-strong bg-bg text-muted"><ArrowDown className="size-3.5" /></span>
+            <div className="text-sm text-muted">{custom ? "The recipient receives" : "You receive"} on {dstName}</div>
+            <div className="mt-2 flex items-baseline gap-3">
+              <div className="w-full font-display text-[clamp(40px,7vw,64px)] font-bold leading-none tabular">
                 {q ? <Amount value={BigInt(q.net)} decimals={src.decimals} max={6} /> : <span className="text-dim" aria-label={loadingQ ? "Getting quotes" : "No quote available"}>{loadingQ ? "…" : "—"}</span>}
               </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-s3 px-3 py-1.5 text-sm font-medium">
-                <ChainDot chainId={CHAINS[route.dst].chainId} /> {tokenOf(route, "dst").symbol}
-              </span>
+              <span className="shrink-0 text-lg text-muted">{tokenOf(route, "dst").symbol}</span>
             </div>
-            <label className="mt-4 flex items-center gap-2 text-sm text-muted">
-              <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} className="accent-[#FF4D2E]" />
-              Send to a different address (uses the SourceRouter)
+            <label className="mt-5 flex items-center gap-2 text-sm text-muted">
+              <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} className="accent-[#93b2ee]" />
+              Send to a different address
             </label>
             {custom && (
-              <input aria-label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value.trim())} placeholder="0x… recipient on the destination chain" className={cn("mt-2 w-full rounded-xl border bg-s1 px-3 py-2.5 font-mono text-sm outline-none", recipient && !recipientOk ? "border-bad" : "border-line")} />
+              <input aria-label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value.trim())} placeholder="0x… recipient on the destination chain" className={cn("mt-2 w-full rounded-[10px] border bg-bg px-3 py-2.5 font-mono text-sm outline-none", recipient && !recipientOk ? "border-bad" : "border-line")} />
             )}
           </div>
 
           {gross !== null && (
-            <div className="rounded-[20px] border border-line p-4">
-              <div className="text-xs uppercase tracking-wider text-dim">Exact amount you transfer</div>
-              <div className="mt-1 font-mono text-lg break-all tabular">
+            <div className="border-t border-dashed border-line-strong p-6">
+              <div className="text-sm text-muted">The exact amount your wallet sends</div>
+              <div className="mt-2 font-display text-2xl font-bold break-all tabular sm:text-3xl">
                 {fixed.slice(0, -4)}
-                <span className="rounded bg-accent-soft px-0.5 font-semibold text-accent">{fixed.slice(-4)}</span> {src.symbol}
+                <span key={codeDigits} className="seal seal-in ml-0.5 inline-block">{fixed.slice(-4)}</span>
+                <span className="ml-2 font-sans text-base font-medium text-muted">{src.symbol}</span>
               </div>
-              <div className="mt-1 text-sm text-muted">
-                The last four digits <span className="font-mono text-accent">{codeDigits}</span> route it to {chainByIdentCode(Number(codeDigits))?.shortName ?? "an unknown chain"}. {custom ? "The SourceRouter supports your chosen recipient; USDC requires an approval first." : "It is a plain transfer to the Maker: no approval."} No wrapped token.
-              </div>
+              <p className="mt-3 max-w-xl text-sm text-muted">
+                {codeDigits} is {chainByIdentCode(Number(codeDigits))?.shortName ?? "an unknown chain"}'s code. {custom ? "A different recipient goes through the SourceRouter, which needs an approval first for USDC." : "It goes to the Maker as a plain transfer, with no approval."}
+              </p>
             </div>
           )}
 
-          {sendErr && <Notice tone="bad">{sendErr}</Notice>}
-          {!w.address ? (
-            <Notice>Connect a wallet to send.</Notice>
-          ) : (
-            <Button className="h-14 w-full text-base" disabled={!q || !q.quotable || insufficient || !recipientOk || !!sending} loading={!!sending} onClick={send}>
-              {sending ?? (insufficient ? `Not enough ${src.symbol}` : q ? `Send to ${q.name}` : "No quote")}
-            </Button>
-          )}
-        </Card>
+          <div className="border-t border-line p-6">
+            {sendErr && <div className="mb-3"><Notice tone="bad">{sendErr}</Notice></div>}
+            {!w.address ? (
+              <p className="text-sm text-muted">Connect a wallet to send.</p>
+            ) : (
+              <Button className="h-14 w-full text-base" disabled={!q || !q.quotable || insufficient || !recipientOk || !!sending} loading={!!sending} onClick={send}>
+                {sending ?? (insufficient ? `Not enough ${src.symbol}` : q ? `Pay ${q.name}` : "No quote yet")}
+              </Button>
+            )}
+          </div>
+        </section>
       </div>
 
-      <aside className="space-y-4 lg:pt-[92px]">
-        <Card className="p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="font-medium">Makers</div>
-            {loadingQ && <Spinner />}
-          </div>
-          {qErr && <Notice tone="warn">{qErr}</Notice>}
-          {!quotes && !qErr && <div className="text-sm text-muted">{error ? "Quotes are unavailable until Kakushi is deployed." : !cfg ? "Loading bridge configuration…" : loadingQ ? "Getting quotes from Makers…" : "Enter an amount to get quotes."}</div>}
-          <div className="space-y-2">
-            {quotes?.map((x) => (
-              <button key={x.maker} disabled={!x.quotable} onClick={() => setChosen(x.maker)} className={cn("w-full rounded-2xl border p-3 text-left transition", x.maker === chosen ? "border-accent/60 bg-accent-soft" : "border-line hover:bg-s2", !x.quotable && "opacity-55")}>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{x.name}</span>
-                  {x.quotable ? <Pill tone="ok">quotable</Pill> : <Pill tone="warn">{x.reason}</Pill>}
+      <aside className="lg:pt-[148px]">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-bold">Makers</h2>
+          {loadingQ && <Spinner />}
+        </div>
+        {qErr && <div className="mt-3"><Notice tone="warn">{qErr}</Notice></div>}
+        {!quotes && !qErr && <p className="mt-3 text-sm text-muted">{error ? "Quotes are unavailable until Kakushi is deployed." : !cfg ? "Loading the bridge configuration…" : loadingQ ? "Asking Makers for quotes…" : "Enter an amount to see quotes."}</p>}
+        <ol className="mt-3 divide-y divide-line border-y border-line">
+          {quotes?.map((x, i) => (
+            <li key={x.maker}>
+              <button disabled={!x.quotable} onClick={() => setChosen(x.maker)} className={cn("w-full py-4 pl-3 text-left transition border-l-2", x.maker === chosen ? "border-washi" : "border-transparent hover:border-line-strong", !x.quotable && "opacity-50")}>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-medium">{i === 0 && x.quotable ? "Best: " : ""}{x.name}</span>
+                  <span className="font-display text-lg font-bold tabular"><Amount value={BigInt(x.net)} decimals={src.decimals} /></span>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-y-1 text-sm">
-                  <span className="text-muted">You get</span>
-                  <span className="text-right tabular"><Amount value={BigInt(x.net)} decimals={src.decimals} /></span>
-                  <span className="text-muted">Withholding</span>
-                  <span className="text-right tabular"><Amount value={BigInt(x.withholdingFee)} decimals={src.decimals} /></span>
-                  <span className="text-muted">Trading fee</span>
-                  <span className="text-right tabular"><Amount value={BigInt(x.tradingFee)} decimals={src.decimals} /></span>
-                  <span className="text-muted">Margin on Monad</span>
-                  <span className="text-right tabular"><Amount value={BigInt(x.margin)} decimals={6} max={0} symbol="USDC" /></span>
+                <div className="mt-1 text-sm text-muted">
+                  {x.quotable ? (
+                    <>Fees <Amount value={BigInt(x.withholdingFee) + BigInt(x.tradingFee)} decimals={src.decimals} />, backed by <Amount value={BigInt(x.margin)} decimals={6} max={0} /> USDC on Monad</>
+                  ) : (
+                    <span className="text-warn">{x.reason}</span>
+                  )}
                 </div>
-                <div className="mt-2 font-mono text-xs text-dim">{short(x.maker)}</div>
               </button>
-            ))}
-          </div>
-        </Card>
-        <Card className="space-y-3 p-5 text-sm">
-          <div className="flex gap-3"><Zap className="mt-0.5 size-4 shrink-0 text-accent" /><span><b>Fast.</b> The Maker pays from its own inventory as soon as your payment is final{q ? `, about ${(q.etaMs / 1000).toFixed(1)} s on this route` : ""}.</span></div>
-          <div className="flex gap-3"><Shield className="mt-0.5 size-4 shrink-0 text-indigo" /><span><b>Backed.</b> Every Maker locks margin on Monad. Chainlink CRE attests every payout; if yours is missing, a Noir proof slashes it back to you.</span></div>
-          <div className="flex gap-3"><Clock className="mt-0.5 size-4 shrink-0 text-muted" /><span>Fill window {cfg?.deployments?.hub?.fillWindow ?? "…"} s · a mistyped code is refunded, never lost.</span></div>
-        </Card>
+            </li>
+          ))}
+        </ol>
+        <dl className="mt-8 space-y-4 text-sm">
+          <div className="flex gap-3"><Zap className="mt-0.5 size-4 shrink-0 text-muted" /><div><dt className="text-text">Fast</dt><dd className="text-muted">The Maker pays from its own inventory once your payment is final{q ? `, about ${(q.etaMs / 1000).toFixed(1)} s here` : ""}.</dd></div></div>
+          <div className="flex gap-3"><Shield className="mt-0.5 size-4 shrink-0 text-indigo" /><div><dt className="text-text">Backed</dt><dd className="text-muted">Chainlink CRE attests every payout. A missing one is proven and paid from the Maker's margin.</dd></div></div>
+          <div className="flex gap-3"><Clock className="mt-0.5 size-4 shrink-0 text-muted" /><div><dt className="text-text">{cfg?.deployments?.hub?.fillWindow ?? "…"} second fill window</dt><dd className="text-muted">A mistyped code is refunded on the source chain, never lost.</dd></div></div>
+        </dl>
       </aside>
     </div>
   );

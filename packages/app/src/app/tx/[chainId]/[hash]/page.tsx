@@ -22,7 +22,7 @@ function Step({ state, icon, title, children, last }: { state: StepState; icon?:
         {icon ?? (state === "done" ? <CheckCircle2 className="size-7" /> : state === "bad" ? <XCircle className="size-7" /> : state === "active" ? <Spinner className="size-7 text-accent" /> : <CircleDashed className="size-7" />)}
       </span>
       <div className="min-w-0 pt-1">
-        <div className={cn("font-medium", state === "pending" && "text-muted")}>{title}</div>
+        <div className={cn("font-display text-lg font-bold", state === "pending" && "text-muted")}>{title}</div>
         {children && <div className="mt-1 space-y-1 text-sm text-muted">{children}</div>}
       </div>
     </li>
@@ -74,17 +74,17 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
         <Card>
           <ol>
             <Step state="done" title={<>Paid <Amount value={pay.gross} decimals={dec} symbol={sym} /> on <ChainName chainId={pay.srcChainId} /></>}>
-              <div>to {makerName} · {pay.via === "source-router" ? "via the SourceRouter" : "a plain transfer to the Maker's address"} · code <span className="font-mono text-accent">{pay.gross.toString().slice(-4)}</span></div>
+              <div>To {makerName}, {pay.via === "source-router" ? "through the SourceRouter" : "as a plain transfer to its address"}, with code <span className="seal px-1 tabular">{pay.gross.toString().slice(-4)}</span></div>
               <div className="flex flex-wrap gap-x-3"><TxLink chainId={pay.srcChainId} hash={pay.txHash} network={network} /> <span>block {pay.blockNumber.toString()}</span></div>
             </Step>
             <Step state="done" title={c.kind === 1 ? <>The hub says: {makerName} owes {pay.recipient.toLowerCase() === pay.sender.toLowerCase() ? "you" : short(pay.recipient)} <Amount value={c.expected} decimals={dec} symbol={sym} /> on <ChainName chainId={c.obligationChainId} /></> : c.kind === 2 ? <>Unroutable code: {makerName} must refund <Amount value={c.expected} decimals={dec} symbol={sym} /> on <ChainName chainId={c.obligationChainId} /></> : "No obligation (top-up code or dust)"}>
-              <div>Rules read from the EBC on Monad at the payment time · deadline {v.deadline ? new Date(Number(v.deadline) * 1000).toLocaleTimeString() : "…"}</div>
+              <div>Judged by the rules on Monad at the time you paid. Deadline {v.deadline ? new Date(Number(v.deadline) * 1000).toLocaleTimeString() : "…"}.</div>
             </Step>
             {c.kind !== 0 && (
               <Step
                 state={v.payout ? (lateOrWrong ? "bad" : "done") : overdue ? "bad" : "active"}
                 icon={!v.payout && !overdue ? <Timer className="size-7 text-accent" /> : undefined}
-                title={v.payout ? (lateOrWrong ? "Payout arrived but is non-compliant" : <>Paid out <Amount value={v.payout.amount} decimals={dec} symbol={sym} /> {Number(v.payout.timestamp - pay.timestamp) >= 0 ? `${Number(v.payout.timestamp - pay.timestamp)} s after your payment` : ""}</>) : overdue ? "No payout before the deadline" : `Waiting for ${makerName} · ${Math.max(0, Number((v.deadline ?? 0n) - nowS))} s left`}
+                title={v.payout ? (lateOrWrong ? "Payout arrived but is non-compliant" : <>Paid out <Amount value={v.payout.amount} decimals={dec} symbol={sym} /> {Number(v.payout.timestamp - pay.timestamp) >= 0 ? `${Number(v.payout.timestamp - pay.timestamp)} s after your payment` : ""}</>) : overdue ? "No payout before the deadline" : `Waiting for ${makerName}, ${Math.max(0, Number((v.deadline ?? 0n) - nowS))} s left`}
               >
                 {v.payout && <div className="flex flex-wrap gap-x-3"><TxLink chainId={c.obligationChainId} hash={v.payout.txHash} network={network} /> <span>via PayoutRouter</span></div>}
               </Step>
@@ -96,7 +96,7 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
             )}
             {(overdue || lateOrWrong || v.watch?.disputeKey || (v.dispute && v.dispute.status !== 0)) && (
               <Step last state={slashed ? "done" : "active"} icon={<Gavel className={cn("size-7", slashed ? "text-ok" : "text-accent")} />} title={slashed ? <>Margin slashed: you received <Amount value={pay.gross} decimals={dec} symbol={sym} />{dec === 18 ? " in USDC at the Chainlink price" : ""} on Monad</> : "Dispute"}>
-                {v.watch && <div>Watchtower: {v.watch.status}{v.watch.note ? ` · ${v.watch.note}` : ""}{v.watch.proofMs ? ` · proof ${v.watch.proofMs} ms` : ""}</div>}
+                {v.watch && <div>Watchtower: {v.watch.status}{v.watch.note ? `, ${v.watch.note}` : ""}{v.watch.proofMs ? `. Proof generated in ${v.watch.proofMs} ms.` : ""}</div>}
                 {v.watch?.proveTx && <div><TxLink chainId={10143} hash={v.watch.proveTx} network={network} /> PaymentCompliance proof verified on Monad</div>}
                 {!slashed && (
                   <div className="flex flex-wrap gap-2 pt-2">

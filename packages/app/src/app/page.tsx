@@ -2,155 +2,166 @@
 
 import Link from "next/link";
 import { useCallback } from "react";
-import { ArrowRight, Check, Coins, FileCheck2, Gavel, Send, ShieldCheck } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { CHAINS } from "@kakushi/config";
 import { windowCount } from "@kakushi/sdk";
-import { Amount, Button, Card, Pill, Stat } from "@/components/ui";
+import { Amount, Button } from "@/components/ui";
+import { AmountSeal } from "@/components/AmountSeal";
+import { Art } from "@/components/Art";
 import { CommitStrip } from "@/components/CommitStrip";
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
 
-function LiveStats() {
-  const { k } = useRuntime();
+function LiveLine() {
+  const { k, cfg } = useRuntime();
   const load = useCallback(async () => {
     const makers = await k!.makers();
     const margins = await Promise.all(makers.map((m) => k!.margin(m, CHAINS.monadTestnet.usdc.address)));
     return { makers: makers.length, margin: margins.reduce((a, b) => a + b.margin, 0n), windows: await windowCount(k!.hub, k!.d.hub.attestationOracle) };
   }, [k]);
   const { data } = usePoll(k ? load : null, 6000, [k]);
+  if (!data) return <p className="text-sm text-dim">Reading the hub on Monad…</p>;
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <Stat label="Makers" value={data ? data.makers : "…"} />
-      <Stat label="Margin on Monad" value={data ? <Amount value={data.margin} decimals={6} max={0} symbol="USDC" /> : "…"} />
-      <Stat label="CRE windows" value={data ? data.windows.toLocaleString() : "…"} />
-    </div>
+    <p className="text-sm text-muted">
+      Right now {data.makers} Makers back transfers with <span className="text-text"><Amount value={data.margin} decimals={6} max={0} /> USDC</span> of margin on Monad, and Chainlink CRE has attested {data.windows.toLocaleString()} block windows{cfg?.network === "local" ? " (local forks)" : ""}.
+    </p>
   );
 }
 
-const STEPS = [
-  { icon: Send, title: "Pay the Maker", body: "A plain transfer to a Maker's address. The last four digits of the amount say where it goes: …9001 is Monad. No approval, no bridge contract holding your money, no wrapped token." },
-  { icon: Coins, title: "Get paid in seconds", body: "The Maker pays you from its own inventory on the other chain, through a PayoutRouter that logs every payout. On Monad that is under a second after your payment is final." },
-  { icon: Gavel, title: "Or get their margin", body: "If the payout is missing, late or short, a Noir proof over Chainlink CRE attestations shows it, and the Maker's margin on Monad pays you the full amount. A Watchtower does this for you." },
-];
-
-const COMPARE: [string, string, string][] = [
-  ["Where your funds wait", "In one bridge vault: a honeypot for every user", "Nowhere: you pay a Maker directly"],
-  ["What you receive", "A wrapped IOU minted by the bridge", "The real asset, from the Maker's inventory"],
-  ["Who releases funds", "A multisig or oracle says so", "The Maker pays; a proof enforces it"],
-  ["Speed", "Minutes to hours", "About a second to Monad"],
-  ["If something goes wrong", "Hope the vault holds", "Provable refund from slashable margin"],
-  ["Your risk", "The whole bridge's TVL", "One Maker's inventory and margin, visible per transfer"],
+const JOURNEY = [
+  { t: "You pay a Maker", b: "A plain transfer to the Maker's address on the source chain. Nothing is locked in a bridge contract, and nothing wrapped is minted." },
+  { t: "The Maker pays you", b: "From its own inventory on the destination chain, through a PayoutRouter that records every payout. To Monad that takes about a second." },
+  { t: "Or the proof pays you", b: "If the payout is missing, late or short, anyone can prove it with Noir over CRE-attested data, and the Maker's margin on Monad covers the full amount." },
 ];
 
 export default function Landing() {
   return (
-    <div className="space-y-24">
-      <section className="grid items-center gap-10 pt-6 lg:grid-cols-[1.1fr_1fr]">
-        <div>
-          <Pill tone="accent">Monad Metropolis · Trust infrastructure</Pill>
-          <h1 className="mt-5 text-5xl font-semibold leading-[1.02] tracking-[-0.045em] sm:text-6xl">
-            Bridge in a second.
-            <br />
-            <span className="text-accent">Prove</span> you're safe.
+    <div className="-mt-10">
+      {/* hero: the generated bridge, with the amount as the headline object */}
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden">
+        <Art src="/art/hero.webp" alt="" priority className="absolute inset-0 h-full w-full object-cover object-[70%_50%] opacity-80" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#0b1424_12%,rgba(11,20,36,0.78)_42%,rgba(11,20,36,0.05)_78%),linear-gradient(0deg,#0b1424_0%,transparent_28%),linear-gradient(180deg,#0b1424_0%,transparent_14%)]" />
+        <div className="relative mx-auto max-w-6xl px-4 pt-20 pb-24 sm:px-6 lg:pt-28 lg:pb-32">
+          <h1 className="max-w-3xl font-display text-[clamp(36px,5.4vw,68px)] font-bold leading-[1.08] tracking-[-0.01em]">
+            The destination is hidden in the amount.
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-muted">
-            Kakushi pays you on the other chain from a Maker's own inventory. If the Maker doesn't, a zero-knowledge proof takes their margin on Monad and gives it to you. The safety machinery stays hidden until you need it, and then anyone can check it.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/bridge"><Button className="h-12 px-6">Open the bridge <ArrowRight className="size-4" /></Button></Link>
-            <Link href="/attestations"><Button variant="ghost" className="h-12 px-6">See the attestations</Button></Link>
+          <AmountSeal className="mt-10" />
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link href="/bridge"><Button className="h-12 px-6">Open the bridge</Button></Link>
+            <a href="#proof" className="px-2 text-[15px] text-muted underline decoration-line-strong underline-offset-4 hover:text-text">What happens if a Maker doesn't pay</a>
           </div>
         </div>
-        <div className="space-y-3">
-          <LiveStats />
-          <CommitStrip />
-          <Card className="p-5 text-sm text-muted">
-            Disputes settle on the Monad hub. Monad finalizes a block about 600 ms after it is proposed, so a proven missed payout is paid back almost as soon as it is submitted.
-          </Card>
-        </div>
       </section>
 
-      <section>
-        <h2 className="text-3xl font-semibold tracking-[-0.03em]">How it works</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {STEPS.map((s, i) => (
-            <Card key={s.title}>
-              <div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-full bg-accent-soft text-accent"><s.icon className="size-5" /></span><span className="text-sm text-dim">0{i + 1}</span></div>
-              <div className="mt-4 text-lg font-semibold">{s.title}</div>
-              <p className="mt-2 text-[15px] text-muted">{s.body}</p>
-            </Card>
-          ))}
-        </div>
+      <section className="mt-6 grid gap-6 border-t border-line pt-8 lg:grid-cols-[1fr_440px] lg:items-start">
+        <LiveLine />
+        <CommitStrip />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-[-0.03em]">Safety you can verify</h2>
-          <p className="mt-3 text-muted">Three independent pieces. None of them can move your money on its own say-so.</p>
-          <div className="mt-6 space-y-3">
-            {[
-              { icon: Coins, t: "Margin, on Monad", b: "Every Maker locks at least 1.1× its largest route limit in the MDC. Withdrawals wait out every fill, attestation and dispute window. No admin, pause or upgrade can move it." },
-              { icon: ShieldCheck, t: "Attestation, by Chainlink CRE", b: "A CRE workflow per chain commits every payout and payment of a block window as a sorted Poseidon2 root. Payout windows must be contiguous, so nothing can be left out." },
-              { icon: FileCheck2, t: "A proof, in Noir", b: "PaymentCompliance proves your payment exists and no compliant payout does. UltraHonk verifies it on Monad and the slash happens in the same transaction." },
-            ].map((x) => (
-              <div key={x.t} className="flex gap-4 rounded-[20px] border border-line bg-s1 p-4">
-                <x.icon className="mt-0.5 size-5 shrink-0 text-indigo" />
-                <div><div className="font-medium">{x.t}</div><div className="mt-1 text-sm text-muted">{x.b}</div></div>
-              </div>
+      {/* a real sequence, so it is numbered; the line between stations is the bridge */}
+      <section className="mt-28">
+        <h2 className="max-w-xl font-display text-3xl font-bold sm:text-4xl">Three ways a transfer can end, and you are paid in all of them.</h2>
+        <div className="relative mt-12">
+          <svg className="absolute left-0 right-0 top-5 hidden h-4 w-full md:block" preserveAspectRatio="none" viewBox="0 0 1000 16" aria-hidden>
+            <path d="M 20 8 L 980 8" stroke="var(--line-strong)" strokeWidth="1.5" />
+            <path className="flow" d="M 20 8 L 980 8" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="6 194" />
+          </svg>
+          <ol className="grid gap-10 md:grid-cols-3">
+            {JOURNEY.map((s, i) => (
+              <li key={s.t} className="relative">
+                <span className={`relative grid size-10 place-items-center rounded-[8px] border-2 bg-bg font-display text-lg font-bold ${i === 2 ? "border-accent text-accent" : "border-line-strong text-text"}`}>{i + 1}</span>
+                <h3 className="mt-5 font-display text-xl font-bold">{s.t}</h3>
+                <p className="mt-2 max-w-sm text-[15px] text-muted">{s.b}</p>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
-        <Card className="self-start">
-          <div className="font-medium">What you trust, honestly</div>
-          <table className="mt-4 w-full text-sm">
-            <tbody className="[&_td]:py-2 [&_td]:align-top">
-              <tr className="border-b border-line"><td className="pr-3 text-ok">Trustless</td><td className="text-muted">fee math, the ident code, absence or non-compliance of a payout, who gets slashed (the proven sender), replay protection</td></tr>
-              <tr className="border-b border-line"><td className="pr-3 text-indigo">Chainlink</td><td className="text-muted">that each attested root is the true set of logs in its block window (a DON reaching consensus)</td></tr>
-              <tr><td className="pr-3 text-warn">Demo assumption</td><td className="text-muted">normalized leaves rather than receipt-trie proofs; 3 confirmations on Sepolia and Base Sepolia instead of finality; local runs use CRE's simulation forwarder</td></tr>
-            </tbody>
-          </table>
-        </Card>
       </section>
 
-      <section>
-        <h2 className="text-3xl font-semibold tracking-[-0.03em]">Lock-and-mint vs Kakushi</h2>
-        <Card className="mt-6 overflow-x-auto p-0">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead><tr className="border-b border-line text-left text-xs text-muted"><th className="px-5 py-3 font-normal" /><th className="px-3 py-3 font-normal">Lock-and-mint bridge</th><th className="px-5 py-3 font-normal">Kakushi</th></tr></thead>
-            <tbody>
-              {COMPARE.map(([row, a, b]) => (
-                <tr key={row} className="border-b border-line last:border-0">
-                  <td className="px-5 py-3 font-medium">{row}</td>
-                  <td className="px-3 py-3 text-muted">{a}</td>
-                  <td className="px-5 py-3"><span className="inline-flex items-start gap-2"><Check className="mt-0.5 size-4 shrink-0 text-ok" />{b}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+      {/* the three safeguards, each with its own weight instead of three identical cards */}
+      <section id="proof" className="mt-32 grid gap-12 lg:grid-cols-12">
+        <div className="lg:col-span-5">
+          <video
+            className="aspect-[4/5] w-full rounded-[18px] object-cover sm:aspect-square"
+            src="/art/proof-loop.mp4"
+            poster="/art/proof-poster.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-label="An orb of value crosses a bridge; the next one stalls, a lattice seal locks around it, and the far shore pays the value back"
+          />
+        </div>
+        <div className="lg:col-span-7 lg:pt-6">
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">A missed payout is proven, not argued.</h2>
+          <p className="mt-4 max-w-xl text-[17px] text-muted">
+            Your browser, or a Watchtower, rebuilds the attested windows from chain data and proves in Noir that your payment exists and that no compliant payout does. Monad verifies the proof and slashes the Maker in the same transaction. Nobody has to believe anyone.
+          </p>
+          <dl className="mt-10 grid gap-8 sm:grid-cols-2">
+            <div>
+              <dt className="font-display text-lg font-bold">Margin on Monad</dt>
+              <dd className="mt-1.5 text-[15px] text-muted">Each Maker locks at least 1.1 times its largest route limit. Withdrawals wait out every fill, attestation and dispute window. No admin key, pause or upgrade can move it.</dd>
+            </div>
+            <div>
+              <dt className="font-display text-lg font-bold">Attested by Chainlink CRE</dt>
+              <dd className="mt-1.5 text-[15px] text-muted">A workflow per chain commits every payment and payout of a block window as one root. Windows must be contiguous, so a payout cannot be left out to frame a Maker, or hidden to protect one.</dd>
+            </div>
+            <div>
+              <dt className="font-display text-lg font-bold">A typo is refunded</dt>
+              <dd className="mt-1.5 text-[15px] text-muted">If the last four digits aren't a route, the Maker owes you a refund on the source chain, enforced by the same proof and the same margin.</dd>
+            </div>
+            <div>
+              <dt className="font-display text-lg font-bold">What you still trust</dt>
+              <dd className="mt-1.5 text-[15px] text-muted">That each attested root is the true set of logs in its window. Today that is Chainlink's DON; later, a light client, without changing the circuit.</dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-        <h2 className="text-3xl font-semibold tracking-[-0.03em]">Questions</h2>
-        <div className="space-y-2">
+      <section className="mt-32 grid items-center gap-12 lg:grid-cols-12">
+        <div className="lg:col-span-6">
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">No vault to drain.</h2>
+          <p className="mt-4 max-w-lg text-[17px] text-muted">
+            Lock-and-mint bridges keep every user's money in one contract and hand back a wrapped IOU. Kakushi never holds your funds: your risk is one Maker's inventory, and its margin backs you, shown on every quote before you send.
+          </p>
+          <table className="mt-8 w-full max-w-lg text-[15px]">
+            <tbody className="[&_td]:border-b [&_td]:border-line [&_td]:py-3 [&_td]:align-top">
+              <tr><td className="pr-4 text-muted">Where funds wait</td><td>Nowhere. You pay the Maker directly.</td></tr>
+              <tr><td className="pr-4 text-muted">What arrives</td><td>The real asset, not an IOU.</td></tr>
+              <tr><td className="pr-4 text-muted">If it goes wrong</td><td>A proven refund from slashable margin.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="lg:col-span-6">
+          <Art src="/art/vault.webp" alt="Coins locked in a glass vault, floating over mist" className="aspect-square w-full rounded-[18px] object-cover" />
+        </div>
+      </section>
+
+      <section className="mt-32 grid gap-10 lg:grid-cols-12">
+        <h2 className="font-display text-3xl font-bold lg:col-span-4">Questions</h2>
+        <div className="divide-y divide-line border-y border-line lg:col-span-8">
           {[
-            ["What if I type the wrong amount?", "If the last four digits aren't a registered route, the Maker must refund you on the source chain, minus a small fee. That refund is enforced by the same proof and margin as a fill."],
-            ["Why ZK if Chainlink attests?", "CRE commits only data: one root per block window. The proof does the judging over it (your payment, the code, the fee math, the missing payout) at a fixed on-chain cost, and the roots can later come from a light client without changing the circuit."],
-            ["Who runs the Makers?", "Anyone. Register routes and fees on the EBC, post margin on Monad, and run the open-source Maker node. Quotes compete on price; the margin shown is what backs your transfer."],
-            ["Which chains?", "USDC between Sepolia and Monad testnet, and native ETH between Sepolia and Base Sepolia. Adding a chain is a config entry and an adapter."],
+            ["How do I choose where the money goes?", "You don't type a destination. The bridge works out the exact amount for you, and its last four digits name the chain: 9001 Monad, 9002 Sepolia, 9003 Base Sepolia."],
+            ["Why a zero-knowledge proof if Chainlink already attests?", "CRE commits data: one root per block window. The proof does the judging over that data at a fixed cost on-chain: your payment, the code, the fee math, the missing payout. The roots can later come from a light client without changing the circuit."],
+            ["Who are the Makers?", "Anyone who posts margin on Monad, registers routes and fees, and runs the open-source Maker node. Quotes compete on price, and each shows the margin behind it."],
+            ["Which chains and assets?", "USDC between Sepolia and Monad testnet, and ETH between Sepolia and Base Sepolia. A new chain is a config entry and an adapter."],
           ].map(([q, a]) => (
-            <details key={q} className="group rounded-[20px] border border-line bg-s1 px-5 py-4">
-              <summary className="cursor-pointer list-none font-medium">{q}</summary>
-              <p className="mt-2 text-sm text-muted">{a}</p>
+            <details key={q} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-medium">
+                {q}
+                <span className="text-dim transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 max-w-2xl text-[15px] text-muted">{a}</p>
             </details>
           ))}
         </div>
       </section>
 
-      <section className="rounded-[28px] border border-accent/30 bg-accent-soft p-10 text-center">
-        <h2 className="text-3xl font-semibold tracking-[-0.03em]">Send something across.</h2>
-        <p className="mt-2 text-muted">USDC to Monad in about a second, backed by margin you can see.</p>
-        <Link href="/bridge"><Button className="mt-6 h-12 px-6">Open the bridge <ArrowRight className="size-4" /></Button></Link>
+      <section className="mt-32 mb-6 border-t border-line pt-14">
+        <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+          <h2 className="max-w-xl font-display text-4xl font-bold">Send something across.</h2>
+          <Link href="/bridge"><Button className="h-12 px-6">Open the bridge <ArrowUpRight className="size-4" /></Button></Link>
+        </div>
       </section>
     </div>
   );

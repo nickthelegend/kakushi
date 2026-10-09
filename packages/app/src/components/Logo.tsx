@@ -1,12 +1,11 @@
+/** The Kakushi mark: a cinnabar hanko with 隠 ("hidden"), the seal that also stands for the proof. */
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap ${className ?? ""}`}>
-      <svg viewBox="0 0 32 32" className="size-7 shrink-0" aria-hidden>
-        <rect width="32" height="32" rx="9" fill="#FF4D2E" />
-        <path d="M9 9h14M16 9v14M10 16h12M12 23h8" stroke="#0E0F12" strokeWidth="2.6" strokeLinecap="round" />
-      </svg>
-      <span className="text-[19px] font-semibold tracking-[-0.03em]">Kakushi</span>
-      <span className="text-[13px] text-dim">隠し</span>
+    <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
+      <span className="grid size-8 place-items-center rounded-[7px] border-2 border-accent font-display text-[17px] font-bold leading-none text-accent shadow-[inset_0_0_0_2px_rgba(232,69,44,0.18)]">
+        隠
+      </span>
+      <span className="font-display text-[21px] font-bold tracking-[0.01em]">Kakushi</span>
     </span>
   );
 }

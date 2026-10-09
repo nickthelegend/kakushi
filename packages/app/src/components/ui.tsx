@@ -12,7 +12,7 @@ export function cn(...xs: (string | false | null | undefined)[]): string {
 type BtnVariant = "primary" | "ghost" | "soft" | "danger" | "indigo";
 export function Button({ variant = "primary", loading, className, children, disabled, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; loading?: boolean }) {
   const styles: Record<BtnVariant, string> = {
-    primary: "bg-accent text-white hover:brightness-110 shadow-[0_8px_30px_-12px_rgba(255,77,46,0.6)]",
+    primary: "bg-washi text-sumi hover:bg-white",
     ghost: "bg-transparent text-text border border-line-strong hover:bg-s2",
     soft: "bg-s2 text-text hover:bg-s3",
     danger: "bg-bad-soft text-bad hover:bg-bad/20",
@@ -21,7 +21,7 @@ export function Button({ variant = "primary", loading, className, children, disa
   return (
     <button
       className={cn(
-        "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-medium transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100",
+        "inline-flex h-11 items-center justify-center gap-2 rounded-[10px] px-5 text-[15px] font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100",
         styles[variant],
         className,
       )}
@@ -108,7 +108,7 @@ export function TxLink({ chainId, hash, network }: { chainId: number; hash: stri
   );
 }
 
-const CHAIN_COLOR: Record<number, string> = { 10143: "#836EF9", 11155111: "#8A92B2", 84532: "#2F6BFF" };
+const CHAIN_COLOR: Record<number, string> = { 10143: "#8f7bff", 11155111: "#b8bfd6", 84532: "#4d86ff" };
 export function ChainDot({ chainId, size = 10 }: { chainId: number; size?: number }) {
   return <span className="inline-block shrink-0 rounded-full" style={{ width: size, height: size, background: CHAIN_COLOR[chainId] ?? "#888" }} />;
 }
@@ -124,7 +124,7 @@ export function ChainName({ chainId }: { chainId: number }) {
 
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="rounded-[20px] bg-s2 p-4">
+    <div className="rounded-[12px] border border-line p-4">
       <div className="text-xs text-muted">{label}</div>
       <div className="mt-1 text-xl font-semibold tabular">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-dim">{sub}</div>}
@@ -134,7 +134,7 @@ export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-[20px] border border-dashed border-line-strong p-8 text-center">
+    <div className="rounded-[12px] border border-dashed border-line-strong p-8 text-center">
       <div className="font-medium">{title}</div>
       {children && <div className="mt-1 text-sm text-muted">{children}</div>}
     </div>
@@ -161,7 +161,7 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">{title}</h1>
+        <h1 className="font-display text-4xl font-bold tracking-[-0.01em] sm:text-5xl">{title}</h1>
         {subtitle && <p className="mt-2 max-w-2xl break-words text-[15px] text-muted">{subtitle}</p>}
       </div>
       {right}
