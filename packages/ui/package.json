@@ -1,0 +1,28 @@
+{
+  "name": "@kakushi/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kakushi's component library: tokens, themes, primitives, composites, SVG charts and the ref-E trade frame. Vendored from Polaris's @polaris/ui (same author, MIT) and re-branded.",
+  "type": "module",
+  "sideEffects": ["**/*.css"],
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": { "style": "./styles.css", "default": "./styles.css" },
+    "./fonts/*": "./fonts/*"
+  },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "lucide-react": "1.48.0",
+    "motion": "13.4.4",
+    "tailwind-merge": "3.7.0"
+  },
+  "peerDependencies": { "react": ">=19", "react-dom": ">=19" },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "^5.9.3"
+  }
+}

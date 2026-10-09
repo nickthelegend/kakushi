@@ -26,7 +26,7 @@ export interface RuntimeConfig {
 const dir = () => process.env.KAKUSHI_CONFIG_DIR ?? resolve(process.cwd(), "../../config/generated");
 
 export function network(): Network {
-  const hosted = Boolean(process.env.RAILWAY_ENVIRONMENT_ID || process.env.VERCEL);
+  const hosted = Boolean(process.env.VERCEL);
   const value = process.env.KAKUSHI_NETWORK ?? (process.env.NODE_ENV === "production" || hosted ? "testnet" : "local");
   if (value !== "local" && value !== "testnet") throw new Error("KAKUSHI_NETWORK must be local or testnet");
   if (hosted && value === "local") throw new Error("Hosted Kakushi must use testnet; local demo signing is unavailable on public hosts");

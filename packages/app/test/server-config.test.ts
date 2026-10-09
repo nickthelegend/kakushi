@@ -24,12 +24,12 @@ it("defaults a production build to testnet without public demo keys", () => {
   expect(runtimeConfig().localDevKeys).toEqual([]);
 });
 it("rejects an explicit local network on a hosted deployment", () => {
-  vi.stubEnv("RAILWAY_ENVIRONMENT_ID", "release");
+  vi.stubEnv("VERCEL", "release");
   vi.stubEnv("KAKUSHI_NETWORK", "local");
   expect(network).toThrow("Hosted Kakushi must use testnet");
 });
 it("keeps explicitly configured local production demos available off-host", () => {
-  vi.stubEnv("RAILWAY_ENVIRONMENT_ID", undefined);
+  vi.stubEnv("VERCEL", undefined);
   vi.stubEnv("VERCEL", undefined);
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("KAKUSHI_NETWORK", "local");

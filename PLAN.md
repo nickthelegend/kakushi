@@ -734,7 +734,7 @@ Statuses: `[DONE] [IN PROGRESS] [NOT STARTED] [BLOCKED]`. Owner "A" means an age
 ### Phase 10: Testnet go, video, submit (Oct 12–13) [critical path]
 - **T10.1 [BLOCKED on U6] Fund deployers and Makers** (amounts in §12.2).
 - **T10.2 [BLOCKED on U6] Deploy**: hub to Monad testnet, routers via CreateX to all three. Verify on Sourcify/MonadVision, Etherscan and Basescan. Write `deployments/*.json`.
-- **T10.3 [BLOCKED on U2,U6] CRE staging simulate loop** against the testnets; Makers and the Watchtower run against the testnets (locally, or on Railway if the user approves hosting).
+- **T10.3 [BLOCKED on U2,U6] CRE staging simulate loop** against the testnets; Makers and the Watchtower run against the testnets (run by the Maker operators; the app is hosted on Vercel).
 - **T10.4 [BLOCKED on U6] Testnet run of scenarios A/B/C** (+D). Record every tx hash in SUBMISSION.md.
 - **T10.5 [NOT STARTED] Host the app** (Vercel) and the indexer (Envio Cloud) after go. Smoke test.
 - **T10.6 [NOT STARTED] Video ≤ 3 min** (§13.2 script). Testnet recording plus the local fallback recording. Uploaded publicly.
@@ -801,7 +801,7 @@ Rough funding (the final amounts get computed in DEPLOY-LATER after a gas dry-ru
 
 - Pair limits sized to faucet amounts: USDC min 1, max 5. ETH min 0.001, max 0.005.
 - **Steps:** fund → `forge script Deploy.s.sol --broadcast --verify` (per chain) → CRE staging simulate loop → Makers and Watchtower up → scenarios on testnet → Vercel (app) and Envio Cloud (indexer) → set hosted env vars (the user sets secrets) → smoke test → record.
-- **Hosting** (only after go and the user's approval): app on Vercel; Maker A/B and the Watchtower on Railway (the Railway MCP is available) or run locally during recording.
+- **Hosting** (only after go and the user's approval): app on Vercel; Maker A/B and the Watchtower run by their operators (not on Vercel) or locally during recording.
 - **Monitoring:** `/health` on each service; the `/attestations` lag panel; structured JSON logs; the Watchtower alert log.
 
 ### 12.3 Env vars (names only; never commit values)

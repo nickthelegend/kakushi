@@ -1,0 +1,17 @@
+# Vercel builds only packages/app (and the workspace packages it imports).
+docs/
+.stack/
+.data/
+.cre/
+packages/contracts/lib/
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/broadcast/
+packages/cre/workflows/*/binary.wasm
+**/node_modules
+**/.next
+**/target
+*.log
+.env
+.env.*
+config/generated/*.local.json

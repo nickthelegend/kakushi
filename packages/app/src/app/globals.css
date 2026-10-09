@@ -1,142 +1,59 @@
 @import "tailwindcss";
+/* The shared library: tokens, themes and Satoshi, all namespaced (--ui-*, ui-*). */
+@import "@kakushi/ui/styles.css";
 
 /*
- * Kakushi tokens. Materials, not a tech palette:
- *   aizome  deep indigo dye: the night the bridge crosses
- *   washi   handmade paper: text and the transfer slip
- *   shu     cinnabar seal paste: ONLY the hidden code and the seal (proof)
- *   hanada  pale dyed blue: attested / Monad states
- *   matcha  settled · kincha  waiting · beni  failure
- */
-:root {
-  --bg: #0b1424;
-  --s1: #0f1b30;
-  --s2: #14223b;
-  --s3: #1b2c4a;
-  --line: rgba(237, 230, 214, 0.09);
-  --line-strong: rgba(237, 230, 214, 0.17);
-  --text: #ede6d6;
-  --muted: #a3a8b8;
-  --dim: #66708a;
-  --accent: #e8452c;
-  --accent-soft: rgba(232, 69, 44, 0.14);
-  --indigo: #93b2ee;
-  --indigo-soft: rgba(147, 178, 238, 0.13);
-  --ok: #a3c96f;
-  --ok-soft: rgba(163, 201, 111, 0.13);
-  --bad: #f07a84;
-  --bad-soft: rgba(240, 122, 132, 0.13);
-  --warn: #dcab4c;
-  --warn-soft: rgba(220, 171, 76, 0.14);
-  --washi: #ede6d6;
-  --sumi: #0a0f1a;
+  KAKUSHI
+  From 1024px the app is a dark rounded panel floating on a lime canvas; below it the
+  dark panel is full bleed. <html data-theme="ref-e"> sets the tokens (the same design
+  system as Polaris). This file adds only the mono face, the page ground and selection.
+*/
+
+@theme {
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+:root[data-theme] {
+  --font-satoshi: var(--font-satoshi-next), "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
   color-scheme: dark;
-}
-
-@theme inline {
-  --color-bg: var(--bg);
-  --color-s1: var(--s1);
-  --color-s2: var(--s2);
-  --color-s3: var(--s3);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
-  --color-text: var(--text);
-  --color-muted: var(--muted);
-  --color-dim: var(--dim);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-indigo: var(--indigo);
-  --color-indigo-soft: var(--indigo-soft);
-  --color-ok: var(--ok);
-  --color-ok-soft: var(--ok-soft);
-  --color-bad: var(--bad);
-  --color-bad-soft: var(--bad-soft);
-  --color-warn: var(--warn);
-  --color-warn-soft: var(--warn-soft);
-  --color-washi: var(--washi);
-  --color-sumi: var(--sumi);
-  --font-sans: var(--font-gothic), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-mincho), "Hiragino Mincho ProN", Georgia, serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-html,
-body {
-  background: var(--bg);
-  color: var(--text);
+  background-color: var(--ui-canvas);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  line-height: 1.6;
+  min-height: 100dvh;
 }
 
-/* faint washi fibre texture over the indigo, so large fields don't read as flat UI black */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-}
-
-.font-display {
-  font-family: var(--font-display);
-  font-feature-settings: "palt";
-}
-
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
-
-/* the hanko: a square cinnabar seal frame around the hidden digits */
-.seal {
-  position: relative;
-  color: var(--accent);
-  border: 2px solid currentColor;
-  border-radius: 6px;
-  padding: 0 0.12em;
-  box-shadow: inset 0 0 0 2px rgba(232, 69, 44, 0.18);
-}
-
-:focus-visible {
-  outline: 2px solid var(--indigo);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-::selection {
-  background: var(--accent-soft);
-  color: var(--text);
-}
-
-@keyframes seal-in {
-  0% { transform: scale(1.18) rotate(-6deg); opacity: 0; }
-  60% { transform: scale(0.97) rotate(0.5deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
-}
-.seal-in {
-  animation: seal-in 0.55s cubic-bezier(0.2, 0.9, 0.2, 1) both;
-}
-
-@keyframes flow {
-  to { stroke-dashoffset: -400; }
-}
-.flow {
-  animation: flow 6s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+@media (min-width: 1024px) {
+  html {
+    background-color: var(--ui-frame);
   }
 }
 
-body { overflow-x: clip; }
+::selection {
+  background: rgb(176 201 86 / 0.36);
+  color: #fff;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+  }
+}
+
+.glow-lime {
+  background: radial-gradient(closest-side, rgb(176 201 86 / 0.18), transparent 70%);
+}
+
+/* the routing code: the last four digits of an amount */
+.code-digits {
+  color: var(--ui-lime-text, #b0c956);
+  background: rgb(176 201 86 / 0.14);
+  border-radius: 6px;
+  padding: 0 0.1em;
+}

@@ -1,26 +1,33 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Shippori_Mincho, Zen_Kaku_Gothic_New } from "next/font/google";
+import localFont from "next/font/local";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// Display: a mincho serif (Japanese editorial tradition). UI: a quiet kaku gothic.
-// Mono only where the content is code-like: hashes and addresses.
-const mincho = Shippori_Mincho({ subsets: ["latin"], weight: ["500", "700", "800"], variable: "--font-mincho", display: "swap" });
-const gothic = Zen_Kaku_Gothic_New({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-gothic", display: "swap" });
+const satoshi = localFont({
+  src: "../../../ui/fonts/Satoshi-Variable.woff2",
+  weight: "300 900",
+  style: "normal",
+  display: "swap",
+  variable: "--font-satoshi-next",
+  adjustFontFallback: "Arial",
+});
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Kakushi, the bridge with a hidden destination",
-  description: "Pay a Maker directly; the last four digits of the amount say where it goes. If the Maker doesn't pay, a zero-knowledge proof takes their margin on Monad and gives it to you.",
+  metadataBase: new URL(process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3710"),
+  title: { default: "Kakushi: bridge in a second, backed by proof", template: "%s · Kakushi" },
+  description: "Pay a Maker directly; the last four digits of the amount say where it goes. If the Maker doesn't pay, a zero-knowledge proof takes its margin on Monad and gives it to you.",
+  applicationName: "Kakushi",
   openGraph: { images: ["/art/og.jpg"] },
 };
 
-export const viewport: Viewport = { themeColor: "#0b1424", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#121418", colorScheme: "dark" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${mincho.variable} ${gothic.variable} ${mono.variable}`}>
-      <body>
+    <html lang="en" data-theme="ref-e" className={`${satoshi.variable} ${mono.variable}`}>
+      <body className="ui-root">
         <Providers>{children}</Providers>
       </body>
     </html>

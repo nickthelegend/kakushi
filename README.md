@@ -13,3 +13,9 @@ Use `pnpm dev` for the app on port 3710, `pnpm stack:status` to inspect the fork
 The 2026-10-08 final four-scenario local fork replay passed in 201 seconds. Browser transfers settled in both directions, including a custom recipient; a browser-generated 27-public-input UltraHonk proof (8,768 bytes, 8,508 ms) recovered another unpaid local payment. Maker margin deposit and a timelocked withdrawal request also succeeded. Seven app pages were checked at 390×844 with no horizontal page overflow or JavaScript exceptions. See [verification](docs/VERIFICATION.md) for evidence and limits. Chainlink's local runner is not a DON deployment; Privy, Cleanverse, and Envio Cloud status is listed explicitly in the sponsor gaps.
 
 The persistent local RPC indexer is in [packages/indexer](packages/indexer/README.md). Start it explicitly before using indexed history. The app proxies it at `/api/svc/indexer`; local mode defaults to port 4201, while testnet requires `KAKUSHI_INDEXER_URL`. A separate [Envio HyperIndex package](packages/indexer/envio/README.md) passes codegen and offline lifecycle tests; its Docker/Cloud runtime still requires verification.
+
+## Hosted app
+
+The interface is deployed on Vercel at https://kakushi.vercel.app (project root `packages/app`; `.vercelignore` keeps the upload to the app and its workspace packages). Hosted builds always run in testnet mode, and the Kakushi contracts are not deployed on the public testnets yet, so every page shows an honest "not deployed" or "not configured" state instead of data. The Maker nodes, Watchtower and attestation runner are long-running processes and do not run on Vercel. Redeploy with `vercel deploy --prod` from the repository root.
+
+The UI is built on `packages/ui`, a copy of the Polaris design system (ref-E: dark panel on a lime frame, Satoshi), renamed `@kakushi/ui`. The art in `packages/app/public/art` and `public/assets/glass` and the film in `docs/video` are AI-generated.

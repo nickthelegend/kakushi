@@ -1,0 +1,65 @@
+"use client";
+
+import { Button, Logo } from "@kakushi/ui";
+import { ArrowRight, Gavel } from "lucide-react";
+import Link from "next/link";
+import { Glass } from "@/components/app/glass";
+import { BlurWords, Rise } from "@/components/motion";
+import { closing } from "./content";
+import { Shell } from "./section";
+
+/** The closing call to action: the lime card. */
+export function Closing() {
+  return (
+    <section aria-labelledby="closing-title" className="py-20 lg:py-28">
+      <Shell>
+        <div className="relative isolate overflow-hidden rounded-[32px] bg-ui-frame px-6 py-14 text-[#121418] sm:px-12 lg:px-16 lg:py-20">
+          <Glass art="card-lime" size={420} eager className="absolute -right-16 -bottom-24 -z-10 w-[260px] rotate-[-12deg] opacity-95 sm:w-[340px] lg:top-1/2 lg:right-12 lg:bottom-auto lg:w-[400px] lg:-translate-y-1/2" />
+          <BlurWords id="closing-title" as="h2" text={closing.heading} className="max-w-[12ch] text-[clamp(40px,6vw,88px)] leading-[0.98] font-medium tracking-[-0.05em]" />
+          <Rise y={14} delay={0.3}>
+            <p className="mt-5 max-w-[440px] text-[17px] leading-[1.5] text-black/70 lg:text-[19px]">{closing.sub}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild variant="dark" size="lg" iconRight={<ArrowRight />} className="bg-[#0f1011] text-white">
+                <Link href="/bridge">Open the bridge</Link>
+              </Button>
+              <Button asChild variant="white" size="lg" icon={<Gavel />}>
+                <Link href="/disputes">Prove a missed payout</Link>
+              </Button>
+            </div>
+          </Rise>
+        </div>
+      </Shell>
+    </section>
+  );
+}
+
+export function Footer() {
+  return (
+    <footer className="border-t border-ui-hairline py-12">
+      <Shell className="grid gap-10 md:grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,0.6fr))]">
+        <div className="grid content-start gap-4">
+          <Logo height={30} />
+          <p className="max-w-[40ch] text-[14px] leading-relaxed text-ui-muted">A trust-minimized instant bridge. Disputes settle on Monad; every payout is attested by Chainlink CRE and missing ones are proven in Noir. Built for Monad Metropolis 2026.</p>
+        </div>
+        <nav aria-label="Product" className="grid content-start gap-2 text-[15px]">
+          <p className="mb-1 text-[13px] font-medium text-ui-muted uppercase">Product</p>
+          <Link className="text-ui-muted hover:text-ui-text" href="/bridge">Bridge</Link>
+          <Link className="text-ui-muted hover:text-ui-text" href="/activity">Activity</Link>
+          <Link className="text-ui-muted hover:text-ui-text" href="/disputes">Disputes</Link>
+          <Link className="text-ui-muted hover:text-ui-text" href="/attestations">Attestations</Link>
+        </nav>
+        <nav aria-label="Makers" className="grid content-start gap-2 text-[15px]">
+          <p className="mb-1 text-[13px] font-medium text-ui-muted uppercase">Makers</p>
+          <Link className="text-ui-muted hover:text-ui-text" href="/makers">Market</Link>
+          <Link className="text-ui-muted hover:text-ui-text" href="/maker">Maker console</Link>
+          <a className="text-ui-muted hover:text-ui-text" href="#developers">Developers</a>
+          <a className="text-ui-muted hover:text-ui-text" href="https://github.com/nickthelegend/kakushi">GitHub</a>
+        </nav>
+      </Shell>
+      <Shell className="mt-10 flex flex-wrap items-center justify-between gap-3 text-[13px] text-ui-muted">
+        <p>© 2026 Kakushi. Testnet: no real money moves.</p>
+        <p>Monad · Chainlink CRE · Noir · Privy · Envio · Cleanverse</p>
+      </Shell>
+    </footer>
+  );
+}

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   // workspace packages ship TypeScript source
-  transpilePackages: ["@kakushi/sdk", "@kakushi/config", "@kakushi/attest-core"],
+  transpilePackages: ["@kakushi/sdk", "@kakushi/config", "@kakushi/attest-core", "@kakushi/ui"],
   reactStrictMode: true,
   output: process.env.KAKUSHI_NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   experimental: { cpus: 1 },
