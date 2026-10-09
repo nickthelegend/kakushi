@@ -6,6 +6,10 @@ import {euint64, externalEuint64} from "../lib/FhishTypes.sol";
 import {ConfidentialERC20Wrapper, IERC20Like} from "./ConfidentialERC20Wrapper.sol";
 
 /// ERC-2612 + ERC-3009, as implemented by Agora AUSD and Circle USDC.
+interface IERC1271 {
+    function isValidSignature(bytes32 hash, bytes calldata signature) external view returns (bytes4);
+}
+
 interface IERC20Authorizations {
     function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
     function receiveWithAuthorization(
@@ -51,6 +55,14 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
 
     uint256 public nextLinkId = 1;
     mapping(uint256 => Link) public links;
+    /// a payroll reference can be paid once per employer (replay guard for operators and retries)
+    mapping(address employer => mapping(bytes32 ref => bool)) public payrollRefUsed;
+
+    bytes32 private constant _DOMAIN_TYPEHASH =
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    bytes32 public constant PAYROLL_BATCH_TYPEHASH = keccak256(
+        "PayrollBatch(address employer,address operator,address[] to,bytes32[] amounts,bytes32 ref,uint256 deadline)"
+    );
 
     event Paid(address indexed from, address indexed to, euint64 amount, bytes32 indexed ref);
     event LinkCreated(uint256 indexed id, address indexed sender, address claimKey, uint64 expiry, euint64 amount);
@@ -64,6 +76,9 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
     error LinkNotExpired(uint256 id);
     error BadClaimSignature();
     error NotSender();
+    error PayrollRefUsed(bytes32 ref);
+    error BatchExpired();
+    error BadEmployerSignature();
 
     constructor(IERC20Like underlying_, string memory name_, string memory symbol_)
         ConfidentialERC20Wrapper(underlying_, name_, symbol_)
@@ -163,24 +178,76 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
         _payroll(msg.sender, to, amounts, proofs, ref);
     }
 
-    /// Payroll run by an operator (setOperator) on the employer's behalf, e.g. a policy-limited
-    /// server wallet. The salaries are encrypted by the operator, so they are bound to it.
-    function runPayrollFrom(address employer, address[] calldata to, externalEuint64[] calldata amounts, bytes[] calldata proofs, bytes32 ref)
-        external
-    {
+    /// Payroll relayed by an operator (setOperator), e.g. a policy-limited server wallet running it on
+    /// schedule. The operator cannot choose anything: the employer signs the exact batch (EIP-712
+    /// PayrollBatch: recipients, encrypted amounts, reference, deadline, this operator), each reference
+    /// pays once, and the authorization expires. The salaries are encrypted for the operator's address,
+    /// so the inputs are bound to it.
+    function runPayrollFrom(
+        address employer,
+        address[] calldata to,
+        externalEuint64[] calldata amounts,
+        bytes[] calldata proofs,
+        bytes32 ref,
+        uint256 deadline,
+        bytes calldata employerSignature
+    ) external {
         if (!isOperator(employer, msg.sender)) revert UnauthorizedSpender(employer, msg.sender);
+        if (block.timestamp > deadline) revert BatchExpired();
+        if (!_isValidSigner(employer, payrollBatchDigest(employer, msg.sender, to, amounts, ref, deadline), employerSignature)) {
+            revert BadEmployerSignature();
+        }
         _payroll(employer, to, amounts, proofs, ref);
+    }
+
+    function payrollDomainSeparator() public view returns (bytes32) {
+        return keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("Fhish Payroll"), keccak256("1"), block.chainid, address(this)));
+    }
+
+    function payrollBatchDigest(
+        address employer,
+        address operator,
+        address[] calldata to,
+        externalEuint64[] calldata amounts,
+        bytes32 ref,
+        uint256 deadline
+    ) public view returns (bytes32) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                PAYROLL_BATCH_TYPEHASH,
+                employer,
+                operator,
+                keccak256(abi.encodePacked(to)),
+                keccak256(abi.encodePacked(amounts)),
+                ref,
+                deadline
+            )
+        );
+        return keccak256(abi.encodePacked("\x19\x01", payrollDomainSeparator(), structHash));
     }
 
     function _payroll(address employer, address[] calldata to, externalEuint64[] calldata amounts, bytes[] calldata proofs, bytes32 ref)
         internal
     {
         if (to.length != amounts.length || to.length != proofs.length) revert LengthMismatch();
+        if (payrollRefUsed[employer][ref]) revert PayrollRefUsed(ref);
+        payrollRefUsed[employer][ref] = true;
         for (uint256 i; i < to.length; i++) {
             euint64 paid = _transfer(employer, to[i], FHE.fromExternal(amounts[i], proofs[i]));
             emit Paid(employer, to[i], paid, ref);
         }
         emit PayrollRun(employer, msg.sender, to.length, ref);
+    }
+
+    /// EOA (including EIP-7702 delegated accounts) first, then ERC-1271 smart wallets.
+    function _isValidSigner(address signer, bytes32 digest, bytes calldata sig) internal view returns (bool) {
+        if (_recover(digest, sig) == signer) return true;
+        if (signer.code.length == 0) return false;
+        try IERC1271(signer).isValidSignature(digest, sig) returns (bytes4 v) {
+            return v == IERC1271.isValidSignature.selector;
+        } catch {
+            return false;
+        }
     }
 
     function _recover(bytes32 digest, bytes calldata sig) internal pure returns (address) {

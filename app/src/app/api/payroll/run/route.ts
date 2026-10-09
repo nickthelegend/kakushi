@@ -5,7 +5,9 @@
 //
 // Trust model: the browser encrypts every salary for the operator's address (the server never sees
 // an amount) and the employer signs the exact batch (EIP-712, PayrollBatch). This route only submits
-// batches signed by an employer who has authorized this operator on-chain (setOperator).
+// batches signed by an employer who has authorized this operator on-chain (setOperator). The
+// contract enforces the same rules itself (signature, deadline, one payment per reference), so a
+// restarted server or a compromised operator key cannot replay or alter a batch.
 import { NextResponse } from "next/server";
 import { encodeFunctionData, isAddress, isHex, keccak256, type Hex } from "viem";
 import { payAbi } from "@/lib/abi";
@@ -60,7 +62,8 @@ export async function GET(req: Request) {
 
 async function submit(b: Batch, tokenAddr: Hex, operator: Hex): Promise<ServerSent> {
   const c = serverClient();
-  const args = [b.employer, b.to, b.amounts, b.proofs, b.ref] as const;
+  // the contract re-verifies the employer's EIP-712 signature and spends the reference once
+  const args = [b.employer, b.to, b.amounts, b.proofs, b.ref, BigInt(b.deadline), b.signature] as const;
   const gas = await c.estimateContractGas({ address: tokenAddr, abi: payAbi, functionName: "runPayrollFrom", args, account: operator });
   const tx = { to: tokenAddr, data: encodeFunctionData({ abi: payAbi, functionName: "runPayrollFrom", args }), gas: withBuffer(gas) };
   const op = payrollOperator()!;

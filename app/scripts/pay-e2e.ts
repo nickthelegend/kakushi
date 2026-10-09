@@ -84,10 +84,12 @@ const NEW = privateKeyToAccount(generatePrivateKey());
 
 // 1. employer wraps AUSD with one ERC-2612 permit + wrapWithPermit (what /pay/employer does locally)
 await check("Wrap (ERC-2612 permit, one tx)", async () => {
+  // top up from Agora's faucet (through /api/faucet) so reruns never run dry
+  if ((await ausdOf(ALICE.address)) < 5_000_000_000n) await post("/api/faucet", { address: ALICE.address, mon: false, ausd: true });
   const before = await ausdOf(ALICE.address);
   const d = await pub.readContract({ address: AUSD, abi: erc20Abi, functionName: "eip712Domain" });
   const nonce = await pub.readContract({ address: AUSD, abi: erc20Abi, functionName: "nonces", args: [ALICE.address] });
-  const value = 2_000_000_000n;
+  const value = 5_000_000_000n; // covers every salary below (1,000 + 3,200 + 750), so the run needs no leftover state
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
   const sig = parseSignature(await ALICE.signTypedData(permitTypedData({ chainId: 10143, token: AUSD, tokenName: d[1], tokenVersion: d[2], owner: ALICE.address, spender: TOKEN, value, nonce, deadline })));
   await send(ALICE, TOKEN, payAbi, "wrapWithPermit", [value, deadline, Number(sig.v), sig.r, sig.s]);
@@ -100,7 +102,7 @@ await check("Payroll from the employer's wallet", async () => {
   const rows: [Hex, bigint][] = [[E1.address, 1_000_000_000n], [BOB.address, 3_200_000_000n]];
   const enc = [];
   for (const [, v] of rows) enc.push(await fhish.encrypt("euint64", v, TOKEN, ALICE.address));
-  const rc = await send(ALICE, TOKEN, payAbi, "runPayroll", [rows.map((r) => r[0]), enc.map((e) => e.handle), enc.map((e) => e.proof), stringToHex("payroll e2e", { size: 32 })]);
+  const rc = await send(ALICE, TOKEN, payAbi, "runPayroll", [rows.map((r) => r[0]), enc.map((e) => e.handle), enc.map((e) => e.proof), stringToHex(`payroll e2e ${Date.now()}`, { size: 32 })]);
   const paid = parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "Paid" });
   const e1h = paid.find((p) => p.args.to.toLowerCase() === E1.address.toLowerCase())!.args.amount as Hex;
   const mine = await decryptAs(E1, [e1h]);
@@ -114,7 +116,7 @@ await check("Payroll by operator via /api/payroll/run", async () => {
   await send(ALICE, TOKEN, payAbi, "setOperator", [OPERATOR, Math.floor(Date.now() / 1000) + 86400]);
   const to = [E2.address];
   const enc = await fhish.encrypt("euint64", 750_000_000n, TOKEN, OPERATOR); // bound to the operator, the tx sender
-  const ref = stringToHex("payroll op e2e", { size: 32 });
+  const ref = stringToHex(`payroll op ${Date.now()}`, { size: 32 }); // the contract pays each (employer, ref) once
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
   const td = payrollBatchTypedData({ chainId: 10143, token: TOKEN, employer: ALICE.address, operator: OPERATOR, to, amounts: [enc.handle], ref, deadline });
   const signature = await ALICE.signTypedData(td);

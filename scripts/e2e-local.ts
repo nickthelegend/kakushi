@@ -93,7 +93,9 @@ async function main() {
   const t0 = Date.now();
   say("1 · local Monad-testnet fork, engine, deploy, coprocessor");
   // --slots-in-an-epoch 1: the fork's `finalized` tag trails latest by 2 blocks, like Monad (~2-3)
-  start("anvil", "anvil", ["--port", String(PORT), "--fork-url", process.env.MONAD_FORK_URL ?? "https://rpc-testnet.monadinfra.com", "--block-time", "1", "--slots-in-an-epoch", "1", "--prune-history", "300", "--silent"]);
+  // --retries/--fork-retry-backoff/--timeout: the fork lazily reads state from the upstream archive
+  // RPC; without retries a single reset connection panics anvil mid-demo
+  start("anvil", "anvil", ["--port", String(PORT), "--fork-url", process.env.MONAD_FORK_URL ?? "https://rpc-testnet.monadinfra.com", "--block-time", "1", "--slots-in-an-epoch", "1", "--prune-history", "300", "--retries", "12", "--fork-retry-backoff", "750", "--timeout", "60000", "--silent"]);
   await until("anvil", async () => (await pub.getChainId()) === 10143);
   const secrets = JSON.parse(readFileSync(`${ROOT}.secrets/signers.json`, "utf8"));
   const reg = JSON.parse(readFileSync(`${ROOT}contracts/registry-address.json`, "utf8"));
@@ -239,7 +241,17 @@ async function main() {
     const salaries: [keyof typeof KEYS, bigint][] = [["bob", 3_200_000_000n], ["carol", 1_150_000_000n]];
     const enc = [];
     for (const [, amt] of salaries) enc.push(await fhish.encrypt("euint64", amt, pay.address, addr(ops)));
-    const pr = await send(ops, pay.address, pay.abi, "runPayrollFrom", [addr("alice"), salaries.map(([w]) => addr(w)), enc.map((e) => e.handle), enc.map((e) => e.proof), toHex("2026-10", { size: 32 })]);
+    const staff = salaries.map(([w]) => addr(w));
+    const ref = toHex("2026-10", { size: 32 });
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+    // the employer signs the exact batch; the contract verifies it, so the operator only relays
+    const batchSig = await privateKeyToAccount(KEYS.alice).signTypedData({
+      domain: { name: "Fhish Payroll", version: "1", chainId: 10143, verifyingContract: pay.address },
+      types: { PayrollBatch: [{ name: "employer", type: "address" }, { name: "operator", type: "address" }, { name: "to", type: "address[]" }, { name: "amounts", type: "bytes32[]" }, { name: "ref", type: "bytes32" }, { name: "deadline", type: "uint256" }] },
+      primaryType: "PayrollBatch",
+      message: { employer: addr("alice"), operator: addr(ops), to: staff, amounts: enc.map((e) => e.handle), ref, deadline },
+    });
+    const pr = await send(ops, pay.address, pay.abi, "runPayrollFrom", [addr("alice"), staff, enc.map((e) => e.handle), enc.map((e) => e.proof), ref, deadline, batchSig]);
     console.log(`  payroll: 2 encrypted salaries in one tx · ${ladder(await settle(pr))}`);
 
     // pay link: bob sends 250 AUSD to someone with no account yet (cross-border, by link)

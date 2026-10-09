@@ -105,7 +105,16 @@ const staff: [Hex, number][] = [
 ];
 const salaries = [];
 for (const [, amt] of staff) salaries.push(await enc(AU(amt), addr("carol")));
-await send("carol", TOKEN, payAbi, "runPayrollFrom", [addr("alice"), staff.map(([w]) => w), salaries.map((s) => s.handle), salaries.map((s) => s.proof), ref("payroll-2026-10")]);
+// a fresh reference per run: the contract pays each (employer, ref) once
+const payrollRef = ref(`payroll-${Date.now()}`);
+const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+const batchSig = await privateKeyToAccount(KEYS.alice).signTypedData({
+  domain: { name: "Fhish Payroll", version: "1", chainId: 10143, verifyingContract: TOKEN },
+  types: { PayrollBatch: [{ name: "employer", type: "address" }, { name: "operator", type: "address" }, { name: "to", type: "address[]" }, { name: "amounts", type: "bytes32[]" }, { name: "ref", type: "bytes32" }, { name: "deadline", type: "uint256" }] },
+  primaryType: "PayrollBatch",
+  message: { employer: addr("alice"), operator: addr("carol"), to: staff.map(([w]) => w), amounts: salaries.map((s) => s.handle), ref: payrollRef, deadline },
+});
+await send("carol", TOKEN, payAbi, "runPayrollFrom", [addr("alice"), staff.map(([w]) => w), salaries.map((s) => s.handle), salaries.map((s) => s.proof), payrollRef, deadline, batchSig]);
 
 console.log("6. unwrap (cash-out): burn, KMS reveal through the oracle, public payout");
 e = await enc(AU(50), addr("bob"));

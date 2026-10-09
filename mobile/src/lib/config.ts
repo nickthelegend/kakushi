@@ -45,7 +45,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     faucet: AUSD_FAUCET,
     settlement: "tags",
     dev: true,
-    logRange: 50_000n,
+    logRange: 100n, // same as Monad (eth_getLogs <= 100 blocks), so the fork behaves like testnet
   },
   testnet: {
     id: "testnet",

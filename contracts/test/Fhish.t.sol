@@ -352,8 +352,25 @@ contract FhishTest is Test {
         c.refundLink(id);
     }
 
+    function _signBatch(FhishPayToken c, uint256 pk, address employer, address op, address[] memory to, externalEuint64[] memory amounts, bytes32 ref, uint256 deadline)
+        internal
+        view
+        returns (bytes memory)
+    {
+        bytes32 digest = c.payrollBatchDigest(employer, op, to, amounts, ref, deadline);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
     function test_PayrollPaysEachEmployeeASeparateCiphertext() public {
-        (FhishPayToken c,) = _payToken();
+        (FhishPayToken c, TestToken usd) = _payToken();
+        (address boss, uint256 bossPk) = makeAddrAndKey("employer");
+        usd.mint(boss, 100e6);
+        vm.startPrank(boss);
+        usd.approve(address(c), type(uint256).max);
+        c.wrap(100e6);
+        vm.stopPrank();
+
         address[] memory staff = new address[](2);
         staff[0] = bob;
         staff[1] = carol;
@@ -365,15 +382,33 @@ contract FhishTest is Test {
             amounts[i] = externalEuint64.wrap(h);
             proofs[i] = p;
         }
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes memory sig = _signBatch(c, bossPk, boss, ops, staff, amounts, "2026-10", deadline);
+
         // not an operator yet
         vm.prank(ops);
-        vm.expectRevert(abi.encodeWithSignature("UnauthorizedSpender(address,address)", alice, ops));
-        c.runPayrollFrom(alice, staff, amounts, proofs, "2026-10");
-        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("UnauthorizedSpender(address,address)", boss, ops));
+        c.runPayrollFrom(boss, staff, amounts, proofs, "2026-10", deadline, sig);
+        vm.prank(boss);
         c.setOperator(ops, uint48(block.timestamp + 1 days));
+
+        // the operator cannot change anything the employer signed: recipients, reference, deadline
+        address[] memory swapped = new address[](2);
+        swapped[0] = carol;
+        swapped[1] = ops;
+        vm.prank(ops);
+        vm.expectRevert(abi.encodeWithSignature("BadEmployerSignature()"));
+        c.runPayrollFrom(boss, swapped, amounts, proofs, "2026-10", deadline, sig);
+        vm.prank(ops);
+        vm.expectRevert(abi.encodeWithSignature("BadEmployerSignature()"));
+        c.runPayrollFrom(boss, staff, amounts, proofs, "2026-11", deadline, sig);
+        vm.prank(ops);
+        vm.expectRevert(abi.encodeWithSignature("BadEmployerSignature()"));
+        c.runPayrollFrom(boss, staff, amounts, proofs, "2026-10", deadline + 1, sig);
+
         vm.recordLogs();
         vm.prank(ops);
-        c.runPayrollFrom(alice, staff, amounts, proofs, "2026-10");
+        c.runPayrollFrom(boss, staff, amounts, proofs, "2026-10", deadline, sig);
         Vm.Log[] memory logs = vm.getRecordedLogs();
         uint256 paid;
         for (uint256 i; i < logs.length; i++) if (logs[i].topics[0] == keccak256("Paid(address,address,bytes32,bytes32)")) paid++;
@@ -381,11 +416,34 @@ contract FhishTest is Test {
         bytes32 bobBal = euint64.unwrap(c.confidentialBalanceOf(bob));
         assertTrue(acl.isAllowed(bobBal, bob));
         assertFalse(acl.isAllowed(bobBal, carol), "carol cannot read bob's salary");
+
+        // the same signed batch pays once, even if a server restarts and resubmits it
+        vm.prank(ops);
+        vm.expectRevert(abi.encodeWithSignature("PayrollRefUsed(bytes32)", bytes32("2026-10")));
+        c.runPayrollFrom(boss, staff, amounts, proofs, "2026-10", deadline, sig);
+
+        // a signed batch expires
+        bytes memory late = _signBatch(c, bossPk, boss, ops, staff, amounts, "2026-12", deadline);
+        vm.warp(deadline + 1);
+        vm.prank(ops);
+        vm.expectRevert(abi.encodeWithSignature("BatchExpired()"));
+        c.runPayrollFrom(boss, staff, amounts, proofs, "2026-12", deadline, late);
+
         // a mismatched batch is rejected
         address[] memory one = new address[](1);
         one[0] = bob;
-        vm.prank(alice);
+        vm.prank(boss);
         vm.expectRevert(abi.encodeWithSignature("LengthMismatch()"));
         c.runPayroll(one, amounts, proofs, "x");
+    }
+
+    function test_PayrollDigestMatchesTheAppsEip712() public {
+        (FhishPayToken c,) = _payToken();
+        // EIP-712 PayrollBatch exactly as app/src/lib/pay/core.ts signs it (viem hashTypedData)
+        assertEq(c.PAYROLL_BATCH_TYPEHASH(), keccak256("PayrollBatch(address employer,address operator,address[] to,bytes32[] amounts,bytes32 ref,uint256 deadline)"));
+        assertEq(
+            c.payrollDomainSeparator(),
+            keccak256(abi.encode(keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), keccak256("Fhish Payroll"), keccak256("1"), block.chainid, address(c)))
+        );
     }
 }

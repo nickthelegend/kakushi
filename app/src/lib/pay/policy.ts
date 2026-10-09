@@ -18,6 +18,8 @@ export const RUN_PAYROLL_FROM_ABI = [
       { name: "amounts", type: "bytes32[]", internalType: "bytes32[]" },
       { name: "proofs", type: "bytes[]", internalType: "bytes[]" },
       { name: "ref", type: "bytes32", internalType: "bytes32" },
+      { name: "deadline", type: "uint256", internalType: "uint256" },
+      { name: "employerSignature", type: "bytes", internalType: "bytes" },
     ],
     outputs: [],
   },

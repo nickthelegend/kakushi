@@ -29,7 +29,7 @@ contracts:
 address_format: lowercase
 chains:
   - id: 10143 # Monad testnet (local anvil fork)
-    start_block: 69518347
+    start_block: 69536318
     # local anvil fork: no HyperSync behind it, so the RPC is the sync source
     rpc:
       - url: http://127.0.0.1:18810

@@ -29,6 +29,9 @@ const FRIENDLY: Record<string, string> = {
   AmountTooLarge: "Amount too large for a 64-bit encrypted value.",
   TransferFailed: "The AUSD transfer failed (balance or allowance too low).",
   NotSender: "Only the sender can refund this link.",
+  PayrollRefUsed: "A payroll with this reference was already paid. Use a new reference (e.g. the next period).",
+  BatchExpired: "The signed payroll batch expired before it ran. Sign it again.",
+  BadEmployerSignature: "The batch was not signed by this employer, or it was changed after signing.",
 };
 
 /** Turn a viem error into one readable sentence (decoded custom errors where possible). */
