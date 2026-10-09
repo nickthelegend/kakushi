@@ -2,14 +2,12 @@
 
 import { Button } from "@kakushi/ui";
 import { Star } from "lucide-react";
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import { BlurWords, Rise } from "@/components/motion";
 import { hero } from "./content";
 
-const CoinWave = dynamic(() => import("./coin-wave").then((m) => m.CoinWave), { ssr: false });
-
-/** The hero: a blue pill, the serif headline, one white CTA, and the wave of struck coins. */
+/** The hero: a blue pill, the serif headline, one white CTA, and the struck coins (a Gemini render with the real marks). */
 export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
@@ -31,7 +29,11 @@ export function Hero() {
           </Button>
         </Rise>
       </div>
-      <CoinWave className="relative mt-2 h-[52vh] min-h-[340px] w-full lg:h-[56vh] lg:max-h-[620px]" />
+      <div className="relative mt-2 h-[46vh] min-h-[300px] w-full overflow-hidden sm:h-[52vh] lg:h-[58vh] lg:max-h-[640px]">
+        <Image src="/art/coins.webp" alt="Metal coins struck with the Kakushi, USDC, Ethereum, Monad and Base marks" fill priority sizes="100vw" className="coin-drift object-cover object-[50%_62%]" />
+        <div aria-hidden className="coin-sweep absolute inset-0 mix-blend-screen" />
+        <div aria-hidden className="absolute inset-x-0 top-0 h-[38%] bg-[linear-gradient(var(--ui-canvas),transparent)]" />
+      </div>
       <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(transparent,var(--ui-canvas))]" />
     </section>
   );

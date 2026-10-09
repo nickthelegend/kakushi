@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Chains } from "@/components/landing/chains";
 import { Closing, Footer } from "@/components/landing/closing";
 import { Developers } from "@/components/landing/developers";
 import { Faq } from "@/components/landing/faq";
@@ -14,8 +15,8 @@ import { Transfer } from "@/components/landing/transfer";
 import { SmoothScroll } from "@/components/motion";
 
 export const metadata: Metadata = {
-  title: { absolute: "Kakushi: bridge in a second, backed by proof" },
-  description: "Pay a Maker directly and it pays you on the other chain in about a second. If it doesn't, a zero-knowledge proof takes its margin on Monad and gives it to you.",
+  title: { absolute: "Kakushi: the fast bridge for Monad" },
+  description: "Bridge USDC and ETH to and from Monad in about a second, paid from Maker liquidity and backed by Maker margin on Monad.",
 };
 
 export default function LandingPage() {
@@ -26,12 +27,13 @@ export default function LandingPage() {
         <main>
           <Hero />
           <Sponsors />
+          <Chains />
           <Transfer />
           <How />
-          <Proof />
-          <Developers />
           <Makers />
           <Fees />
+          <Proof />
+          <Developers />
           <Faq />
           <Closing />
         </main>

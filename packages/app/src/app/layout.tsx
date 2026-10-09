@@ -17,8 +17,8 @@ const serif = IBM_Plex_Serif({ subsets: ["latin"], weight: ["300", "400", "500"]
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3710"),
-  title: { default: "Kakushi: bridge in a second, backed by proof", template: "%s · Kakushi" },
-  description: "Pay a Maker directly; the last four digits of the amount say where it goes. If the Maker doesn't pay, a zero-knowledge proof takes its margin on Monad and gives it to you.",
+  title: { default: "Kakushi: the fast bridge for Monad", template: "%s · Kakushi" },
+  description: "Bridge USDC and ETH to and from Monad in about a second, paid from Maker liquidity and backed by Maker margin on Monad.",
   applicationName: "Kakushi",
   openGraph: { images: ["/art/og.jpg"] },
 };

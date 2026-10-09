@@ -130,3 +130,27 @@ body {
   border-radius: 6px;
   padding: 0 0.1em;
 }
+
+/* The hero coins: a slow drift and a light passing over the metal. */
+@keyframes coin-drift {
+  from { transform: scale(1.08) translate3d(-1.5%, 1%, 0); }
+  to { transform: scale(1.02) translate3d(1.5%, -1%, 0); }
+}
+@keyframes coin-sweep {
+  from { background-position: 140% 0; }
+  to { background-position: -40% 0; }
+}
+.coin-drift {
+  animation: coin-drift 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.coin-sweep {
+  background: linear-gradient(105deg, transparent 42%, rgb(170 190 255 / 0.16) 50%, transparent 58%) 0 0 / 250% 100% no-repeat;
+  animation: coin-sweep 6.5s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coin-drift,
+  .coin-sweep {
+    animation: none;
+  }
+}

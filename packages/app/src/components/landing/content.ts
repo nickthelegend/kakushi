@@ -5,23 +5,23 @@
 
 export const nav = {
   links: [
+    { label: "Chains", href: "#chains" },
     { label: "How it works", href: "#how" },
-    { label: "Proof", href: "#proof" },
-    { label: "Developers", href: "#developers" },
     { label: "Makers", href: "#makers" },
     { label: "Fees", href: "#fees" },
+    { label: "Safety", href: "#proof" },
     { label: "FAQ", href: "#faq" },
   ],
 };
 
 export const hero = {
   eyebrow: "Kakushi bridge",
-  pill: "Payouts proven on Monad",
-  headline: ["Bridge in a second.", "Backed by proof."],
-  sub: "Pay a Maker directly and it pays you on the other chain. The last four digits of the amount say where it goes. If the Maker doesn't pay, a zero-knowledge proof takes its margin on Monad and gives it to you.",
+  pill: "The fast bridge for Monad",
+  headline: ["Bridge to Monad", "in a second."],
+  sub: "Send USDC or ETH and get it on the other chain in about a second, paid from a Maker's own liquidity. No wrapped tokens and no bridge vault. If a Maker ever fails to pay, its margin on Monad pays you instead.",
   primary: "Open the bridge",
   secondary: "Prove a missed payout",
-  trust: ["No bridge vault to drain", "No wrapped tokens", "Every payout attested by Chainlink CRE"],
+  trust: ["About a second to Monad", "No wrapped tokens", "Every transfer backed by Maker margin"],
 };
 
 export const sponsors = {
@@ -31,8 +31,8 @@ export const sponsors = {
 
 export const how = {
   eyebrow: "How it works",
-  heading: ["Three ways a transfer ends.", "You're paid in all of them."],
-  sub: "No form, no memo, no approval. The amount carries the route, a Maker fills from its own inventory, and margin on Monad stands behind every transfer.",
+  heading: ["Send on one chain.", "Receive on the other."],
+  sub: "No wrapping, no claim step, no approval. The amount carries the route, a Maker fills from its own inventory, and margin on Monad stands behind every transfer.",
   cards: [
     { key: "pay", title: "You pay a Maker", body: "A plain transfer to the Maker's address. The last four digits, 9001, mean Monad.", foot: "No wrapped token" },
     { key: "paid", title: "The Maker pays you", body: "From its own inventory on the other chain, through a PayoutRouter that logs every payout.", foot: "About a second to Monad" },
@@ -41,9 +41,9 @@ export const how = {
 } as const;
 
 export const proof = {
-  eyebrow: "Proof",
-  heading: ["A missed payout is proven,", "not argued."],
-  sub: "Chainlink CRE commits every payment and payout of each block window to the hub on Monad. Anyone can prove a payout is missing, in their browser, and Monad slashes the Maker in the same transaction.",
+  eyebrow: "Safe by design",
+  heading: ["If a Maker fails,", "its margin pays you."],
+  sub: "Every Maker posts margin on Monad before it can quote. Chainlink CRE commits each payout to the hub, so a missing one can be proven with a zero-knowledge proof, in your browser, and Monad pays you from that margin in the same transaction.",
   stats: [
     { value: 0.6, suffix: " s", decimals: 1, label: "Monad finality for the hub" },
     { value: 100, suffix: "%", decimals: 0, label: "of what you sent, back from margin" },
@@ -161,6 +161,12 @@ export const faq = {
 };
 
 export const closing = {
-  heading: "Send something across.",
-  sub: "USDC to Monad in about a second, backed by margin you can see on every quote.",
+  heading: "Bridge to Monad now.",
+  sub: "USDC and ETH in about a second, from Makers whose margin you can see on every quote.",
+};
+
+export const chains = {
+  eyebrow: "Chains",
+  heading: ["Every route runs", "through Monad."],
+  sub: "Monad is the hub: rules, Maker margin and disputes all live there. Each spoke only needs a router, so a new chain is a config entry, not a new bridge.",
 };
