@@ -4,6 +4,7 @@
 import { indexer, type PayLink, type PayRequest, type PayrollRun, type Unwrap } from "envio";
 import { ZERO, lc, linkId, paymentId, requestId, revealId, unwrapId } from "../lib/common";
 import { Unit } from "../lib/unit";
+import { feed } from "../lib/feed";
 
 const TX = { transaction: ["hash"], block: ["timestamp"] } as const;
 
@@ -40,6 +41,8 @@ indexer.onEvent({ contract: "FhishPayToken", event: "Paid", fields: TX }, async 
     await u.recordPayment({ token, kind: "PAY", from: event.params.from, to: event.params.to, handle: event.params.amount, ref: lc(event.params.ref), logIndex: event.logIndex });
   const s = await u.txScratch();
   s.paidIds = [...s.paidIds, id];
+  feed(context, event, event.params.from, "sent", { counterparty: event.params.to, handle: event.params.amount, ref: event.params.ref });
+  if (lc(event.params.to) !== lc(event.params.from)) feed(context, event, event.params.to, "received", { counterparty: event.params.from, handle: event.params.amount, ref: event.params.ref });
   u.flush();
 });
 
@@ -117,6 +120,7 @@ indexer.onEvent({ contract: "FhishPayToken", event: "LinkCreated", fields: TX },
   g.linksCreated += 1;
   g.linksOpen += 1;
   (await u.day()).linksCreated += 1;
+  feed(context, event, event.params.sender, "link-created", { linkId: event.params.id, handle: event.params.amount });
   u.flush();
 });
 
@@ -151,6 +155,8 @@ indexer.onEvent({ contract: "FhishPayToken", event: "LinkClaimed", fields: TX },
   g.linksOpen -= 1;
   (await u.day()).linksClaimed += 1;
   await u.addClaimSample(claimSeconds);
+  feed(context, event, claimer, "link-received", { linkId: event.params.id });
+  if (claimer !== lc(link.sender_id)) feed(context, event, link.sender_id, "link-claimed", { linkId: event.params.id, counterparty: claimer });
   u.flush();
 });
 
@@ -164,6 +170,7 @@ indexer.onEvent({ contract: "FhishPayToken", event: "LinkRefunded", fields: TX }
   g.linksRefunded += 1;
   g.linksOpen -= 1;
   (await u.day()).linksRefunded += 1;
+  feed(context, event, link.sender_id, "link-refunded", { linkId: event.params.id });
   const s = await u.txScratch();
   s.releaseHandle = undefined;
   s.releaseTo = undefined;
@@ -205,6 +212,9 @@ indexer.onEvent({ contract: "FhishPayToken", event: "PaymentRequested", fields: 
   payer.requestsReceived += 1;
   (await u.global()).requests += 1;
   (await u.day()).requests += 1;
+  const rf = { requestId: event.params.id, handle: event.params.due, ref: event.params.ref };
+  feed(context, event, event.params.payee, "request-sent", { ...rf, role: "payee", counterparty: event.params.payer });
+  feed(context, event, event.params.payer, "request-received", { ...rf, role: "payer", counterparty: event.params.payee });
   u.flush();
 });
 
@@ -218,7 +228,12 @@ indexer.onEvent({ contract: "FhishPayToken", event: "RequestPaid", fields: TX },
   // the balance move of this payment (ConfidentialTransfer, same handle as `sent`) points at its request
   const moved = await context.Payment.get(paymentId(event.chainId, lc(event.srcAddress), event.params.sent));
   if (moved && req) context.Payment.set({ ...moved, request_id: req.id });
-  else context.log.warn(`RequestPaid for unknown request ${event.params.id} (indexer started after it was created)`);
+  if (!req) context.log.warn(`RequestPaid for unknown request ${event.params.id} (indexer started after it was created)`);
+  else {
+    const rf = { requestId: event.params.id, handle: event.params.sent };
+    feed(context, event, req.payee_id, "request-paid", { ...rf, role: "payee", counterparty: req.payer_id });
+    feed(context, event, req.payer_id, "request-paid", { ...rf, role: "payer", counterparty: req.payee_id });
+  }
   u.flush();
 });
 
@@ -230,6 +245,8 @@ indexer.onEvent({ contract: "FhishPayToken", event: "RequestCancelled", fields: 
   if (req) {
     await u.account(req.payee_id); // lastSeen
     context.PayRequest.set({ ...req, cancelled: true, cancelledAt: event.block.timestamp });
+    feed(context, event, req.payee_id, "request-cancelled", { requestId: event.params.id, role: "payee", counterparty: req.payer_id });
+    feed(context, event, req.payer_id, "request-cancelled", { requestId: event.params.id, role: "payer", counterparty: req.payee_id });
   }
   u.flush();
 });
@@ -262,6 +279,7 @@ indexer.onEvent({ contract: "FhishPayToken", event: "Wrapped", fields: TX }, asy
     txHash: lc(event.transaction.hash),
     logIndex: event.logIndex,
   });
+  feed(context, event, event.params.account, "wrapped", { amount });
   u.flush();
 });
 
@@ -292,6 +310,7 @@ indexer.onEvent({ contract: "FhishPayToken", event: "UnwrapRequested", fields: T
   };
   context.Unwrap.set(unwrap);
   s.burnHandle = undefined;
+  feed(context, event, event.params.account, "cashout-requested");
   u.flush();
 });
 
@@ -317,6 +336,7 @@ indexer.onEvent({ contract: "FhishPayToken", event: "Unwrapped", fields: TX }, a
       settledAt: event.block.timestamp,
       settleSeconds: event.block.timestamp - uw.requestedAt,
     });
+  feed(context, event, event.params.account, "cashed-out", { amount });
   u.flush();
 });
 

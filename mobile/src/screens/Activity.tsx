@@ -5,7 +5,7 @@ import { C, F, R, S } from "../ui/theme";
 import { T, Card, Cipher, Gap, Notice, Row } from "../ui/kit";
 import { Screen, useNav } from "../ui/Screen";
 import { useApp } from "../state/AppState";
-import { activity, describeError, formatAusd, shortHex, type ActivityItem } from "../lib/pay";
+import { activityWithSource, describeError, formatAusd, shortHex, type ActivityItem, type ActivityResult } from "../lib/pay";
 
 const META: Record<ActivityItem["kind"], { label: string; glyph: string; tone: string }> = {
   sent: { label: "Sent", glyph: "↗", tone: C.foam },
@@ -48,6 +48,7 @@ export function Activity() {
   const app = useApp();
   const nav = useNav();
   const [items, setItems] = useState<ActivityItem[] | null>(null);
+  const [source, setSource] = useState<Pick<ActivityResult, "source" | "indexedTo"> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -56,7 +57,9 @@ export function Activity() {
     if (!app.ctx || !app.address) return;
     setLoading(true);
     try {
-      setItems(await activity(app.ctx, app.address));
+      const r = await activityWithSource(app.ctx, app.address);
+      setItems(r.items);
+      setSource({ source: r.source, indexedTo: r.indexedTo });
       setErr(null);
     } catch (e) {
       setErr(describeError(e));
@@ -72,6 +75,11 @@ export function Activity() {
   return (
     <Screen title="Activity" onRefresh={load} refreshing={loading}>
       <T kind="dim">From on-chain events. Amounts you send and receive stay ciphertext handles: this is exactly what anyone else can see.</T>
+      {source ? (
+        <T kind="small" style={{ marginTop: 6 }}>
+          {source.source === "indexer" ? `History from the Envio indexer (to block ${source.indexedTo}); newer blocks read from the chain.` : "History read from the chain (no indexer): recent blocks only."}
+        </T>
+      ) : null}
       <Gap h={S.lg} />
       {err ? <Notice tone="error">{err}</Notice> : null}
       {items && items.length === 0 ? (

@@ -11,6 +11,8 @@ export interface Network {
   chainId: number;
   rpcUrl: string;
   gatewayUrl: string;
+  /** Envio HyperIndex GraphQL (Hasura) serving FeedItem; empty = scan logs on the device */
+  indexerUrl: string;
   deployment: Deployment | null;
   /** Agora AUSD (6 dp, EIP-712 domain "Agora Dollar" v1, ERC-2612 + ERC-3009) */
   ausd: Hex;
@@ -40,6 +42,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     chainId: 10143,
     rpcUrl: process.env.EXPO_PUBLIC_LOCAL_RPC ?? `http://${LOCAL_HOST}:18810`,
     gatewayUrl: process.env.EXPO_PUBLIC_LOCAL_GATEWAY ?? `http://${LOCAL_HOST}:8890`,
+    indexerUrl: process.env.EXPO_PUBLIC_LOCAL_INDEXER ?? `http://${LOCAL_HOST}:8892/v1/graphql`,
     deployment: DEPLOYMENTS.local,
     ausd: AUSD,
     faucet: AUSD_FAUCET,
@@ -53,6 +56,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     chainId: 10143,
     rpcUrl: process.env.EXPO_PUBLIC_TESTNET_RPC ?? "https://testnet-rpc.monad.xyz",
     gatewayUrl: process.env.EXPO_PUBLIC_TESTNET_GATEWAY ?? "",
+    indexerUrl: process.env.EXPO_PUBLIC_TESTNET_INDEXER ?? "", // the Envio Cloud endpoint once deployed
     deployment: DEPLOYMENTS.testnet,
     ausd: AUSD,
     faucet: AUSD_FAUCET,

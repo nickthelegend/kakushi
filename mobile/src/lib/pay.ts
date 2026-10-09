@@ -506,10 +506,86 @@ async function contractLogs(ctx: PayContext, from: bigint, to: bigint, concurren
 }
 
 /** Sends and receives from on-chain events. Amounts stay ciphertext handles. */
+export interface ActivityResult {
+  items: ActivityItem[];
+  /** the Envio indexer (plus the chain for blocks it has not processed), or the chain alone */
+  source: "indexer" | "chain";
+  indexedTo?: bigint;
+}
+
+const sortActivity = (items: ActivityItem[]) => items.sort((a, b) => (a.block === b.block ? b.logIndex - a.logIndex : a.block > b.block ? -1 : 1));
+
+/**
+ * The whole history from the Envio indexer (FeedItem rows, built by the same rules as activity()),
+ * plus the unindexed tip read from the chain. On Monad eth_getLogs covers 100 blocks per call, so
+ * this is the difference between seconds for all of it and minutes for a recent window.
+ */
+export async function activityFromIndexer(ctx: PayContext, who: Hex): Promise<ActivityResult | null> {
+  if (!ctx.net.indexerUrl) return null;
+  const query = `query F($a: String!, $t: String!) {
+    chain_metadata { latest_processed_block }
+    FeedItem(where: { account: { _eq: $a }, token: { _eq: $t } }, order_by: [{ blockNumber: desc }, { logIndex: desc }], limit: 1000) {
+      kind counterparty handle amount linkId requestId role ref blockNumber logIndex txHash
+    }
+  }`;
+  type Row = { kind: ActivityKind; counterparty: string | null; handle: string | null; amount: string | null; linkId: string | null; requestId: string | null; role: "payee" | "payer" | null; ref: string | null; blockNumber: number; logIndex: number; txHash: string };
+  let data: { chain_metadata: { latest_processed_block: number }[]; FeedItem: Row[] };
+  try {
+    const r = await fetch(ctx.net.indexerUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, variables: { a: who.toLowerCase(), t: ctx.causd.toLowerCase() } }) });
+    const j = (await r.json()) as { data?: typeof data };
+    if (!r.ok || !j.data?.chain_metadata?.length) return null;
+    data = j.data;
+  } catch {
+    return null;
+  }
+  const indexedTo = BigInt(data.chain_metadata[0]!.latest_processed_block);
+  const deploy = BigInt(ctx.net.deployment!.deployBlock);
+  if (indexedTo < deploy) return null; // an indexer for another deployment, or still starting
+  const items: ActivityItem[] = data.FeedItem.map((f) => {
+    const it: ActivityItem = { kind: f.kind, block: BigInt(f.blockNumber), logIndex: f.logIndex, tx: f.txHash as Hex };
+    if (f.counterparty) it.counterparty = f.counterparty as Hex;
+    if (f.handle) it.handle = f.handle as Hex;
+    if (f.amount !== null) it.amount = BigInt(f.amount);
+    if (f.linkId !== null) it.linkId = BigInt(f.linkId);
+    if (f.requestId !== null) it.requestId = BigInt(f.requestId);
+    if (f.role) it.role = f.role;
+    if (f.ref) it.ref = f.ref as Hex;
+    return it;
+  });
+  const latest = await ctx.pub.getBlockNumber();
+  if (latest > indexedTo) {
+    // the tip may pay/cancel requests or claim links created earlier: tell the scan what is already known
+    const known: KnownHistory = { links: new Set(), requests: new Map() };
+    for (const i of items) {
+      if (i.kind === "link-created" && i.linkId !== undefined) known.links.add(i.linkId);
+      if (i.requestId !== undefined && i.role) known.requests.set(i.requestId, { role: i.role, counterparty: i.counterparty });
+    }
+    items.push(...(await activityFromLogs(ctx, who, indexedTo + 1n, latest, known)));
+  }
+  return { items: sortActivity(items), source: "indexer", indexedTo };
+}
+
+/** Activity for `who`: the indexer when configured and reachable, otherwise the chain. */
+export async function activityWithSource(ctx: PayContext, who: Hex): Promise<ActivityResult> {
+  return (await activityFromIndexer(ctx, who)) ?? { items: await activity(ctx, who), source: "chain" };
+}
+
 export async function activity(ctx: PayContext, who: Hex, lookback = 200_000n): Promise<ActivityItem[]> {
   const latest = await ctx.pub.getBlockNumber();
   const deploy = BigInt(ctx.net.deployment!.deployBlock);
   const from = latest - lookback > deploy ? latest - lookback : deploy;
+  return activityFromLogs(ctx, who, from, latest);
+}
+
+/** Activity of `who` built from the contract's raw logs in [from, latest]. */
+export interface KnownHistory {
+  /** links `who` created before the scanned window */
+  links: Set<bigint>;
+  /** requests `who` is part of, created before the scanned window */
+  requests: Map<bigint, { role: "payee" | "payer"; counterparty?: Hex }>;
+}
+
+export async function activityFromLogs(ctx: PayContext, who: Hex, from: bigint, latest: bigint, known?: KnownHistory): Promise<ActivityItem[]> {
   const logs = await contractLogs(ctx, from, latest);
   const me = who.toLowerCase();
   const is = (a: unknown) => typeof a === "string" && a.toLowerCase() === me;
@@ -524,13 +600,13 @@ export async function activity(ctx: PayContext, who: Hex, lookback = 200_000n): 
   const asked = q("PaymentRequested", (a) => is(a.payee));
   const askedOf = q("PaymentRequested", (a) => is(a.payer));
   // claims / refunds of links I created; payments / cancellations of requests I am part of
-  const myIds = new Set(created.map((l) => l.args.id as bigint));
-  const role = new Map<bigint, "payee" | "payer">([...asked.map((l) => [l.args.id as bigint, "payee"] as const), ...askedOf.map((l) => [l.args.id as bigint, "payer"] as const)]);
+  const myIds = new Set([...(known?.links ?? []), ...created.map((l) => l.args.id as bigint)]);
+  const role = new Map<bigint, "payee" | "payer">([...[...(known?.requests ?? [])].map(([id, r]) => [id, r.role] as const), ...asked.map((l) => [l.args.id as bigint, "payee"] as const), ...askedOf.map((l) => [l.args.id as bigint, "payer"] as const)]);
   const claimedMine = q("LinkClaimed", (a) => myIds.has(a.id));
   const refunded = q("LinkRefunded", (a) => myIds.has(a.id));
   const reqPaid = q("RequestPaid", (a) => role.has(a.id));
   const reqCancelled = q("RequestCancelled", (a) => role.has(a.id));
-  const counterparty = new Map<bigint, Hex>([...asked.map((l) => [l.args.id as bigint, l.args.payer as Hex] as const), ...askedOf.map((l) => [l.args.id as bigint, l.args.payee as Hex] as const)]);
+  const counterparty = new Map<bigint, Hex>([...[...(known?.requests ?? [])].filter(([, r]) => r.counterparty).map(([id, r]) => [id, r.counterparty!] as const), ...asked.map((l) => [l.args.id as bigint, l.args.payer as Hex] as const), ...askedOf.map((l) => [l.args.id as bigint, l.args.payee as Hex] as const)]);
   const base = (l: any) => ({ block: l.blockNumber as bigint, logIndex: Number(l.logIndex), tx: l.transactionHash as Hex });
   const items: ActivityItem[] = [
     ...sent.map((l) => ({ ...base(l), kind: "sent" as const, counterparty: l.args.to, handle: l.args.amount, ref: l.args.ref })),
@@ -547,5 +623,5 @@ export async function activity(ctx: PayContext, who: Hex, lookback = 200_000n): 
     ...reqPaid.map((l) => ({ ...base(l), kind: "request-paid" as const, requestId: l.args.id, role: role.get(l.args.id), counterparty: counterparty.get(l.args.id), handle: l.args.sent })),
     ...reqCancelled.map((l) => ({ ...base(l), kind: "request-cancelled" as const, requestId: l.args.id, role: role.get(l.args.id), counterparty: counterparty.get(l.args.id) })),
   ];
-  return items.sort((a, b) => (a.block === b.block ? b.logIndex - a.logIndex : a.block > b.block ? -1 : 1));
+  return sortActivity(items);
 }

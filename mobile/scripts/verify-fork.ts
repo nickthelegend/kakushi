@@ -201,6 +201,16 @@ const kinds = new Set(act.map((a) => a.kind));
 check("activity from on-chain events", kinds.has("wrapped") && kinds.has("sent") && kinds.has("link-created") && kinds.has("link-claimed"), `${act.length} items for alice: ${[...kinds].join(", ")}`);
 const actB = await P.activity(ctx, bob.address);
 check("activity (receiver side)", actB.some((a) => a.kind === "received") && actB.some((a) => a.kind === "cashed-out"), `${actB.length} items for bob`);
+// the Envio indexer serves the same feed (FeedItem rows) as the on-device log scan, field by field
+const norm = (a: P.ActivityItem) => [a.kind, a.tx, a.logIndex, a.handle ?? "", a.amount ?? "", a.linkId ?? "", a.requestId ?? "", a.role ?? "", a.counterparty ?? "", a.ref ?? ""].map((x) => String(x).toLowerCase()).join("|");
+for (const [name, who, chainItems] of [["alice", alice.address, act], ["bob", bob.address, actB]] as const) {
+  const idx = await P.activityWithSource(ctx, who);
+  const fresh = await P.activity(ctx, who); // re-read: the chain may have moved while the indexer answered
+  const A = new Set(idx.items.map(norm));
+  const B = new Set(fresh.map(norm));
+  const diff = [...A].filter((x) => !B.has(x)).length + [...B].filter((x) => !A.has(x)).length;
+  check(`activity from the Envio indexer == on-chain scan (${name})`, idx.source === "indexer" && diff === 0, `source ${idx.source} (indexed to ${idx.indexedTo}) · ${idx.items.length} items vs ${fresh.length} from logs (${chainItems.length} earlier) · ${diff} differences`);
+}
 const reqKinds = (xs: P.ActivityItem[], id: bigint) => xs.filter((a) => a.requestId === id).map((a) => `${a.kind}${a.role ? `(${a.role})` : ""}`);
 const aliceReq = [...reqKinds(act, RQ.id), ...reqKinds(act, CX.id)];
 const bobReq = [...reqKinds(actB, RQ.id), ...reqKinds(actB, BIG.id)];

@@ -256,6 +256,32 @@ type Reveal {
 }
 
 """
+The activity feed wallets render: one row per Fhish Pay event per account it involves (a payment is a
+"sent" row for the payer and a "received" row for the payee). Amounts are ciphertext handles; only
+wraps and settled cash-outs carry a public amount.
+"""
+type FeedItem {
+  "chainId-txHash-logIndex-account"
+  id: ID!
+  chainId: Int!
+  token: String! @index
+  account: String! @index
+  "sent | received | link-created | link-received | link-claimed | link-refunded | wrapped | cashout-requested | cashed-out | request-sent | request-received | request-paid | request-cancelled"
+  kind: String!
+  counterparty: String
+  handle: String
+  amount: BigInt
+  linkId: BigInt
+  requestId: BigInt
+  "payment requests: which side the account is on (payee | payer)"
+  role: String
+  ref: String
+  blockNumber: Int! @index
+  logIndex: Int!
+  txHash: String!
+}
+
+"""
 A wrap: public stablecoin in, encrypted balance out. Its amount is public by nature (it crosses the
 boundary into the confidential pool); everything after it is a ciphertext.
 """
