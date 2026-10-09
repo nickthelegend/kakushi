@@ -1,0 +1,34 @@
+{
+  "name": "@kakushi/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kakushi web app: bridge, transfer receipts, disputes, Maker market and console, CRE attestation explorer.",
+  "scripts": {
+    "dev": "next dev -p 3710",
+    "build": "next build",
+    "start": "next start -p 3710",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test --maxWorkers=1"
+  },
+  "dependencies": {
+    "@kakushi/attest-core": "workspace:*",
+    "@kakushi/config": "workspace:*",
+    "@kakushi/sdk": "workspace:*",
+    "@privy-io/react-auth": "^3.40.0",
+    "lucide-react": "1.48.0",
+    "motion": "13.4.4",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3"
+  }
+}

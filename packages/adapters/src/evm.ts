@@ -8,7 +8,7 @@ import {
 } from "viem";
 import { CHAINS, type ChainKey, currentNetwork } from "@kakushi/config";
 import { computeSrcRef, NATIVE_LOG_INDEX, sourceLeaf, TOPIC_PAYMENT_ENCODED, TOPIC_TRANSFER, type Leaf } from "@kakushi/attest-core";
-import { erc20Abi, payoutRouterAbi, publicClient, viemChain, type Kakushi, findSourcePayment } from "@kakushi/sdk";
+import { erc20Abi, payoutRouterAbi, publicClient, viemChain, type Kakushi, findSourcePayments } from "@kakushi/sdk";
 import type { IChainAdapter, IncomingPayment, PayoutResult, TxRequest } from "./types.ts";
 
 const pad = (a: string) => `0x${a.slice(2).toLowerCase().padStart(64, "0")}` as Hex;
@@ -169,8 +169,9 @@ export class EvmAdapter implements IChainAdapter {
     return { txHash: hash, executedMs: Date.now() - t0, blockNumber: rc.blockNumber };
   }
 
-  async getProofInputs(txHash: Hex): Promise<Leaf | null> {
-    const p = await findSourcePayment(this.k, this.chainId, txHash);
+  async getProofInputs(txHash: Hex, logIndex?: number): Promise<Leaf | null> {
+    const payments = await findSourcePayments(this.k, this.chainId, txHash);
+    const p = logIndex === undefined ? payments[0] : payments.find(payment => payment.logIndex === logIndex);
     if (!p) return null;
     return sourceLeaf({ chainId: this.chainId, txHash, logIndex: p.logIndex, sender: p.sender, maker: p.maker, token: p.token, amount: p.gross, recipient: p.recipient, blockNumber: p.blockNumber, timestamp: p.timestamp });
   }

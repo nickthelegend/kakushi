@@ -13,7 +13,7 @@ import { CHAIN_LIST, CHAINS, chainById } from "@kakushi/config";
 import { toHex32 } from "@kakushi/attest-core";
 import { prove } from "@kakushi/attest-core/prover";
 import { EvmAdapter, type IncomingPayment } from "@kakushi/adapters";
-import { blockBefore, disputeModuleAbi, errText, findPayout, findSourcePayment, prepareDispute, type SourcePayment } from "@kakushi/sdk";
+import { blockBefore, disputeModuleAbi, errText, findPayout, findSourcePayments, prepareDispute, type SourcePayment } from "@kakushi/sdk";
 import { kakushiFromDisk } from "@kakushi/sdk/node";
 
 const k = kakushiFromDisk();
@@ -177,13 +177,14 @@ createServer(async (req, res) => {
       let body = "";
       for await (const ch of req) body += ch;
       const j = JSON.parse(body) as { chainId: number; txHash: Hex };
-      const p = await findSourcePayment(k, Number(j.chainId), j.txHash);
-      if (!p) {
+      const payments = await findSourcePayments(k, Number(j.chainId), j.txHash);
+      if (!payments.length) {
         res.statusCode = 404;
         return void res.end(JSON.stringify({ error: "not a Kakushi payment to a registered Maker" }));
       }
-      upsert(p, "watching");
-      return void res.end(JSON.stringify({ watching: true, srcRef: toHex32(srcRefOf(p)) }));
+      for (const payment of payments) upsert(payment, "watching");
+      const srcRefs = payments.map(payment => toHex32(srcRefOf(payment)));
+      return void res.end(JSON.stringify({ watching: true, srcRef: srcRefs[0], srcRefs }));
     }
     res.statusCode = 404;
     res.end(JSON.stringify({ error: "not found" }));

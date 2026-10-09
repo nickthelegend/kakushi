@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CHAIN_LIST, chainByIdentCode, COMPLIANT_LANE, rpcUrl, CHAINS } from "../chains.ts";
 
 describe("chain registry", () => {
+  afterEach(() => vi.unstubAllEnvs());
   it("has unique chain ids, ident codes and local ports", () => {
     const ids = CHAIN_LIST.map((c) => c.chainId);
     const codes = [...CHAIN_LIST.map((c) => c.identCode), COMPLIANT_LANE.identCode];
@@ -26,4 +27,14 @@ describe("chain registry", () => {
     expect(rpcUrl(CHAINS.sepolia, "local")).toBe("http://127.0.0.1:18711");
     expect(rpcUrl(CHAINS.sepolia, "testnet")).toContain("sepolia");
   });
+  it("rejects inherited public RPCs when using public local accounts", () => {
+    vi.stubEnv("SEPOLIA_RPC_URL", "https://ethereum-sepolia-rpc.publicnode.com");
+    expect(() => rpcUrl(CHAINS.sepolia, "local")).toThrow("loopback");
+    expect(rpcUrl(CHAINS.sepolia, "testnet")).toContain("publicnode.com");
+  });
+  it("allows an explicit alternate loopback fork port", () => {
+    vi.stubEnv("SEPOLIA_RPC_URL", "http://localhost:18711");
+    expect(rpcUrl(CHAINS.sepolia, "local")).toBe("http://localhost:18711");
+  });
+
 });

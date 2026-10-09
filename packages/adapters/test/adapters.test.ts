@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { zeroAddress } from "viem";
+import { zeroAddress,encodeEventTopics,encodeAbiParameters } from "viem";
 import { CHAINS } from "@kakushi/config";
-import { Kakushi } from "@kakushi/sdk";
+import { Kakushi,erc20Abi } from "@kakushi/sdk";
 import { EvmAdapter, SolanaAdapterStub } from "../src/index.ts";
 
 const fakeDeployments = {
@@ -34,4 +34,20 @@ describe("IChainAdapter", () => {
     expect(s.encodePayment("Maker111", "SOL", 1_000_009_001n, 9001).value).toBe(1_000_009_001n);
     await expect(s.submitPayout()).rejects.toThrow(/stub/);
   });
+});
+
+
+it("selects proof input for a requested batch log index", async()=>{
+  const maker="0x00000000000000000000000000000000000000aa" as const;
+  const sender="0x00000000000000000000000000000000000000bb" as const;
+  const hash=`0x${"12".repeat(32)}` as const;
+  const logs=[2,5].map(logIndex=>({address:CHAINS.sepolia.usdc.address,logIndex,topics:encodeEventTopics({abi:erc20Abi,eventName:"Transfer",args:{from:sender,to:maker}}),data:encodeAbiParameters([{type:"uint256"}],[BigInt(logIndex)*10000n+9001n])}));
+  const client={getTransaction:async()=>({from:sender,to:CHAINS.sepolia.usdc.address,input:"0x1234",value:0n}),getTransactionReceipt:async()=>({status:"success",blockNumber:10n,logs}),getBlock:async()=>({timestamp:100n})};
+  const k={network:"local",d:fakeDeployments,client:()=>client,clientById:()=>client,makers:async()=>[maker]} as unknown as Kakushi;
+  const a=new EvmAdapter(k,"sepolia");
+  const first=await a.getProofInputs(hash,2);
+  const second=await a.getProofInputs(hash,5);
+  expect(first).not.toEqual(second);
+  expect(await a.getProofInputs(hash)).toEqual(first);
+  expect(await a.getProofInputs(hash,99)).toBeNull();
 });

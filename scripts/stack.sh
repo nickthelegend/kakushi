@@ -38,12 +38,35 @@ wait_rpc() {
 
 case "${1:-status}" in
   up)
+    # Preflight before replacing ownership records. A second up must not orphan
+    # already running forks, and partial startup must roll back only our PIDs.
+    for p in 18710 18711 18712; do
+      if lsof -ti "tcp:$p" -sTCP:LISTEN >/dev/null 2>&1; then
+        echo "port $p already in use; keep existing ownership records" >&2
+        exit 1
+      fi
+    done
+    if [ -f "$PIDS" ]; then
+      while read -r name pid port; do
+        if kill -0 "$pid" 2>/dev/null; then
+          echo "tracked $name ($pid) still running; stop it before starting" >&2
+          exit 1
+        fi
+      done <"$PIDS"
+    fi
     : >"$PIDS"
+    rollback() {
+      while read -r name pid port; do kill "$pid" 2>/dev/null || true; done <"$PIDS"
+      : >"$PIDS"
+    }
+    trap rollback EXIT
+    trap 'exit 130' INT TERM
     start_one monad 18710 "$MONAD_FORK_URL" "$BLOCK_TIME_MONAD"
     start_one sepolia 18711 "$SEPOLIA_FORK_URL" "$BLOCK_TIME_L1"
     start_one base 18712 "$BASE_FORK_URL" "$BLOCK_TIME_L1"
     for p in 18710 18711 18712; do wait_rpc "$p"; done
     for p in 18710 18711 18712; do echo "port $p chain $(cast chain-id --rpc-url http://127.0.0.1:$p)"; done
+    trap - EXIT INT TERM
     ;;
   down)
     if [ -f "$PIDS" ]; then

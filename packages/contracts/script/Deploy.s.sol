@@ -35,6 +35,7 @@ contract Deploy is Script {
         address deployer = vm.addr(pk);
         string memory role = vm.envOr("KAKUSHI_ROLE", string("spoke"));
         string memory network = vm.envOr("KAKUSHI_NETWORK", string("local"));
+        _validateRelease(role, network);
         string memory path = string.concat("deployments/", network, "/", vm.toString(block.chainid), ".json");
         string memory obj = "deployment";
 
@@ -54,6 +55,27 @@ contract Deploy is Script {
         string memory json = vm.serializeString(obj, "role", role);
         vm.writeJson(json, path);
         console2.log("wrote", path);
+    }
+
+    /// Validate before broadcasting or freezing immutable sponsor configuration.
+    function _validateRelease(string memory role, string memory network) internal view {
+        bool hub = keccak256(bytes(role)) == keccak256("hub");
+        bool spoke = keccak256(bytes(role)) == keccak256("spoke");
+        require(hub || spoke, "invalid Kakushi role");
+        require(block.chainid == MONAD_TESTNET || block.chainid == SEPOLIA || block.chainid == BASE_SEPOLIA, "unsupported Kakushi chain");
+        require(hub == (block.chainid == MONAD_TESTNET), "role does not match chain");
+        bool local = keccak256(bytes(network)) == keccak256("local");
+        require(local || keccak256(bytes(network)) == keccak256("testnet"), "invalid Kakushi network");
+        if (!local && hub) {
+            require(vm.envOr("CRE_WORKFLOW_OWNER", address(0)) != address(0), "configure real CRE workflow owner");
+            require(vm.envExists("CLEANVERSE_CVA") && vm.envExists("CLEANVERSE_VALIDATOR"), "choose explicit compliance configuration");
+            address cva = vm.envAddress("CLEANVERSE_CVA");
+            address validator = vm.envAddress("CLEANVERSE_VALIDATOR");
+            require((cva == address(0)) == (validator == address(0)), "incomplete compliance configuration");
+            if (cva != address(0)) require(cva.code.length > 0 && validator.code.length > 0, "compliance contracts unavailable");
+            require(vm.envOr("CRE_FORWARDER", address(0)).code.length > 0, "configure deployed CRE forwarder");
+        }
+        require(address(CREATEX).code.length > 0, "CreateX unavailable");
     }
 
     function _routers(address deployer) internal returns (address pr, address sr) {

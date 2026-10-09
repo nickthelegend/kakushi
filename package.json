@@ -11,10 +11,10 @@
   "packageManager": "pnpm@10.29.2",
   "scripts": {
     "typecheck": "pnpm -r --filter=!@kakushi/app --filter=!@kakushi/indexer typecheck && tsc --noEmit -p tsconfig.json",
-    "test": "pnpm -r --filter=!@kakushi/app --filter=!@kakushi/indexer --filter=!@kakushi/cre test",
+    "test": "pnpm -r --workspace-concurrency=1 --filter=!kakushi --filter=!@kakushi/indexer --filter=!@kakushi/cre test",
     "lint": "eslint .",
     "contracts:build": "cd packages/contracts && forge build",
-    "contracts:test": "cd packages/contracts && forge test",
+    "contracts:test": "cd packages/contracts && forge test -j 1",
     "zk:test": "cd packages/zk && PATH=$HOME/.nargo/bin:$PATH nargo test --workspace",
     "zk:verifiers": "packages/zk/scripts/gen-verifiers.sh",
     "stack:up": "bash scripts/stack.sh up",

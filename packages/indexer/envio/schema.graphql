@@ -1,0 +1,132 @@
+type SourcePayment {
+  id: ID!
+  chainId: Int!
+  txHash: String!
+  logIndex: Int!
+  blockNumber: Int!
+  timestamp: Int!
+  sender: String!
+  maker: String!
+  token: String!
+  gross: BigInt!
+  recipient: String!
+  via: String!
+}
+type Payout {
+  id: ID!
+  chainId: Int!
+  txHash: String!
+  timestamp: Int!
+  maker: String!
+  recipient: String!
+  token: String!
+  amount: BigInt!
+  kind: Int!
+}
+type Transfer {
+  id: ID!
+  maker: String!
+  sourceId: String
+  payoutId: String
+  sourceTime: Int
+  payoutTime: Int
+  status: String!
+  latencyMs: Int
+  disputeKey: String
+  routeId: String
+  sourceChainId: Int
+  sourceToken: String
+  sourceGross: BigInt
+  payoutChainId: Int
+  payoutToken: String
+  payoutAmount: BigInt
+  payoutKind: Int
+}
+type Dispute {
+  id: ID!
+  srcRef: String!
+  maker: String!
+  status: String!
+  compensation: BigInt
+  paid: BigInt
+  reward: BigInt
+}
+type Maker {
+  id: ID!
+  registered: Boolean!
+}
+type Margin {
+  id: ID!
+  maker: String!
+  token: String!
+  balance: BigInt!
+}
+type MarginEvent {
+  id: ID!
+  maker: String!
+  token: String!
+  kind: String!
+  amount: BigInt!
+  timestamp: Int!
+}
+type Pair {
+  id: ID!
+  maker: String!
+  srcChainId: BigInt!
+  srcToken: String!
+  dstChainId: BigInt!
+  dstToken: String!
+  identCode: BigInt!
+  active: Boolean!
+  registeredTime: Int!
+}
+type AttestationWindow {
+  id: ID!
+  windowId: BigInt!
+  sourceChainId: BigInt!
+  kind: Int!
+  fromBlock: BigInt!
+  toBlock: BigInt!
+  fromTime: BigInt!
+  toTime: BigInt!
+  root: BigInt!
+  leafCount: BigInt!
+}
+
+type MakerStats {
+  id: ID!
+  observedSources: Int!
+  filled: Int!
+  refunded: Int!
+  pending: Int!
+  disputed: Int!
+  slashed: Int!
+  latencySamples: Int!
+  p50LatencyMs: Int
+  p95LatencyMs: Int
+  observedFillRateBps: Int
+  sourceVolumeByToken: String!
+  fillVolumeByToken: String!
+  refundVolumeByToken: String!
+}
+type RouteStats {
+  id: ID!
+  maker: String!
+  srcChainId: BigInt!
+  srcToken: String!
+  dstChainId: BigInt!
+  dstToken: String!
+  observedSources: Int!
+  filled: Int!
+  refunded: Int!
+  pending: Int!
+  disputed: Int!
+  slashed: Int!
+  latencySamples: Int!
+  p50LatencyMs: Int
+  p95LatencyMs: Int
+  observedFillRateBps: Int
+  sourceVolumeRaw: BigInt!
+  fillVolumeRaw: BigInt!
+  refundVolumeByToken: String!
+}

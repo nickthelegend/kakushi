@@ -1,5 +1,5 @@
 // The Kakushi client: one object holding the deployments and per-chain clients.
-import { type Hex, type PublicClient, zeroAddress } from "viem";
+import { type Hex, type PublicClient, isAddress, zeroAddress } from "viem";
 import { CHAINS, type ChainKey, CHAIN_LIST, type Network, chainById } from "@kakushi/config";
 import type { Deployments } from "@kakushi/config/deployments";
 import { type ChainAttestConfig, encodeGross, splitCode } from "@kakushi/attest-core";
@@ -176,14 +176,30 @@ export class Kakushi {
   /** Ask Maker nodes for quotes and keep the ones the hub agrees with; best net first. */
   async quote(args: { srcChainId: number; dstChainId: number; token: "USDC" | "NATIVE"; amount: bigint; makerUrls: string[] }): Promise<MakerQuote[]> {
     const src = chainById(args.srcChainId);
+    const dst = chainById(args.dstChainId);
     const srcToken = args.token === "USDC" ? src.usdc.address : zeroAddress;
+    const dstToken = args.token === "USDC" ? dst.usdc.address : zeroAddress;
+    const requestedGross = encodeGross(args.amount, dst.identCode);
     const qs = await Promise.all(
       args.makerUrls.map(async (u) => {
         try {
           const url = `${u.replace(/\/$/, "")}/quote?src=${args.srcChainId}&dst=${args.dstChainId}&token=${srcToken}&amount=${args.amount}`;
           const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
           if (!r.ok) return null;
-          return (await r.json()) as MakerQuote;
+          const q = await r.json() as MakerQuote;
+          const amounts = [q.gross, q.principal, q.net, q.withholdingFee, q.tradingFee,
+            q.minAmount, q.maxAmount, q.inventory, q.margin, q.marginRequired];
+          if (!amounts.every((v) => typeof v === "string" && /^\d{1,78}$/.test(v) && BigInt(v) < 2n ** 256n)
+            || !isAddress(q.maker) || !isAddress(q.srcToken) || !isAddress(q.dstToken)
+            || typeof q.pairId !== "string" || !/^0x[\da-f]{64}$/i.test(q.pairId)
+            || typeof q.name !== "string" || typeof q.quotable !== "boolean"
+            || !Number.isFinite(q.etaMs) || q.etaMs < 0
+            || q.srcChainId !== args.srcChainId || q.dstChainId !== args.dstChainId
+            || q.srcToken.toLowerCase() !== srcToken.toLowerCase()
+            || q.dstToken.toLowerCase() !== dstToken.toLowerCase()
+            || q.identCode !== dst.identCode || BigInt(q.gross) !== requestedGross
+            || BigInt(q.principal) !== splitCode(requestedGross).principal) return null;
+          return q;
         } catch {
           return null;
         }
@@ -193,9 +209,14 @@ export class Kakushi {
     for (const q of qs) {
       if (!q) continue;
       // never trust the Maker's arithmetic: the hub classifies the exact gross
-      const c = await this.classify(q.maker, args.srcChainId, srcToken, BigInt(q.gross), BigInt(Math.floor(Date.now() / 1000)));
-      if (c.kind === 1 && c.expected === BigInt(q.net)) valid.push(q);
-      else valid.push({ ...q, quotable: false, reason: q.reason ?? "hub classification disagrees" });
+      try {
+        const c = await this.classify(q.maker, args.srcChainId, srcToken, BigInt(q.gross), BigInt(Math.floor(Date.now() / 1000)));
+        if (c.kind === 1 && c.expected === BigInt(q.net) && c.obligationChainId === args.dstChainId
+          && c.payToken.toLowerCase() === dstToken.toLowerCase() && c.pairId.toLowerCase() === q.pairId.toLowerCase()) valid.push(q);
+        else valid.push({ ...q, quotable: false, reason: q.reason ?? "hub classification disagrees" });
+      } catch {
+        // One unreachable Maker/classification must not hide a healthy peer.
+      }
     }
     return valid.sort((a, b) => Number(b.quotable) - Number(a.quotable) || (BigInt(b.net) > BigInt(a.net) ? 1 : -1));
   }

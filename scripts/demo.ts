@@ -10,7 +10,7 @@
 //
 // Flags: --keep (leave stack and services running), --no-deploy (reuse the current deployment)
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
-import { mkdirSync, openSync } from "node:fs";
+import { mkdirSync, openSync, appendFileSync, writeFileSync } from "node:fs";
 import { type Hex, formatUnits, parseUnits, zeroAddress } from "viem";
 import { CHAINS } from "@kakushi/config";
 import { Kakushi, buildGross, buildTransferTx, erc20Abi, findPayout, findSourcePayment, srcRefOf, walletClient, publicClient } from "@kakushi/sdk";
@@ -20,6 +20,8 @@ import { LOCAL_KEYS, localAccount } from "./local-accounts.ts";
 process.env.KAKUSHI_NETWORK = "local";
 const args = new Set(process.argv.slice(2));
 const children: ChildProcess[] = [];
+let ownsStack = false;
+let keepSuccessfulStack = false;
 const results: { scenario: string; pass: boolean; detail: string }[] = [];
 const t0 = Date.now();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -35,6 +37,7 @@ function start(name: string, cmd: string, argv: string[], env: Record<string, st
   const out = openSync(`.stack/${name}.log`, "w");
   const c = spawn(cmd, argv, { cwd, env: { ...process.env, KAKUSHI_NETWORK: "local", ...env }, stdio: ["ignore", out, out] });
   children.push(c);
+  if (c.pid) appendFileSync(".stack/demo-pids", `${name} ${c.pid}\n`);
   return c;
 }
 
@@ -61,9 +64,17 @@ async function waitFor<T>(what: string, fn: () => Promise<T | null | undefined |
 }
 
 async function main() {
+  for (const port of [3711, 3712, 3713, 3714]) {
+    try { execFileSync("lsof", ["-ti", `tcp:${port}`, "-sTCP:LISTEN"], { stdio: "ignore" }); }
+    catch { continue; }
+    throw new Error(`port ${port} already occupied; leave existing services untouched`);
+  }
+  mkdirSync(".stack", { recursive: true });
+  writeFileSync(".stack/demo-pids", "");
   if (!stack("status").includes(" up")) {
     say("starting three local forks (Monad testnet hub, Sepolia, Base Sepolia)");
     console.log(stack("up").trim());
+    ownsStack = true;
   }
   if (!args.has("--no-deploy")) {
     say("deploying Kakushi and seeding a two-Maker market");
@@ -185,15 +196,16 @@ async function main() {
 }
 
 function cleanup() {
-  if (args.has("--keep")) return;
+  if (keepSuccessfulStack) return;
   for (const c of children) if (c.exitCode === null) c.kill("SIGTERM");
-  try {
-    stack("down");
-  } catch {}
+  if (ownsStack) { try { stack("down"); } catch {} }
 }
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => { keepSuccessfulStack = false; cleanup(); process.exit(130); });
 
 main()
   .then(() => {
+    keepSuccessfulStack = args.has("--keep") && results.length === 4 && results.every((r) => r.pass);
     cleanup();
     process.exit(results.length === 4 && results.every((r) => r.pass) ? 0 : 1);
   })

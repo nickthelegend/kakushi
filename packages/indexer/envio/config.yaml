@@ -1,0 +1,85 @@
+# Generated from current deployment files; rerun after every local redeploy.
+name: kakushi-envio
+handlers: src/handlers
+address_format: lowercase
+field_selection:
+  transaction_fields: [hash]
+contracts:
+  - name: SourceRouter
+    events:
+      - event: "PaymentEncoded(address indexed sender, address indexed maker, address token, uint256 gross, uint16 code, address recipient)"
+  - name: PayoutRouter
+    events:
+      - event: "Payout(bytes32 indexed srcRef, address indexed maker, address indexed recipient, address token, uint256 amount, uint8 kind)"
+  - name: DisputeModule
+    events:
+      - event: "DisputeExpired(bytes32 indexed disputeKey, address indexed maker)"
+      - event: "DisputeMakerProven(bytes32 indexed disputeKey, address indexed maker)"
+      - event: "DisputeOpened(bytes32 indexed disputeKey, bytes32 indexed srcRef, address indexed maker, address opener, uint64 srcChainId, bytes32 srcTxHash, uint32 logIndex)"
+      - event: "DisputeSlashed(bytes32 indexed disputeKey, address indexed maker, address indexed sender, address marginToken, uint256 compensation, uint256 paid, uint256 reward)"
+  - name: MDC
+    events:
+      - event: "MarginDeposited(address indexed maker, address indexed token, uint256 amount, uint256 total)"
+      - event: "MarginSlashed(address indexed maker, address indexed token, address indexed to, uint256 requested, uint256 paid, bytes32 disputeKey)"
+      - event: "MarginWithdrawn(address indexed maker, address indexed token, uint256 amount, uint256 remaining)"
+  - name: AttestationOracle
+    events:
+      - event: "WindowAttested(uint256 indexed id, uint64 indexed chainId, uint8 indexed kind, uint64 fromBlock, uint64 toBlock, uint64 fromTime, uint64 toTime, uint256 root, uint32 leafCount)"
+  - name: EBC
+    events:
+      - event: "PairActiveSet(bytes32 indexed pairId, bool active)"
+      - event: "PairRegistered(bytes32 indexed pairId, address indexed maker, uint64 srcChainId, address srcToken, uint64 dstChainId, address dstToken, uint16 identCode)"
+  - name: USDC
+    events:
+      - event: "Transfer(address indexed from, address indexed to, uint256 value)"
+chains:
+  - id: 10143
+    start_block: 69264669
+    rpc:
+      - url: http://127.0.0.1:18710
+        for: sync
+        initial_block_interval: 100
+        interval_ceiling: 100
+    contracts:
+      - name: SourceRouter
+        address: "0xA59B5bFa8e8932B41CBD9Cc7009d3DCC39eF2F59"
+      - name: PayoutRouter
+        address: "0xCBb4D00b37cAdD0E4Ac4dF6FBd9d18C3E715C684"
+      - name: USDC
+        address: "0x534b2f3A21130d7a60830c2Df862319e593943A3"
+      - name: DisputeModule
+        address: "0x245e77E56b1514D77910c9303e4b44dDb44B788c"
+      - name: MDC
+        address: "0x4CF4dd3f71B67a7622ac250f8b10d266Dc5aEbcE"
+      - name: AttestationOracle
+        address: "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744"
+      - name: EBC
+        address: "0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d"
+  - id: 11155111
+    start_block: 11870424
+    rpc:
+      - url: http://127.0.0.1:18711
+        for: sync
+        initial_block_interval: 100
+        interval_ceiling: 100
+    contracts:
+      - name: SourceRouter
+        address: "0xA59B5bFa8e8932B41CBD9Cc7009d3DCC39eF2F59"
+      - name: PayoutRouter
+        address: "0xCBb4D00b37cAdD0E4Ac4dF6FBd9d18C3E715C684"
+      - name: USDC
+        address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+  - id: 84532
+    start_block: 47848613
+    rpc:
+      - url: http://127.0.0.1:18712
+        for: sync
+        initial_block_interval: 100
+        interval_ceiling: 100
+    contracts:
+      - name: SourceRouter
+        address: "0xA59B5bFa8e8932B41CBD9Cc7009d3DCC39eF2F59"
+      - name: PayoutRouter
+        address: "0xCBb4D00b37cAdD0E4Ac4dF6FBd9d18C3E715C684"
+      - name: USDC
+        address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"

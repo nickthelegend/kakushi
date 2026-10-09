@@ -1,0 +1,15 @@
+# Kakushi
+
+Kakushi routes payments through competing Makers, with dispute proofs and Maker margin accounting on Monad. Local code and tests exist; sponsor integration and production readiness remain separate gates. See [PLAN](PLAN.md), [sponsor gaps](docs/SPONSOR-GAP.md), [deployment hold](docs/DEPLOY-LATER.md), and [submission checklist](SUBMISSION.md).
+
+## Local runbook
+
+Use Node 22.18+ and pnpm 10.29.2, Foundry, and the repository-pinned Noir tooling. Run `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm contracts:test`, and `pnpm zk:test` sequentially. App gates are `pnpm --filter @kakushi/app typecheck` and `pnpm --filter @kakushi/app build`. Limit heavy builds to one at a time on this shared machine.
+
+The explicitly authorized local demonstration uses `pnpm stack:up` to start three pruned forks on ports 18710 (Monad testnet), 18711 (Sepolia), and 18712 (Base Sepolia). Coordinate ownership first. Override upstream archive RPCs with MONAD_FORK_URL, SEPOLIA_FORK_URL, and BASE_SEPOLIA_FORK_URL when necessary. `pnpm deploy:local` creates contracts only on those local forks; it is not a public deployment command. `pnpm demo` exercises four scenarios through the local Makers, attestation runner and watchtower. Inspect the current scripts before running them: the demo writes local transactions and generates real proofs.
+
+Use `pnpm dev` for the app on port 3710, `pnpm stack:status` to inspect the fork PIDs, and `pnpm stack:down` to stop the tracked forks. Stop any demo service using its tracked PID in `.stack/demo-pids`; never use process-name-wide kill commands. `.stack` logs and `.data` databases are local operational evidence, not production infrastructure or credentials to publish.
+
+The 2026-10-08 final four-scenario local fork replay passed in 201 seconds. Browser transfers settled in both directions, including a custom recipient; a browser-generated 27-public-input UltraHonk proof (8,768 bytes, 8,508 ms) recovered another unpaid local payment. Maker margin deposit and a timelocked withdrawal request also succeeded. Seven app pages were checked at 390×844 with no horizontal page overflow or JavaScript exceptions. See [verification](docs/VERIFICATION.md) for evidence and limits. Chainlink's local runner is not a DON deployment; Privy, Cleanverse, and Envio Cloud status is listed explicitly in the sponsor gaps.
+
+The persistent local RPC indexer is in [packages/indexer](packages/indexer/README.md). Start it explicitly before using indexed history. The app proxies it at `/api/svc/indexer`; local mode defaults to port 4201, while testnet requires `KAKUSHI_INDEXER_URL`. A separate [Envio HyperIndex package](packages/indexer/envio/README.md) passes codegen and offline lifecycle tests; its Docker/Cloud runtime still requires verification.

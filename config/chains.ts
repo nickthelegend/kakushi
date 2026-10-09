@@ -166,19 +166,28 @@ export function chainByIdentCode(code: number): ChainConfig | undefined {
 
 export function currentNetwork(): Network {
   const v = typeof process !== "undefined" ? process.env?.KAKUSHI_NETWORK : undefined;
+  if (v && v !== "local" && v !== "testnet") throw new Error("KAKUSHI_NETWORK must be local or testnet");
   return v === "testnet" ? "testnet" : "local";
 }
 
-/** RPC for a chain: env `<PREFIX>_RPC_URL`, else local anvil (network=local) or public. */
+/** Overrides on a local network must remain loopback. Public dev keys never
+ * inherit a public RPC override from the operator's shell. */
+function endpointOverride(value: string | undefined, network: Network): string | undefined {
+  if (!value || network !== "local") return value;
+  const url = new URL(value);
+  if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) throw new Error("Local network RPC overrides must use loopback");
+  return value;
+}
+/** RPC for a chain: env `<PREFIX>_RPC_URL`, else local anvil or public. */
 export function rpcUrl(c: ChainConfig, network: Network = currentNetwork()): string {
   const env = typeof process !== "undefined" ? process.env?.[`${c.envPrefix}_RPC_URL`] : undefined;
-  if (env) return env;
+  if (env) return endpointOverride(env, network)!;
   return network === "local" ? `http://127.0.0.1:${c.localPort}` : c.publicRpc;
 }
 
 export function wsUrl(c: ChainConfig, network: Network = currentNetwork()): string | undefined {
   const env = typeof process !== "undefined" ? process.env?.[`${c.envPrefix}_WS_URL`] : undefined;
-  if (env) return env;
+  if (env) return endpointOverride(env, network)!;
   return network === "local" ? `ws://127.0.0.1:${c.localPort}` : c.publicWs;
 }
 

@@ -49,6 +49,6 @@ export interface IChainAdapter {
   watchIncoming(maker: Hex, token?: Hex, opts?: { fromBlock?: bigint; signal?: AbortSignal; pollMs?: number }): AsyncIterable<IncomingPayment>;
   /** pay out through the chain's PayoutRouter */
   submitPayout(args: { to: Hex; token: Hex; amount: bigint; srcRef: bigint; kind: "fill" | "refund" }): Promise<PayoutResult>;
-  /** the normalized source leaf the circuit needs for a payment tx */
-  getProofInputs(txHash: Hex): Promise<Leaf | null>;
+  /** The normalized source leaf; logIndex selects a batch payment, omission preserves the first-payment behavior. */
+  getProofInputs(txHash: Hex, logIndex?: number): Promise<Leaf | null>;
 }

@@ -1,5 +1,7 @@
 # Kakushi: execution plan
 
+> Build checkpoint (2026-10-08): implementation gates and the current fork demonstration are tracked in [SUBMISSION.md](SUBMISSION.md); external sponsor limits in [docs/SPONSOR-GAP.md](docs/SPONSOR-GAP.md). Historical task statuses below are preserved.
+
 > **Kakushi** (隠し) is a trust-minimized instant bridge. The user pays a Maker's wallet directly. The Maker pays the user on the destination chain in under a second to a few seconds. If the Maker cheats or goes offline, a zero-knowledge proof slashes the Maker's locked margin back to the user. Arbitration lives on **Monad**.
 >
 > Built for **Monad Metropolis**, Track 4 (Trust, Identity & AI Infrastructure). Bounties: Chainlink CRE, Privy, Envio, Cleanverse.

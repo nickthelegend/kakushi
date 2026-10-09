@@ -1,0 +1,11 @@
+# Deployment hold and release gates
+
+On 2026-10-09 the user explicitly requested building and shipping everything end to end. This supersedes the earlier general deployment hold for this release work. A successful local run still does not establish sponsor verification or provide missing credentials/funding. Kakushi currently has no configured testnet deployer; the deployment wallet/environment path has been requested without asking for private keys in chat.
+
+Before a future release, record passing contract/circuit/package tests and a final-source app build; preserve all four real local demo outcomes with chain IDs, contract addresses, transaction hashes and proof timings. Audit source/destination chain configuration, decimals, allowance bounds, immutable compliance configuration, dispute timing and verifier keys. Confirm the built verifier corresponds to the reviewed circuit artifacts.
+
+Resolve [sponsor gaps](SPONSOR-GAP.md), configure real authenticated Privy and CRE environments, confirm the canonical Cleanverse ABI and pool onboarding, and verify the indexer against actual logs. Inspect configuration for development keys and local-only RPC assumptions without publishing secret values. Use the configured testnet deployer only after checking its chain IDs, balances, intended operations and bounded costs; do not infer mainnet release authorization.
+
+The app's production default is testnet. Railway/Vercel deployments reject an explicit local mode. The standalone Docker build is `docker build -f packages/app/Dockerfile .`; its context excludes local deployment records, development service configs, state and environment files. Mount actual `deployments.testnet.json` and `makers.testnet.json` into `/app/config/generated` after deployment. An absent deployment remains unavailable rather than being replaced with local addresses. Configure actual remote service URLs and optional `KAKUSHI_ENVIO_GRAPHQL_URL`; the Maker market reads bounded Envio MakerStats/RouteStats with unknown values on failure, while transfer history retains the RPC fallback. A live GraphQL run is still needed to verify the hosted schema/access policy.
+
+No mainnet safety or external sponsor verification claim follows from local demo success. The four-scenario local run and browser proof/submission passed; evidence is in [VERIFICATION](VERIFICATION.md).

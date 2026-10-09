@@ -34,22 +34,24 @@ export function buildTransferTx(k: Kakushi, a: { srcChainId: number; token: Hex;
   };
 }
 
-/** Recognize the Kakushi payment inside a mined source transaction. */
-export async function findSourcePayment(k: Kakushi, srcChainId: number, txHash: Hex): Promise<SourcePayment | null> {
+/** All recognized source payments, retaining receipt log indices for distinct srcRefs. */
+export async function findSourcePayments(k: Kakushi, srcChainId: number, txHash: Hex): Promise<SourcePayment[]> {
   const client = k.clientById(srcChainId);
   const [tx, rc] = await Promise.all([client.getTransaction({ hash: txHash }), client.getTransactionReceipt({ hash: txHash })]);
-  if (rc.status !== "success") return null;
+  if (rc.status !== "success") return [];
   const blk = await client.getBlock({ blockNumber: rc.blockNumber });
   const makers = new Set((await k.makers()).map((m) => m.toLowerCase()));
   const router = k.d.chains[srcChainId]!.sourceRouter.toLowerCase();
   const usdc = chainById(srcChainId).usdc.address.toLowerCase();
+  const payments: SourcePayment[] = [];
   for (const log of rc.logs) {
+    if (log.removed) continue;
     if (log.address.toLowerCase() === router) {
       try {
         const ev = decodeEventLog({ abi: sourceRouterAbi, data: log.data, topics: log.topics });
         if (ev.eventName === "PaymentEncoded" && makers.has((ev.args as any).maker.toLowerCase())) {
           const a = ev.args as any;
-          return { srcChainId, txHash, logIndex: log.logIndex, sender: a.sender, maker: a.maker, token: a.token, gross: a.gross, recipient: a.recipient, blockNumber: rc.blockNumber, timestamp: blk.timestamp, via: "source-router" };
+          payments.push({ srcChainId, txHash, logIndex: log.logIndex, sender: a.sender, maker: a.maker, token: a.token, gross: a.gross, recipient: a.recipient, blockNumber: rc.blockNumber, timestamp: blk.timestamp, via: "source-router" });
         }
       } catch {}
     }
@@ -58,15 +60,20 @@ export async function findSourcePayment(k: Kakushi, srcChainId: number, txHash: 
         const ev = decodeEventLog({ abi: erc20Abi, data: log.data, topics: log.topics });
         const a = ev.args as any;
         if (ev.eventName === "Transfer" && makers.has(a.to.toLowerCase()) && a.from.toLowerCase() !== router && !makers.has(a.from.toLowerCase())) {
-          return { srcChainId, txHash, logIndex: log.logIndex, sender: a.from, maker: a.to, token: log.address, gross: a.value, recipient: a.from, blockNumber: rc.blockNumber, timestamp: blk.timestamp, via: "raw-erc20" };
+          payments.push({ srcChainId, txHash, logIndex: log.logIndex, sender: a.from, maker: a.to, token: log.address, gross: a.value, recipient: a.from, blockNumber: rc.blockNumber, timestamp: blk.timestamp, via: "raw-erc20" });
         }
       } catch {}
     }
   }
   if (tx.to && makers.has(tx.to.toLowerCase()) && tx.input === "0x" && tx.value > 0n) {
-    return { srcChainId, txHash, logIndex: NATIVE_LOG_INDEX, sender: tx.from, maker: tx.to, token: zeroAddress, gross: tx.value, recipient: tx.from, blockNumber: rc.blockNumber, timestamp: blk.timestamp, via: "raw-native" };
+    payments.push({ srcChainId, txHash, logIndex: NATIVE_LOG_INDEX, sender: tx.from, maker: tx.to, token: zeroAddress, gross: tx.value, recipient: tx.from, blockNumber: rc.blockNumber, timestamp: blk.timestamp, via: "raw-native" });
   }
-  return null;
+  return payments;
+}
+
+/** Compatibility helper for single-payment flows; batch consumers use findSourcePayments. */
+export async function findSourcePayment(k: Kakushi, srcChainId: number, txHash: Hex): Promise<SourcePayment | null> {
+  return (await findSourcePayments(k, srcChainId, txHash))[0] ?? null;
 }
 
 export function srcRefOf(p: Pick<SourcePayment, "srcChainId" | "txHash" | "logIndex">): bigint {

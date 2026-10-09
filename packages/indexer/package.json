@@ -1,0 +1,1 @@
+{"name":"@kakushi/indexer","version":"0.1.0","private":true,"type":"module","scripts":{"start":"node src/main.ts","test":"vitest run","typecheck":"tsc --noEmit"},"dependencies":{"@kakushi/sdk":"workspace:*","@kakushi/config":"workspace:*","@kakushi/attest-core":"workspace:*","viem":"^2.38.0"},"devDependencies":{"typescript":"^5.9.3","vitest":"^3.2.4","@types/node":"^22.20.1"}}

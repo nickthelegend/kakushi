@@ -1,0 +1,25 @@
+{
+  "name": "@kakushi/envio-indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "configure": "node scripts/configure.ts",
+    "codegen": "envio codegen",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --maxWorkers=1",
+    "dev": "envio dev"
+  },
+  "dependencies": {
+    "envio": "3.12.1",
+    "viem": "^2.38.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "@types/node": "^22.20.1"
+  }
+}
