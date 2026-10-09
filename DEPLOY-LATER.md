@@ -40,8 +40,13 @@ forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broad
 
 Check: `deployments/testnet.json` has `registry == 0x2152Ed4dD179fCDe7FE0c2F35e274Ce4D7b0BaF9`.
 Verify on MonadVision/Sourcify (`forge verify-contract --verifier sourcify --chain 10143 …`).
-Then deploy the playground apps (auction, cUSDC wrapper over Circle USDC `0x534b…43A3`, dark OTC)
-with the same calls `scripts/e2e-local.ts --keep` makes, and write `deployments/testnet-apps.json`.
+Then deploy the apps with the same calls `scripts/e2e-local.ts --keep` makes, and write
+`deployments/testnet-apps.json`:
+- **Fhish Pay**: `FhishPayToken(0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC /* AUSD */, "Confidential AUSD", "cAUSD")`
+  as `causd`, and optionally one over Circle USDC `0x534b…43A3`.
+- Playground extras: auction, cUSDC wrapper, dark OTC.
+Demo funds: Agora's faucet `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` `requestFunds(address)` gives 10,000
+AUSD (60 s global cooldown); Circle's faucet gives testnet USDC.
 
 ## 2. Engine, coprocessor, gateway
 
@@ -73,7 +78,15 @@ cre workflow simulate ./workflows/decrypt-relay --non-interactive --trigger-inde
 Carol" accounts are disabled off the fork; users connect a browser wallet. The COOP/COEP headers in
 `next.config.ts` are required for multi-threaded WASM encryption.
 
-## 5. Public repository
+## 5. Sponsor setup (owner)
+
+| Sponsor | Owner action | Then |
+|---|---|---|
+| Privy | Create a Privy app; enable Monad Testnet and gas sponsorship; copy app ID + secret | `app/PRIVY.md`: set env, run `app/scripts/privy-setup.ts` (server wallet + payroll policy) |
+| Mera / Agora | A public HTTPS domain for passkeys (AASA `webcredentials`), Apple team ID + bundle ID | `mobile/README.md`: set RP ID / associated domain, build to a device |
+| Envio | Envio account (Cloud) or a host for self-hosting | `indexer/README.md`: configure for testnet, deploy |
+
+## 6. Public repository
 
 Push to a public GitHub repo (e.g. `fhish-tech/fhish-monad`, MIT) after a secret scan of the full
 history (`gitleaks detect` or `git log -p | grep -iE "private|secret|0x[0-9a-f]{64}"`). The only
