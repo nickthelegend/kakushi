@@ -199,8 +199,17 @@ explicit limit):
 | `bid` (sealed auction) | ~293k |
 | confidential ERC-20 `wrap` / `unwrap` | 212k / 337k |
 
-Tests: 12 Solidity tests (`forge test`), 18 TypeScript tests (`pnpm -r test`: CRE core, coprocessor
-op graph + sealing, SDK client, MetaMask plugin on the fork), typecheck of every package, and the e2e above in both delivery modes.
+Tests (all green on 2026-10-09):
+
+| Suite | Result |
+|---|---|
+| Solidity (`forge test`): ACL, inputs, oracle, apps, pay links, requests, payroll signatures/replay/expiry, 64-bit supply bound | 18 / 18 |
+| TypeScript (`pnpm -r test`): CRE core, coprocessor op graph + sealing + monadLogs, SDK client + live Monad commit states | 21 / 21 |
+| Fork e2e (`pnpm e2e`, also `--deliver cre`) | 4 / 4 scenarios |
+| Web flows through the app's routes (`app/scripts/pay-e2e.ts`) | 8 / 8 |
+| Mobile modules on the fork (`mobile/scripts/verify-fork.ts`) | 25 / 25 |
+| Indexer handlers (`indexer`, vitest) and chain recount (`indexer/scripts/verify.ts`) | 7 / 7, ALL MATCH |
+| Indexer-backed feeds equal log-derived feeds (`app/scripts/activity-parity.ts`, verify-fork) | parity OK |
 
 ---
 
