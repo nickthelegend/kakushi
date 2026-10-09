@@ -1,0 +1,4 @@
+{
+  "webcredentials": { "apps": ["TEAM_ID.xyz.fhish.pay"] },
+  "applinks": { "details": [{ "appIDs": ["TEAM_ID.xyz.fhish.pay"], "components": [{ "/": "/claim*" }] }] }
+}

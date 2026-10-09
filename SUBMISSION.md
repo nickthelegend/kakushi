@@ -50,10 +50,15 @@ settlement."
 
 | Requirement | Where | Status |
 |---|---|---|
-| Mobile app | `mobile/` (Expo) | in progress |
-| Mera passkey onboarding | `mobile/` | in progress |
-| Send AUSD across borders | cAUSD over real AUSD; pay links (`createLink`/`claimLink`) for recipients without accounts | contracts + e2e done |
-| Instant settlement | Monad commit-state ladder per payment (`sdk/src/monad.ts`, live tests against testnet) | SDK done |
+| Mobile app | `mobile/` (Expo SDK 57, React Native) | built; flows verified on the fork (Expo web UI + module checks) |
+| Mera passkey onboarding | create/restore from the passkey (stateless), 5-min signing sessions with re-prompt | verified with a software passkey; on-device needs the owner's passkey domain + Apple team |
+| Send AUSD across borders | real AUSD → private cAUSD (ERC-3009, sponsored); send to address or by link; the recipient claims with a new passkey account and 0 MON | verified on the fork |
+| Instant settlement | per-payment Monad ladder + live `monadNewHeads` heartbeat; `eth_sendRawTransactionSync` receipts | verified (fork ladder; live testnet heartbeat) |
+
+On-device FHE: Zama node-tfhe 1.8.1 compiled into a self-contained page run in a hidden WebView
+(Hermes has no WebAssembly); balances are revealed with the SDK's sealing scheme re-implemented in
+@noble (no WebCrypto on React Native). Evidence: `mobile/scripts/verify-fork.ts` 16/16,
+`mobile/EVIDENCE.md`, screenshots in `mobile/evidence/`.
 
 ## Privy ($5k)
 
