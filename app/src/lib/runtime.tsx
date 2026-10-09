@@ -15,12 +15,17 @@ export interface Deployment {
   chainId: number;
 }
 
-interface Cfg {
+export interface Cfg {
   network: "local" | "testnet";
   chainId: number;
   deployment: Deployment | null;
-  apps: { auction: Hex; cusdc: Hex; otc: Hex; usdc: Hex } | null;
+  apps: { auction: Hex; cusdc: Hex; otc: Hex; usdc: Hex; causd?: Hex; ausd?: Hex } | null;
   localKeys: { label: string; key: Hex }[];
+  pay?: {
+    operator: { address: Hex; kind: "privy-server-wallet" | "local-dev-key"; policyId: string | null } | null;
+    localSponsor: Hex | null;
+  };
+  privy?: { appIdConfigured: boolean; serverWallet: boolean; sponsor: boolean };
 }
 
 interface Rt {

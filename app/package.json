@@ -3,9 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "next dev -p 3810", "build": "next build", "start": "next start -p 3810", "typecheck": "tsc --noEmit" },
+  "scripts": {
+    "dev": "next dev -p 3810",
+    "build": "next build",
+    "start": "next start -p 3810",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@fhish/sdk": "workspace:*",
+    "@privy-io/node": "0.35.0",
+    "@privy-io/react-auth": "3.48.0",
     "lucide-react": "1.48.0",
     "motion": "13.4.4",
     "next": "16.3.6",

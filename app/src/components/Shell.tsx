@@ -4,12 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useRt } from "@/lib/runtime";
+import { PayChip } from "@/components/pay/PayKit";
 
 const NAV = [
+  { href: "/pay", label: "Pay" },
+  { href: "/pay/employer", label: "Payroll" },
+  { href: "/activity", label: "Activity" },
   { href: "/playground", label: "Playground" },
   { href: "/developers", label: "Developers" },
-  { href: "/metrics", label: "Live metrics" },
+  { href: "/metrics", label: "Metrics" },
 ];
+
+const isPay = (p: string | null) => Boolean(p && (p === "/pay" || p.startsWith("/pay/") || p.startsWith("/claim")));
 
 function Account() {
   const rt = useRt();
@@ -44,6 +50,7 @@ function Account() {
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { cfg } = useRt();
+  const [menu, setMenu] = useState(false);
   return (
     <div className="relative z-[1] min-h-dvh">
       <header className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
@@ -52,21 +59,33 @@ export function Shell({ children }: { children: ReactNode }) {
           <img src="/fhish-fin.png" alt="" className="size-8" />
           <span className="font-display text-lg font-bold tracking-tight">fhish</span>
         </Link>
-        <nav className="hidden gap-5 text-sm md:flex">
+        <nav className="hidden gap-5 text-sm md:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className={path === n.href ? "text-biolum" : "text-tide hover:text-foam"}>
+            <Link key={n.href} href={n.href} aria-current={path === n.href ? "page" : undefined} className={path === n.href ? "text-biolum" : "text-tide hover:text-foam"}>
               {n.label}
             </Link>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {cfg && <span className="hidden text-xs text-silt sm:inline">{cfg.network === "local" ? "Monad testnet fork" : "Monad testnet"}</span>}
-          <Account />
+          {cfg && <span className="hidden text-xs text-silt lg:inline">{cfg.network === "local" ? "Monad testnet fork" : "Monad testnet"}</span>}
+          {isPay(path) ? <PayChip /> : <Account />}
+          <button onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-controls="mobile-nav" aria-label="Menu" className="rounded-lg border border-kelp-strong px-2.5 py-1.5 text-sm text-tide md:hidden">
+            {menu ? "Close" : "Menu"}
+          </button>
         </div>
       </header>
+      {menu && (
+        <nav id="mobile-nav" aria-label="Main" className="mx-auto grid max-w-6xl gap-1 px-5 pb-4 md:hidden">
+          {NAV.map((n) => (
+            <Link key={n.href} href={n.href} onClick={() => setMenu(false)} aria-current={path === n.href ? "page" : undefined} className={`rounded-xl px-3 py-2.5 ${path === n.href ? "bg-trench text-biolum" : "text-tide hover:bg-trench"}`}>
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+      )}
       <main>{children}</main>
       <footer className="mx-auto mt-24 max-w-6xl border-t border-kelp px-5 py-8 text-sm text-silt">
-        Fhish on Monad. FHE by Zama tfhe-rs; the coprocessor, KMS and contracts are Fhish. <a className="text-tide hover:text-foam" href="https://github.com/fhish-tech">github.com/fhish-tech</a>
+        Fhish Pay on Monad: confidential payments on real AUSD. FHE by Zama tfhe-rs; the coprocessor, KMS and contracts are Fhish. <a className="text-tide hover:text-foam" href="https://github.com/fhish-tech">github.com/fhish-tech</a>
       </footer>
     </div>
   );

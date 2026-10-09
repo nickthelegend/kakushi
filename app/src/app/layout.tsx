@@ -8,8 +8,8 @@ const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], 
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Fhish, encrypted computation for every Monad contract",
-  description: "Add two lines to any Solidity contract and its balances, bids and orders stay encrypted while it computes on them. Real Zama tfhe-rs, a native coprocessor, and decryption that calls you back.",
+  title: "Fhish Pay: confidential payments on Monad",
+  description: "Real stablecoins (Agora AUSD, Circle USDC) with every amount and balance encrypted end to end: private payroll, pay links and balances, settled with Monad finality. Built on Fhish, fully homomorphic encryption for any Monad contract.",
   icons: { icon: "/fhish-fin.png" },
 };
 export const viewport: Viewport = { themeColor: "#021a20", width: "device-width", initialScale: 1 };
