@@ -96,7 +96,9 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | SDK | `sdk/` | `FhishClient.encrypt / userDecrypt / waitForDecryption`. Encryptors: Zama `node-tfhe` (Node, pure JS, ~40 ms), the engine CLI, and `tfhe` WASM with a thread pool (browser). |
 | MetaMask plugin | `plugins/mm-fhish/` | `mm fhish …`: confidential trading for the MetaMask Agent Wallet (dark OTC, sealed bids, confidential USDC). |
 | Skills | `skills/` | Agent skills: write confidential contracts, use the SDK, operate the network. |
-| App | `app/` | Landing page, live playground (real in-browser encryption), developer docs, live metrics. |
+| Fhish Pay web | `app/` | `/pay` (send, pay links, reveal, cash out), `/pay/employer` (encrypted payroll, operator + scheduled runs), `/claim`, `/activity` (Envio), live Monad heartbeat; Privy (embedded wallet, gas sponsorship, server wallet + policy). Plus the playground, developer docs and metrics. |
+| Fhish Pay mobile | `mobile/` | Expo app for Agora's bounty: Mera passkey accounts, AUSD faucet, gasless private wrap, encrypted sends and pay links, claim, reveal, cash out, settlement ladder. tfhe runs in a hidden WebView (Hermes has no WebAssembly). |
+| Indexer | `indexer/` | Envio HyperIndex over Fhish Pay, the oracle and the executor: payment graph without amounts, link lifecycle, payroll runs, reveal latency, public TVL. |
 
 ### Decryption, three ways
 
@@ -227,11 +229,14 @@ Requirements: Node ≥ 22.18, pnpm 10, Foundry, Rust (stable), and the `cre` CLI
 ```bash
 pnpm install
 pnpm engine:build && mkdir -p engine/bin && cp engine/target/release/fhish-engine engine/bin/
-pnpm contracts:test                                               # 12 Solidity tests
-pnpm e2e                                                          # fork + engine + deploy + 3 scenarios
+pnpm contracts:test                                               # Solidity tests
+pnpm e2e                                                          # fork + engine + deploy + 4 scenarios (incl. Fhish Pay on real AUSD)
 pnpm e2e --deliver cre                                            # same, every callback through Chainlink CRE
 node scripts/e2e-local.ts --keep --deliver cre                    # keep the stack up for the app
-pnpm --filter @fhish/app dev                                      # http://localhost:3810
+pnpm --filter @fhish/app dev                                      # http://localhost:3810 (/pay, /pay/employer, /activity)
+node app/scripts/pay-e2e.ts                                       # every web flow through the app's routes
+cd mobile && sh scripts/install-deps.sh && node scripts/verify-fork.ts   # mobile: 16 checks on the fork; npx expo start
+cd indexer && pnpm install && node scripts/configure.ts           # then envio start (indexer/README.md); scripts/verify.ts
 ```
 
 | Service | Port |
@@ -241,6 +246,7 @@ pnpm --filter @fhish/app dev                                      # http://local
 | coprocessor + gateway | 8890 |
 | local CRE runner | 8891 |
 | app | 3810 |
+| indexer GraphQL (Hasura) / Postgres | 8892 / 5442 |
 
 ### Use it in your contract
 
@@ -251,7 +257,8 @@ forge install fhish-tech/fhish-monad
 
 Then follow [skills/fhish-confidential-contracts/SKILL.md](skills/fhish-confidential-contracts/SKILL.md).
 Ready-made apps: `ConfidentialToken` (ERC-7984-shaped), `ConfidentialERC20Wrapper` (wrap any ERC-20),
-`SealedBidAuction`, `ConfidentialVoting`, `DarkOTC`.
+`SealedBidAuction`, `ConfidentialVoting`, `DarkOTC`, and `ConfidentialPayments` (`FhishPayToken`: payments,
+pay links, payroll, gasless onboarding over any ERC-20).
 
 ---
 
@@ -261,11 +268,12 @@ Ready-made apps: `ConfidentialToken` (ERC-7984-shaped), `ConfidentialERC20Wrappe
   [fhish-tech](https://github.com/fhish-tech) organization (Flare, Stellar, Algorand). Their symbolic
   coprocessor pattern informed this design. This repository is a new implementation for Monad
   written during Metropolis: the contracts, the native engine, the parallel coprocessor, the KMS,
-  the CRE workflow, the SDK, the skills and the app.
+  the CRE workflow, the SDK, the skills, the web and mobile apps and the indexer.
 - **External code.** [Zama tfhe-rs](https://github.com/zama-ai/tfhe-rs) 1.8.1 (Rust, and the `tfhe`
   WASM package in the browser). Foundry and forge-std. [CreateX](https://github.com/pcaversaccio/createx)
   (deployed factory) for CREATE3. Chainlink CRE SDK 1.22 and CLI. MetaMask Agent Wallet 7.1 (plugin host; a peer
-  dependency, not redistributed), oclif, esbuild. viem, axum, tokio, Next.js, React, Tailwind. The Solidity API is modelled on Zama's `FHE.sol` interface; no Zama Solidity code is copied.
+  dependency, not redistributed), oclif, esbuild. Privy SDKs, Mera (Category Labs), Expo / React Native, Envio HyperIndex, @noble
+  crypto, viem, axum, tokio, Next.js, React, Tailwind. The Solidity API is modelled on Zama's `FHE.sol` interface; no Zama Solidity code is copied.
 - **AI coding tools.** Built with Claude Code (Anthropic) as the coding agent.
 
 ## Repository
@@ -277,7 +285,9 @@ coprocessor/ TypeScript: op-graph scheduler, gateway, KMS, metrics
 cre/         Chainlink CRE workflow fhish-decrypt-relay + local runner
 sdk/         TypeScript client (Node + browser)
 plugins/     mm-fhish: MetaMask Agent Wallet plugin
-app/         Next.js: landing, playground, developers, metrics
+app/         Next.js: Fhish Pay web (pay, payroll, claim, activity), playground, developers, metrics
+mobile/      Expo: Fhish Pay mobile (Mera passkeys, AUSD)
+indexer/     Envio HyperIndex
 skills/      Agent skills
 scripts/     e2e-local.ts
 docs/        research
