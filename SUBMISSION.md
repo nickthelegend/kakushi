@@ -4,7 +4,7 @@
 |---|---|
 | Project | **Fhish**: plug-and-play FHE for any Solidity contract on Monad |
 | Track | **T1 Onchain Finance & Trading** |
-| Bounties | **Chainlink: Best workflow with CRE** ($3k, all tracks) |
+| Bounties | **Chainlink: Best workflow with CRE** ($3k, all tracks) · **MetaMask: Best Agent Wallet Plugin** ($2.5k, T1) |
 | Team | solo, from a spare account (see USER_ACTION_REQUIRED in the hand-off) |
 | Repo | to be pushed public, MIT (DEPLOY-LATER.md §5) |
 | Live app | held until testnet go (DEPLOY-LATER.md §4) |
@@ -48,6 +48,20 @@ your project." CLI simulation accepted; the receiver must be implemented correct
 | Receiver | `FhishDecryptionOracle.onReport` (`contracts/src/oracle/`): only the forwarder, ERC-165 `IReceiver`, re-verifies k-of-n KMS EIP-712 signatures, then calls the app back |
 | Evidence so far | Local fork: 4/4 callbacks delivered through Chainlink's MockKeystoneForwarder (`0xB9F7…D192`, cloned from Monad testnet) by the local runner that executes the same core logic (`cre/local/runner.ts`, labelled NOT a DON) |
 | Still needed (owner) | `cre login`, then `cre workflow simulate … --broadcast -T staging-settings` on Monad testnet for a real simulation tx (DEPLOY-LATER.md §3) |
+
+## MetaMask Agent Wallet plugin bounty (T1)
+
+**Requirement:** "Build a plugin that gives the MetaMask Agent Wallet a new trading superpower via its
+plugin architecture."
+
+| Requirement | Where |
+|---|---|
+| `mm` plugin (oclif, `PluginCommand`, manifest capabilities, `walletExecutor`) | `plugins/mm-fhish/` |
+| New trading superpower | Confidential trading on Monad: dark OTC with encrypted limits, sealed bids, confidential USDC, owner-only balance reveal |
+| Uses the wallet's own submit/sign path | Transactions and EIP-712 through `ctx.walletExecutor` (Guard Mode, Blockaid, 2FA apply) |
+| `targetChains` | Monad testnet 10143 (mainnet 143 after deployment) |
+| Evidence | Typechecks against `@metamask/agent-wallet` 7.1.0; installs into the real `mm` host; core flows pass on the Monad fork (`pnpm --filter mm-fhish test`) |
+| Still needed (owner) | `mm login`, then `mm fhish …` against the testnet deployment for the demo |
 
 ## Demo video script (≤ 3 min)
 

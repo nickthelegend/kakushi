@@ -35,7 +35,7 @@ test("an op waits for its operands; independent ops run concurrently", async () 
   await g.waitFor("0xd");
   assert.ok(at("0xc").start >= Math.max(at("0xa").end, at("0xb").end), "c starts after a and b");
   assert.ok(at("0xd").start >= at("0xc").end, "d starts after c (scalar rhs is not a dependency)");
-  assert.ok(Math.abs(at("0xa").start - at("0xb").start) < 30, "a and b ran in parallel");
+  assert.ok(at("0xa").start < at("0xb").end && at("0xb").start < at("0xa").end, "a and b ran in parallel (overlapping)");
 });
 
 test("select depends on control and both branches", async () => {

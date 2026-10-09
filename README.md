@@ -74,6 +74,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | coprocessor | `coprocessor/` | Follows the executor's events and schedules the op graph in parallel, respecting handle dependencies. Gateway (inputs, sealed user decryption), KMS, metrics. |
 | CRE workflow | `cre/` | `fhish-decrypt-relay`: log trigger per request + cron sweep, HTTP fetch with DON consensus, `writeReport` to the oracle. |
 | SDK | `sdk/` | `FhishClient.encrypt / userDecrypt / waitForDecryption`. Encryptors: Zama `node-tfhe` (Node, pure JS, ~40 ms), the engine CLI, and `tfhe` WASM with a thread pool (browser). |
+| MetaMask plugin | `plugins/mm-fhish/` | `mm fhish …`: confidential trading for the MetaMask Agent Wallet (dark OTC, sealed bids, confidential USDC). |
 | Skills | `skills/` | Agent skills: write confidential contracts, use the SDK, operate the network. |
 | App | `app/` | Landing page, live playground (real in-browser encryption), developer docs, live metrics. |
 
@@ -170,8 +171,8 @@ explicit limit):
 | `bid` (sealed auction) | ~293k |
 | confidential ERC-20 `wrap` / `unwrap` | 212k / 337k |
 
-Tests: 12 Solidity tests (`forge test`), 14 TypeScript tests (`pnpm -r test`: CRE core, coprocessor
-op graph + sealing, SDK client), typecheck of every package, and the e2e above in both delivery modes.
+Tests: 12 Solidity tests (`forge test`), 18 TypeScript tests (`pnpm -r test`: CRE core, coprocessor
+op graph + sealing, SDK client, MetaMask plugin on the fork), typecheck of every package, and the e2e above in both delivery modes.
 
 ---
 
@@ -238,8 +239,8 @@ Ready-made apps: `ConfidentialToken` (ERC-7984-shaped), `ConfidentialERC20Wrappe
   the CRE workflow, the SDK, the skills and the app.
 - **External code.** [Zama tfhe-rs](https://github.com/zama-ai/tfhe-rs) 1.8.1 (Rust, and the `tfhe`
   WASM package in the browser). Foundry and forge-std. [CreateX](https://github.com/pcaversaccio/createx)
-  (deployed factory) for CREATE3. Chainlink CRE SDK 1.22 and CLI. viem, axum, tokio, Next.js, React,
-  Tailwind. The Solidity API is modelled on Zama's `FHE.sol` interface; no Zama Solidity code is copied.
+  (deployed factory) for CREATE3. Chainlink CRE SDK 1.22 and CLI. MetaMask Agent Wallet 7.1 (plugin host; a peer
+  dependency, not redistributed), oclif, esbuild. viem, axum, tokio, Next.js, React, Tailwind. The Solidity API is modelled on Zama's `FHE.sol` interface; no Zama Solidity code is copied.
 - **AI coding tools.** Built with Claude Code (Anthropic) as the coding agent.
 
 ## Repository
@@ -250,6 +251,7 @@ engine/      Rust: tfhe-rs 1.8.1 engine (HTTP) and CLI encryptor
 coprocessor/ TypeScript: op-graph scheduler, gateway, KMS, metrics
 cre/         Chainlink CRE workflow fhish-decrypt-relay + local runner
 sdk/         TypeScript client (Node + browser)
+plugins/     mm-fhish: MetaMask Agent Wallet plugin
 app/         Next.js: landing, playground, developers, metrics
 skills/      Agent skills
 scripts/     e2e-local.ts

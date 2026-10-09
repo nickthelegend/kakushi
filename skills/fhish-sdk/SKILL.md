@@ -8,6 +8,7 @@ description: Integrate a frontend or Node service with Fhish on Monad using @fhi
 ```ts
 import { FhishClient, waitForDecryption } from "@fhish/sdk";
 import { wasmEncryptor } from "@fhish/sdk/browser";   // Zama tfhe 1.8.1 WASM in the browser
+// import { nodeTfheEncryptor } from "@fhish/sdk/node"; // Node, pure JS (Zama node-tfhe), ~40 ms, no binary
 // import { nativeEncryptor } from "@fhish/sdk/node";   // fhish-engine CLI in Node (native speed)
 
 const fhish = new FhishClient({ gatewayUrl: "https://gateway.fhish.xyz", chainId: 10143, encryptor: wasmEncryptor() });
@@ -28,6 +29,8 @@ useless to anyone else and in any other contract. `user` must be the account tha
 ```ts
 const h = await publicClient.readContract({ address: token, abi, functionName: "confidentialBalanceOf", args: [me] });
 const values = await fhish.userDecrypt([h], token, walletClient);   // one EIP-712 signature
+// any other signer (MetaMask Agent Wallet, a KMS, a smart account):
+// await fhish.userDecryptWith([h], token, user, (typedData) => mySigner.signTypedData(typedData));
 values[h.toLowerCase()];   // bigint
 ```
 The gateway checks the on-chain ACL (you AND the contract must be allowed), then seals each value to a
@@ -54,3 +57,9 @@ revealed fields (e.g. `winner()`, `price()`).
 | `NotAllowed(handle, contract)` on-chain | the contract forgot `FHE.allowThis` after an update |
 | `ThresholdNotMet` | input proof for a different user/contract, or tampered |
 | `authorization expired` | re-sign; default TTL 300 s |
+
+## App ABIs
+
+`import { auctionAbi, cusdcAbi, otcAbi } from "@fhish/sdk/apps"`: the ready-made sealed auction,
+confidential ERC-20 wrapper and dark OTC desk. For an agent CLI, see `plugins/mm-fhish` (MetaMask
+Agent Wallet plugin).

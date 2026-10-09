@@ -72,20 +72,35 @@ export class FhishClient {
    * each value to a fresh P-256 key generated here; only this call can open it.
    */
   async userDecrypt(handles: Hex[], contract: Hex, wallet: WalletClient & { account: Account }, ttlSec = 300): Promise<Record<string, bigint>> {
+    return this.userDecryptWith(handles, contract, wallet.account.address, (td) => wallet.signTypedData({ account: wallet.account, ...td } as never), ttlSec);
+  }
+
+  /** The EIP-712 request a user signs to read `handles` (exposed for wallets with their own signing API). */
+  static userDecryptTypedData(chainId: number, handles: Hex[], contract: Hex, publicKey: Hex, expiresAt: bigint) {
+    return {
+      domain: { name: "Fhish", version: "1", chainId },
+      types: { UserDecrypt: [{ name: "handles", type: "bytes32[]" }, { name: "contractAddress", type: "address" }, { name: "publicKey", type: "bytes" }, { name: "expiresAt", type: "uint256" }] },
+      primaryType: "UserDecrypt" as const,
+      message: { handles, contractAddress: contract, publicKey, expiresAt },
+    };
+  }
+
+  /** userDecrypt with any signer: `sign` receives the EIP-712 typed data and returns the signature. */
+  async userDecryptWith(
+    handles: Hex[],
+    contract: Hex,
+    user: Hex,
+    sign: (typedData: ReturnType<typeof FhishClient.userDecryptTypedData>) => Promise<Hex>,
+    ttlSec = 300,
+  ): Promise<Record<string, bigint>> {
     const kp = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])) as CryptoKeyPair;
     const publicKey = bytesToHex(new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey)));
     const expiresAt = BigInt(Math.floor(Date.now() / 1000) + ttlSec);
-    const signature = await wallet.signTypedData({
-      account: wallet.account,
-      domain: { name: "Fhish", version: "1", chainId: this.o.chainId },
-      types: { UserDecrypt: [{ name: "handles", type: "bytes32[]" }, { name: "contractAddress", type: "address" }, { name: "publicKey", type: "bytes" }, { name: "expiresAt", type: "uint256" }] },
-      primaryType: "UserDecrypt",
-      message: { handles, contractAddress: contract, publicKey, expiresAt },
-    });
+    const signature = await sign(FhishClient.userDecryptTypedData(this.o.chainId, handles, contract, publicKey, expiresAt));
     const r = await fetch(`${this.o.gatewayUrl}/decrypt/user`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ handles, contract, user: wallet.account.address, publicKey, expiresAt: expiresAt.toString(), signature }),
+      body: JSON.stringify({ handles, contract, user, publicKey, expiresAt: expiresAt.toString(), signature }),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(`gateway: ${j.error ?? r.status}`);
