@@ -215,6 +215,9 @@ indexer.onEvent({ contract: "FhishPayToken", event: "RequestPaid", fields: TX },
   await u.account(event.params.payer); // lastSeen
   const req = await context.PayRequest.get(requestId(event.chainId, event.srcAddress, event.params.id));
   if (req) context.PayRequest.set({ ...req, payAttempts: req.payAttempts + 1, lastPaidAt: event.block.timestamp, lastPaidBlock: event.block.number });
+  // the balance move of this payment (ConfidentialTransfer, same handle as `sent`) points at its request
+  const moved = await context.Payment.get(paymentId(event.chainId, lc(event.srcAddress), event.params.sent));
+  if (moved && req) context.Payment.set({ ...moved, request_id: req.id });
   else context.log.warn(`RequestPaid for unknown request ${event.params.id} (indexer started after it was created)`);
   u.flush();
 });
@@ -248,6 +251,17 @@ indexer.onEvent({ contract: "FhishPayToken", event: "Wrapped", fields: TX }, asy
   const d = await u.day();
   d.wraps += 1;
   d.publicWrapped += amount;
+  context.Wrap.set({
+    id: `${event.chainId}-${lc(event.transaction.hash)}-${event.logIndex}`,
+    chainId: event.chainId,
+    token_id: t.id,
+    account_id: a.id,
+    amount,
+    blockNumber: event.block.number,
+    timestamp: event.block.timestamp,
+    txHash: lc(event.transaction.hash),
+    logIndex: event.logIndex,
+  });
   u.flush();
 });
 

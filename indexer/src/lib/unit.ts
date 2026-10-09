@@ -112,6 +112,7 @@ export class Unit {
       ref: p.ref,
       payrollRun_id: p.payrollRunId,
       link_id: p.linkId,
+      request_id: undefined,
       blockNumber: this.block,
       timestamp: this.ts,
       txHash: lc(this.tx),

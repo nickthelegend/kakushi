@@ -160,6 +160,21 @@ const acctRows = (await gql<{ Account: { id: string; requestsSent: number; reque
 const acctOk =
   acctRows.length === acctExp.size && acctRows.every((a) => acctExp.get(a.id)?.sent === a.requestsSent && acctExp.get(a.id)?.recv === a.requestsReceived);
 
+// wraps, row by row (the activity feed reads them): one row per Wrapped log, same account and amount
+const wrapRows = (await gql<{ Wrap: { txHash: string; logIndex: number; account_id: string; amount: string }[] }>("{ Wrap(limit: 10000) { txHash logIndex account_id amount } }")).Wrap;
+const wrapGot = new Map(wrapRows.map((w) => [`${w.txHash}-${w.logIndex}`, w]));
+const wrapsOk =
+  wrapRows.length === by("Wrapped").length &&
+  by("Wrapped").every((l) => {
+    const w = wrapGot.get(`${lc(l.transactionHash!)}-${l.logIndex}`);
+    return w && w.account_id === lc(l.args.account) && BigInt(w.amount) === l.args.amount;
+  });
+
+// every payRequest() move is linked to its request
+const reqPays = (await gql<{ Payment: { amountHandle: string; request_id: string }[] }>("{ Payment(where: { request_id: { _is_null: false } }, limit: 10000) { amountHandle request_id } }")).Payment;
+const sentToReq = new Map(by("RequestPaid").map((l) => [lc(l.args.sent), `${lc(l.address)}-${l.args.id}`]));
+const reqPaysOk = reqPays.length === by("RequestPaid").length && reqPays.every((p) => p.request_id.endsWith(sentToReq.get(p.amountHandle) ?? "?"));
+
 let ok = true;
 console.log(`blocks ${fromBlock}..${toBlock} · ${pay.length} token logs, ${ora.length} oracle logs, ${exe.length} executor logs\n`);
 console.log("aggregate".padEnd(28) + "chain".padStart(14) + "indexer".padStart(14));
@@ -172,6 +187,8 @@ console.log(`${handlesOk ? "ok  " : "FAIL"}payment amounts are 32-byte ciphertex
 console.log(`${leak.length === 0 ? "ok  " : "FAIL"}no oracle cleartext appears in Payment/Reveal rows (${clear.size} distinct cleartexts checked)`);
 console.log(`${reqRowsOk ? "ok  " : "FAIL"}PayRequest rows: payee, payer, due handle, pay attempts, cancelled (${expectedReq.size} on chain, ${reqRows.length} indexed${reqBad.length ? `, mismatched ${reqBad.map(([k]) => k).join(", ")}` : ""})`);
 console.log(`${acctOk ? "ok  " : "FAIL"}Account.requestsSent / requestsReceived (${acctExp.size} accounts with requests)`);
-ok &&= handlesOk && leak.length === 0 && reqRowsOk && acctOk;
+console.log(`${wrapsOk ? "ok  " : "FAIL"}Wrap rows: account and public amount per Wrapped log (${wrapRows.length} indexed)`);
+console.log(`${reqPaysOk ? "ok  " : "FAIL"}Payment.request links: one per RequestPaid (${reqPays.length} linked)`);
+ok &&= handlesOk && leak.length === 0 && reqRowsOk && acctOk && wrapsOk && reqPaysOk;
 console.log(ok ? "\nALL MATCH" : "\nMISMATCH");
 process.exit(ok ? 0 : 1);

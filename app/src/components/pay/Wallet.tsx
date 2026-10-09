@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Hex } from "viem";
 import { usePay, type PayWallet } from "@/lib/pay/wallet";
-import { activity, balances, reveal, type Activity, type PayEnv } from "@/lib/pay/flows";
+import { activityWithSource, balances, reveal, type Activity, type ActivityResult, type PayEnv } from "@/lib/pay/flows";
 import { bytes32ToRef, fromUnits, isZeroHandle, short } from "@/lib/pay/core";
 import { Cipher, Revealed } from "@/components/ui";
 import { Card, Status, useAction } from "./PayKit";
@@ -110,12 +110,17 @@ const KIND: Record<Activity["kind"], string> = {
 
 export function ActivityCard({ env, wallet, revealed, setRevealed, refreshKey, title = "Activity" }: { env: PayEnv; wallet: PayWallet; revealed: Record<string, bigint>; setRevealed: (r: Record<string, bigint>) => void; refreshKey: number; title?: string }) {
   const [items, setItems] = useState<Activity[] | null>(null);
+  const [source, setSource] = useState<Pick<ActivityResult, "source" | "indexedTo"> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const a = useAction();
   useEffect(() => {
     let live = true;
-    activity(env, wallet.address)
-      .then((x) => live && setItems(x))
+    activityWithSource(env, wallet.address)
+      .then((x) => {
+        if (!live) return;
+        setItems(x.items);
+        setSource({ source: x.source, indexedTo: x.indexedTo });
+      })
       .catch((e) => live && setErr((e as Error).message.split("\n")[0]!));
     return () => {
       live = false;
@@ -138,6 +143,13 @@ export function ActivityCard({ env, wallet, revealed, setRevealed, refreshKey, t
       }
     >
       <Status step={a.step} error={a.error ?? err} />
+      {source ? (
+        <p className="mb-2 text-xs text-silt">
+          {source.source === "indexer"
+            ? `History from the Envio indexer (to block ${source.indexedTo}), newer blocks read from the chain.`
+            : "History read from the chain (indexer unavailable): recent blocks only on Monad."}
+        </p>
+      ) : null}
       {items === null ? (
         <p className="text-sm text-silt">Reading the chain…</p>
       ) : items.length === 0 ? (

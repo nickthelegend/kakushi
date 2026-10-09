@@ -283,8 +283,83 @@ async function logsChunked<T>(env: PayEnv, fetcher: (from: bigint, to: bigint) =
   }
 }
 
-/** Everything that touched `who` on cAUSD. Amounts stay ciphertext handles; only `who` can reveal them. */
+export interface ActivityResult {
+  items: Activity[];
+  /** where the history came from: the Envio indexer (+ the chain for blocks it has not processed yet), or the chain alone */
+  source: "indexer" | "chain";
+  indexedTo?: bigint;
+}
+
+const ZERO_HANDLE = `0x${"0".repeat(64)}` as Hex;
+
+/**
+ * Full history from the Envio indexer, plus the few blocks it has not processed yet from the chain.
+ * On Monad eth_getLogs covers 100 blocks per call, so without an indexer a client can only scan a
+ * short recent window; the indexer is what makes the whole history available.
+ */
+async function activityFromIndexer(env: PayEnv, who: Hex): Promise<ActivityResult | null> {
+  const id = who.toLowerCase();
+  const token = `${env.chainId}-${env.token.toLowerCase()}`;
+  const query = `query A($id: String!, $token: String!) {
+    chain_metadata { latest_processed_block }
+    out: Payment(where: { from_id: { _eq: $id }, token_id: { _eq: $token } }, order_by: { blockNumber: desc }, limit: 500) { kind to_id amountHandle ref blockNumber txHash logIndex request_id }
+    in: Payment(where: { to_id: { _eq: $id }, token_id: { _eq: $token } }, order_by: { blockNumber: desc }, limit: 500) { kind from_id amountHandle ref blockNumber txHash logIndex request_id }
+    links: PayLink(where: { sender_id: { _eq: $id }, token_id: { _eq: $token } }, limit: 500) { amountHandle createdBlock createdTx }
+    wraps: Wrap(where: { account_id: { _eq: $id }, token_id: { _eq: $token } }, limit: 500) { amount blockNumber txHash logIndex }
+    unwraps: Unwrap(where: { account_id: { _eq: $id }, token_id: { _eq: $token } }, limit: 500) { burnedHandle amount requestedBlock requestTx }
+  }`;
+  type Row = { kind: string; to_id?: string; from_id?: string; amountHandle: string; ref: string | null; blockNumber: number; txHash: string; logIndex: number; request_id: string | null };
+  let d: {
+    chain_metadata: { latest_processed_block: number }[];
+    out: Row[];
+    in: Row[];
+    links: { amountHandle: string; createdBlock: number; createdTx: string }[];
+    wraps: { amount: string; blockNumber: number; txHash: string; logIndex: number }[];
+    unwraps: { burnedHandle: string | null; amount: string | null; requestedBlock: number; requestTx: string }[];
+  };
+  try {
+    const r = await fetch("/api/indexer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, variables: { id, token } }), signal: AbortSignal.timeout(8_000) });
+    const j = await r.json();
+    if (!r.ok || !j.data?.chain_metadata?.length) return null;
+    d = j.data;
+  } catch {
+    return null;
+  }
+  const indexedTo = BigInt(d.chain_metadata[0]!.latest_processed_block);
+  if (indexedTo < env.fromBlock) return null; // indexer for another deployment, or not started
+  const items: Activity[] = [];
+  for (const p of d.out) {
+    if (p.kind === "LINK_CLAIM") continue; // shown once, as link-created
+    const kind: ActivityKind = p.kind === "PAYROLL" ? "payroll-out" : p.request_id ? "request-out" : "sent";
+    items.push({ kind, counterparty: p.to_id as Hex, handle: p.amountHandle as Hex, ref: (p.ref as Hex) ?? null, block: BigInt(p.blockNumber), tx: p.txHash as Hex, logIndex: p.logIndex });
+  }
+  for (const p of d.in) {
+    const kind: ActivityKind = p.kind === "PAYROLL" ? "payroll-in" : p.kind === "LINK_CLAIM" ? "link-claimed" : p.request_id ? "request-in" : "received";
+    items.push({ kind, counterparty: kind === "link-claimed" ? null : (p.from_id as Hex), handle: p.amountHandle as Hex, ref: (p.ref as Hex) ?? null, block: BigInt(p.blockNumber), tx: p.txHash as Hex, logIndex: p.logIndex });
+  }
+  for (const l of d.links) items.push({ kind: "link-created", counterparty: null, handle: l.amountHandle as Hex, ref: null, block: BigInt(l.createdBlock), tx: l.createdTx as Hex, logIndex: 0 });
+  for (const w of d.wraps) items.push({ kind: "wrapped", counterparty: null, handle: ZERO_HANDLE, ref: null, block: BigInt(w.blockNumber), tx: w.txHash as Hex, logIndex: w.logIndex, publicAmount: BigInt(w.amount) });
+  for (const u of d.unwraps)
+    items.push({ kind: "cash-out", counterparty: null, handle: (u.burnedHandle as Hex) ?? ZERO_HANDLE, ref: null, block: BigInt(u.requestedBlock), tx: u.requestTx as Hex, logIndex: 0, publicAmount: u.amount === null ? undefined : BigInt(u.amount) });
+  // the tip the indexer has not processed yet: a few blocks, read from the chain
+  const tip = await activityFromChain({ ...env, fromBlock: indexedTo + 1n }, who).catch(() => [] as Activity[]);
+  const seen = new Set(items.map((i) => `${i.tx.toLowerCase()}:${i.handle.toLowerCase()}`));
+  for (const t of tip) if (!seen.has(`${t.tx.toLowerCase()}:${t.handle.toLowerCase()}`)) items.push(t);
+  items.sort((a, b) => (a.block === b.block ? b.logIndex - a.logIndex : Number(b.block - a.block)));
+  return { items, source: "indexer", indexedTo };
+}
+
+/** Activity for `who`: the indexer when it is available, otherwise the chain. */
+export async function activityWithSource(env: PayEnv, who: Hex): Promise<ActivityResult> {
+  return (await activityFromIndexer(env, who)) ?? { items: await activityFromChain(env, who), source: "chain" };
+}
+
 export async function activity(env: PayEnv, who: Hex): Promise<Activity[]> {
+  return (await activityWithSource(env, who)).items;
+}
+
+/** Everything that touched `who` on cAUSD, from raw logs. Amounts stay ciphertext handles; only `who` can reveal them. */
+export async function activityFromChain(env: PayEnv, who: Hex): Promise<Activity[]> {
   const ev = <N extends "ConfidentialTransfer" | "Paid" | "PayrollRun" | "LinkCreated" | "Wrapped" | "UnwrapRequested" | "Unwrapped" | "RequestPaid">(eventName: N, args: Record<string, Hex>) =>
     logsChunked(env, (fromBlock, toBlock) => env.client.getContractEvents({ address: env.token, abi: payAbi, eventName, args: args as never, fromBlock, toBlock }));
   const [tin, tout, paidIn, paidOut, runs, wraps, unreq, undone, reqPaid] = await Promise.all([

@@ -97,6 +97,7 @@ type Account {
   linksSent: [PayLink!]! @derivedFrom(field: "sender")
   payrolls: [PayrollRun!]! @derivedFrom(field: "employer")
   unwraps: [Unwrap!]! @derivedFrom(field: "account")
+  wrapList: [Wrap!]! @derivedFrom(field: "account")
   requestsOut: [PayRequest!]! @derivedFrom(field: "payee")
   requestsIn: [PayRequest!]! @derivedFrom(field: "payer")
 }
@@ -118,6 +119,8 @@ type Payment {
   ref: String
   payrollRun: PayrollRun
   link: PayLink
+  "set when this move paid a payment request (the kind stays TRANSFER: it is a plain balance move)"
+  request: PayRequest
   blockNumber: Int! @index
   timestamp: Int! @index
   txHash: String! @index
@@ -250,6 +253,23 @@ type Reveal {
   via: String
   path: RevealPath
   callbackOk: Boolean
+}
+
+"""
+A wrap: public stablecoin in, encrypted balance out. Its amount is public by nature (it crosses the
+boundary into the confidential pool); everything after it is a ciphertext.
+"""
+type Wrap {
+  "chainId-txHash-logIndex"
+  id: ID!
+  chainId: Int!
+  token: Token!
+  account: Account!
+  amount: BigInt!
+  blockNumber: Int! @index
+  timestamp: Int!
+  txHash: String!
+  logIndex: Int!
 }
 
 """
