@@ -113,8 +113,9 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 
 ### Built for Monad
 
-- **Speculative compute, final reveals.** The coprocessor materializes ciphertexts the moment ops
-  appear at `latest`, while the KMS signs a public decryption only once the request's block is
+- **Speculative compute, final reveals.** On Monad the coprocessor subscribes to `monadLogs`, which
+  streams executor events from blocks still at Proposed/Voted, and materializes ciphertexts from there
+  (the 100-block poller remains the source of truth). Elsewhere it starts at `latest`, while the KMS signs a public decryption only once the request's block is
   `finalized` (Monad: ~2-3 blocks behind). The FHE work overlaps finality, so the gate usually costs
   nothing, and a reorged request can never leak a plaintext.
 - **Gas is charged on the limit.** Ops are event-only on-chain; every Fhish transaction (relayer,

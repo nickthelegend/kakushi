@@ -2,7 +2,7 @@
 //   FHISH_NETWORK=local|testnet  RPC_URL  ENGINE_URL (default http://127.0.0.1:8899)
 //   GATEWAY_PORT (default 8890)  FHISH_DEPLOYMENT (path to contracts/deployments/<network>.json)
 //   FHISH_SECRETS (path to signers json; default ../.secrets/signers.json)  DELIVER=direct|cre|both
-//   DECRYPT_AT=finalized|latest (KMS signs only once the request block is finalized; default finalized)
+//   MONAD_WS_URL (monadLogs speculative source; default on testnet)  DECRYPT_AT=finalized|latest (KMS signs only once the request block is finalized; default finalized)
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { createPublicClient, createWalletClient, defineChain, http, parseEventLogs, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -12,6 +12,7 @@ import { OpGraph, type ExecEvent } from "./graph.ts";
 import { Kms } from "./kms.ts";
 import { Metrics } from "./metrics.ts";
 import { startGateway } from "./gateway.ts";
+import { subscribeMonadLogs } from "./monadlogs.ts";
 
 const network = process.env.FHISH_NETWORK ?? "local";
 const rpc = process.env.RPC_URL ?? (network === "local" ? "http://127.0.0.1:18810" : "https://testnet-rpc.monad.xyz");
@@ -78,6 +79,19 @@ const cursorFile = new URL(`../../.fhish/cursor-${network}.json`, import.meta.ur
 mkdirSync(new URL("../../.fhish/", import.meta.url), { recursive: true });
 let cursor = existsSync(cursorFile) ? BigInt(JSON.parse(readFileSync(cursorFile, "utf8")).next) : BigInt(dep.deployBlock);
 
+/** Feed parsed executor/oracle logs to the op graph and the KMS (both dedupe, so sources may overlap). */
+function handle(logs: any[]) {
+  const seenAt = Date.now();
+  for (const l of logs) {
+    if (l.address.toLowerCase() === dep.executor.toLowerCase()) {
+      const e = toEvent(l);
+      if (e) graph.submit(e);
+    } else if (l.eventName === "DecryptionRequested") {
+      void kms.handleRequest(l.args.requestId, l.args.handles, seenAt, l.blockNumber);
+    }
+  }
+}
+
 async function poll() {
   const head = await client.getBlockNumber();
   while (cursor <= head) {
@@ -86,15 +100,7 @@ async function poll() {
     const logs = parseEventLogs({ abi: [...executorEvents, ...oracleAbi], logs: raw }).sort((x, y) =>
       x.blockNumber === y.blockNumber ? x.logIndex - y.logIndex : x.blockNumber < y.blockNumber ? -1 : 1,
     );
-    const seenAt = Date.now();
-    for (const l of logs as any[]) {
-      if (l.address.toLowerCase() === dep.executor.toLowerCase()) {
-        const e = toEvent(l);
-        if (e) graph.submit(e);
-      } else if (l.eventName === "DecryptionRequested") {
-        void kms.handleRequest(l.args.requestId, l.args.handles, seenAt, l.blockNumber);
-      }
-    }
+    handle(logs as any[]);
     if (logs.length) log(`blocks ${cursor}-${to}: ${logs.length} events`);
     cursor = to + 1n;
     writeFileSync(cursorFile, JSON.stringify({ next: cursor.toString() }));
@@ -104,6 +110,14 @@ async function poll() {
 const h = await engine.health().catch(() => null);
 if (!h) throw new Error("fhish-engine is not running (fhish-engine serve --dir .fhish)");
 log(`network ${network} chain ${dep.chainId}, engine tfhe ${h.tfhe} on ${h.threads} threads, executor ${dep.executor}`);
+// Monad: start FHE work from Proposed/Voted logs (MONAD_WS_URL, e.g. wss://testnet-rpc.monad.xyz)
+const wsUrl = process.env.MONAD_WS_URL ?? (network === "testnet" ? "wss://testnet-rpc.monad.xyz" : "");
+if (wsUrl) {
+  subscribeMonadLogs(wsUrl, [dep.executor, dep.oracle], (l) => {
+    metrics.inc("speculative_logs");
+    handle(parseEventLogs({ abi: [...executorEvents, ...oracleAbi], logs: [l] }) as any[]);
+  }, log);
+}
 for (;;) {
   try {
     await poll();
