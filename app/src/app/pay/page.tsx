@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Hex } from "viem";
 import { usePay } from "@/lib/pay/wallet";
 import { cashOut, createPayLink, payPrivately } from "@/lib/pay/flows";
@@ -12,6 +12,17 @@ import { Heartbeat } from "@/components/pay/Heartbeat";
 import { Settlement } from "@/components/pay/Settlement";
 import { addrOk, amountOk, Card, Input, PrivyBanner, SignIn, Status, useAction, usePayEnv } from "@/components/pay/PayKit";
 import { ActivityCard, BalanceCard, useBalances } from "@/components/pay/Wallet";
+import { RequestFocus, RequestMoneyCard, RequestsCard, useRequests } from "@/components/pay/Requests";
+
+/** `/pay?request=<id>`: the shareable link a payee sends to the payer. */
+function useFocusRequest(): bigint | null {
+  const [id, setId] = useState<bigint | null>(null);
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("request");
+    if (v && /^\d{1,20}$/.test(v)) setId(BigInt(v));
+  }, []);
+  return id;
+}
 
 function Tabs<T extends string>({ value, onChange, items }: { value: T; onChange: (v: T) => void; items: [T, string][] }) {
   return (
@@ -36,6 +47,17 @@ export default function PayPage() {
     await reload();
     setTick((t) => t + 1);
   };
+  const focus = useFocusRequest();
+  const req = useRequests(env, w?.address ?? null, focus);
+  const refreshAll = async () => {
+    await Promise.all([reload(), req.reload()]);
+    setTick((t) => t + 1);
+  };
+  const focused = focus !== null ? req.items?.find((v) => v.id === focus) : undefined;
+  const focusCard =
+    env && focus !== null ? (
+      <RequestFocus env={env} wallet={w} id={focus} v={focused} loading={req.items === null && !req.err} chainNow={req.chainNow} revealed={revealed} setRevealed={setRevealed} onChanged={refreshAll} />
+    ) : null;
 
   const [mode, setMode] = useState<"send" | "link" | "out">("send");
   const [to, setTo] = useState("");
@@ -82,7 +104,7 @@ export default function PayPage() {
       <p className="font-mono text-sm text-biolum">Fhish Pay</p>
       <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Your money, your eyes only.</h1>
       <p className="mt-3 max-w-2xl text-tide">
-        Real Agora AUSD on Monad, with amounts and balances encrypted end to end. Pay anyone, send money by link to someone with no wallet yet, and cash out whenever you like. <Link href="/pay/employer" className="text-biolum hover:underline">Paying a team? Open Fhish Payroll.</Link>
+        Real Agora AUSD on Monad, with amounts and balances encrypted end to end. Pay anyone, request money, send money by link to someone with no wallet yet, and cash out whenever you like. <Link href="/pay/employer" className="text-biolum hover:underline">Paying a team? Open Fhish Payroll.</Link>
       </p>
       <div className="mt-6">
         <PrivyBanner />
@@ -92,12 +114,16 @@ export default function PayPage() {
         <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Fhish Pay deployment… If this stays, the stack is not running (cAUSD missing from contracts/deployments).</p>
       ) : !w ? (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
-          <SignIn why="Sign in to see payments sent to you, reveal your balance, and pay privately." />
+          <div className="min-w-0 space-y-6">
+            {focusCard}
+            <SignIn why={focus !== null ? "Sign in to read and pay this request. Only its payer and requester can open the amount." : "Sign in to see payments sent to you, reveal your balance, and pay privately."} />
+          </div>
           <Heartbeat rows={6} />
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1.05fr_1fr]">
           <div className="min-w-0 space-y-6">
+            {focusCard}
             <BalanceCard env={env} wallet={w} b={b} reload={reload} revealed={revealed} setRevealed={setRevealed} />
             <Card title="Move money" sub="The amount is encrypted in this tab before it leaves. The chain records that a payment happened, never how much." aside={<Tabs value={mode} onChange={(m) => { setMode(m); a.setError(null); }} items={[["send", "Pay"], ["link", "Pay link"], ["out", "Cash out"]]} />}>
               <form
@@ -162,8 +188,10 @@ export default function PayPage() {
               )}
               {sent && env && <Settlement tx={sent.tx} client={env.client} network={env.network} label={sent.label} />}
             </Card>
+            <RequestMoneyCard env={env} wallet={w} onCreated={refreshAll} />
           </div>
           <div className="min-w-0 space-y-6">
+            <RequestsCard env={env} wallet={w} items={req.items} chainNow={req.chainNow} err={req.err} revealed={revealed} setRevealed={setRevealed} onChanged={refreshAll} />
             <ActivityCard env={env} wallet={w} revealed={revealed} setRevealed={setRevealed} refreshKey={tick} title="Payments" />
             <Heartbeat rows={5} compact />
           </div>

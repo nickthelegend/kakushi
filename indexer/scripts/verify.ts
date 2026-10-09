@@ -36,6 +36,9 @@ const payEv = parseAbi([
   "event LinkClaimed(uint256 indexed id, address indexed to)",
   "event LinkRefunded(uint256 indexed id)",
   "event PayrollRun(address indexed employer, address indexed operator, uint256 count, bytes32 indexed ref)",
+  "event PaymentRequested(uint256 indexed id, address indexed payee, address indexed payer, uint64 expiry, bytes32 ref, bytes32 due)",
+  "event RequestPaid(uint256 indexed id, address indexed payer, bytes32 sent)",
+  "event RequestCancelled(uint256 indexed id)",
 ]);
 const oracleEv = parseAbi([
   "event DecryptionRequested(uint256 indexed requestId, address indexed requester, bytes32[] handles, bytes4 callback)",
@@ -96,6 +99,9 @@ const expected: Record<string, string | number> = {
   linksClaimed: by("LinkClaimed").length,
   linksRefunded: by("LinkRefunded").length,
   linksOpen: by("LinkCreated").length - by("LinkClaimed").length - by("LinkRefunded").length,
+  requests: by("PaymentRequested").length,
+  requestPayAttempts: by("RequestPaid").length,
+  requestsCancelled: by("RequestCancelled").length,
   wraps: by("Wrapped").length,
   unwrapsRequested: by("UnwrapRequested").length,
   unwrapsSettled: by("Unwrapped").length,
@@ -118,6 +124,42 @@ const handlesOk = rows.Payment.every((p) => /^0x[0-9a-f]{64}$/.test(p.amountHand
 const clear = new Set(fuls.flatMap((f) => (f.args.cleartexts as bigint[]).map(String)).filter((c) => c.length > 3));
 const leak = JSON.stringify(rows).match(/\d{4,}/g)?.filter((d) => clear.has(d)) ?? [];
 
+// payment requests, row by row: payee, payer, pay attempts, cancelled; and per-account request counters
+const reqKey = (l: { address: string; args: { id: bigint } }) => `${lc(l.address)}-${l.args.id}`;
+const expectedReq = new Map<string, { payee: string; payer: string; dueHandle: string; payAttempts: number; cancelled: boolean }>();
+for (const l of by("PaymentRequested")) expectedReq.set(reqKey(l), { payee: lc(l.args.payee), payer: lc(l.args.payer), dueHandle: lc(l.args.due), payAttempts: 0, cancelled: false });
+for (const l of by("RequestPaid")) {
+  const r = expectedReq.get(reqKey(l));
+  if (r) r.payAttempts += 1;
+}
+for (const l of by("RequestCancelled")) {
+  const r = expectedReq.get(reqKey(l));
+  if (r) r.cancelled = true;
+}
+const reqRows = (await gql<{ PayRequest: { requestId: string; token_id: string; payee_id: string; payer_id: string; dueHandle: string; payAttempts: number; cancelled: boolean }[] }>(
+  "{ PayRequest(limit: 10000) { requestId token_id payee_id payer_id dueHandle payAttempts cancelled } }",
+)).PayRequest;
+const gotReq = new Map(reqRows.map((r) => [`${r.token_id.split("-")[1]}-${r.requestId}`, r]));
+const reqBad = [...expectedReq].filter(([k, e]) => {
+  const g = gotReq.get(k);
+  return !g || g.payee_id !== e.payee || g.payer_id !== e.payer || g.dueHandle !== e.dueHandle || g.payAttempts !== e.payAttempts || g.cancelled !== e.cancelled;
+});
+const reqRowsOk = reqBad.length === 0 && reqRows.length === expectedReq.size;
+const acctExp = new Map<string, { sent: number; recv: number }>();
+for (const e of expectedReq.values()) {
+  const p = acctExp.get(e.payee) ?? { sent: 0, recv: 0 };
+  p.sent += 1;
+  acctExp.set(e.payee, p);
+  const q = acctExp.get(e.payer) ?? { sent: 0, recv: 0 };
+  q.recv += 1;
+  acctExp.set(e.payer, q);
+}
+const acctRows = (await gql<{ Account: { id: string; requestsSent: number; requestsReceived: number }[] }>(
+  "{ Account(where: { _or: [{ requestsSent: { _gt: 0 } }, { requestsReceived: { _gt: 0 } }] }, limit: 10000) { id requestsSent requestsReceived } }",
+)).Account;
+const acctOk =
+  acctRows.length === acctExp.size && acctRows.every((a) => acctExp.get(a.id)?.sent === a.requestsSent && acctExp.get(a.id)?.recv === a.requestsReceived);
+
 let ok = true;
 console.log(`blocks ${fromBlock}..${toBlock} · ${pay.length} token logs, ${ora.length} oracle logs, ${exe.length} executor logs\n`);
 console.log("aggregate".padEnd(28) + "chain".padStart(14) + "indexer".padStart(14));
@@ -128,6 +170,8 @@ for (const k of Object.keys(expected)) {
 }
 console.log(`${handlesOk ? "ok  " : "FAIL"}payment amounts are 32-byte ciphertext handles (${rows.Payment.length} rows)`);
 console.log(`${leak.length === 0 ? "ok  " : "FAIL"}no oracle cleartext appears in Payment/Reveal rows (${clear.size} distinct cleartexts checked)`);
-ok &&= handlesOk && leak.length === 0;
+console.log(`${reqRowsOk ? "ok  " : "FAIL"}PayRequest rows: payee, payer, due handle, pay attempts, cancelled (${expectedReq.size} on chain, ${reqRows.length} indexed${reqBad.length ? `, mismatched ${reqBad.map(([k]) => k).join(", ")}` : ""})`);
+console.log(`${acctOk ? "ok  " : "FAIL"}Account.requestsSent / requestsReceived (${acctExp.size} accounts with requests)`);
+ok &&= handlesOk && leak.length === 0 && reqRowsOk && acctOk;
 console.log(ok ? "\nALL MATCH" : "\nMISMATCH");
 process.exit(ok ? 0 : 1);

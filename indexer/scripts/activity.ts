@@ -1,6 +1,7 @@
 // Generates real Fhish Pay activity on the LOCAL anvil fork so the indexer has something to show:
 // wrap (approve + wrap), a private pay() with a reference, a plain confidentialTransfer, two pay links
-// claimed by a brand-new account (+ one left open), an operator-run payroll, and an unwrap whose
+// claimed by a brand-new account (+ one left open), an operator-run payroll, payment requests (one paid,
+// one too large for the payer's balance and attempted anyway, one cancelled), and an unwrap whose
 // amount is revealed by the KMS through the decryption oracle.
 //
 //   node scripts/activity.ts            (needs the local stack: anvil :18810, gateway :8890)
@@ -116,7 +117,22 @@ const batchSig = await privateKeyToAccount(KEYS.alice).signTypedData({
 });
 await send("carol", TOKEN, payAbi, "runPayrollFrom", [addr("alice"), staff.map(([w]) => w), salaries.map((s) => s.handle), salaries.map((s) => s.proof), payrollRef, deadline, batchSig]);
 
-console.log("6. unwrap (cash-out): burn, KMS reveal through the oracle, public payout");
+console.log("6. payment requests (encrypted invoices): carol asks bob and alice, bob pays, alice is short, one cancelled");
+const reqExpiry = BigInt(Math.floor(Date.now() / 1000) + 3 * 86400);
+async function request(payee: Who, payer: Who, amount: number, label: string) {
+  const x = await enc(AU(amount), addr(payee)); // encrypted for the payee: the requestPayment sender
+  const rc = await send(payee, TOKEN, payAbi, "requestPayment", [addr(payer), x.handle, x.proof, reqExpiry, ref(label)]);
+  return (parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "PaymentRequested" })[0] as any).args.id as bigint;
+}
+const rent = await request("carol", "bob", 75, "rent october");
+await send("bob", TOKEN, payAbi, "payRequest", [rent]);
+const huge = await request("carol", "alice", 1_000_000, "too much"); // far above alice's balance
+await send("alice", TOKEN, payAbi, "payRequest", [huge]); // succeeds, moves an encrypted 0
+const dropped = await request("bob", "carol", 12, "cancelled");
+await send("bob", TOKEN, payAbi, "cancelRequest", [dropped]);
+console.log(`  request #${rent} paid by bob; #${huge} attempted by alice (balance short, still owed); #${dropped} cancelled`);
+
+console.log("7. unwrap (cash-out): burn, KMS reveal through the oracle, public payout");
 e = await enc(AU(50), addr("bob"));
 const ur = await send("bob", TOKEN, payAbi, "unwrap", [e.handle, e.proof]);
 const requestId = (parseEventLogs({ abi: payAbi, logs: ur.logs, eventName: "UnwrapRequested" })[0] as any).args.requestId as bigint;

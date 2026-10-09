@@ -288,3 +288,89 @@ describe("FHE executor", () => {
     t.expect({ ops: g.fheOps, sel: g.fheSelects, inputs: g.fheInputsVerified, trivial: g.fheTrivialEncrypts }).toEqual({ ops: 7, sel: 1, inputs: 1, trivial: 1 });
   });
 });
+
+describe("payment requests", () => {
+  it("tracks requests, pay attempts and cancellations without ever an amount or a settled flag", async (t) => {
+    const ix = createTestIndexer();
+    const exp = BigInt(T0 + 86_400);
+    await ix.process({
+      chains: {
+        [CHAIN]: {
+          simulate: [
+            // carol asks bob (#1) and the newcomer (#2); alice asks bob (#3)
+            { contract: "FhishPayToken", event: "PaymentRequested", ...at(1, 1, 30), params: { id: 1n, payee: CAROL, payer: BOB, expiry: exp, ref: ref("rent october"), due: h(500) } },
+            { contract: "FhishPayToken", event: "PaymentRequested", ...at(2, 2, 31), params: { id: 2n, payee: CAROL, payer: NEWCOMER, expiry: exp, ref: ref("too much"), due: h(501) } },
+            { contract: "FhishPayToken", event: "PaymentRequested", ...at(3, 3, 32), params: { id: 3n, payee: ALICE, payer: BOB, expiry: exp, ref: ref("lunch"), due: h(502) } },
+            // bob pays #1: the value move is a ConfidentialTransfer in the same tx
+            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(4, 10, 33), params: { from: BOB, to: CAROL, amount: h(503) } },
+            { contract: "FhishPayToken", event: "RequestPaid", ...at(4, 10, 33), params: { id: 1n, payer: BOB, sent: h(503) } },
+            // the newcomer tries #2 twice (balance short: an encrypted 0 moves each time)
+            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(5, 20, 34), params: { from: NEWCOMER, to: CAROL, amount: h(504) } },
+            { contract: "FhishPayToken", event: "RequestPaid", ...at(5, 20, 34), params: { id: 2n, payer: NEWCOMER, sent: h(504) } },
+            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(6, 30, 35), params: { from: NEWCOMER, to: CAROL, amount: h(505) } },
+            { contract: "FhishPayToken", event: "RequestPaid", ...at(6, 30, 35), params: { id: 2n, payer: NEWCOMER, sent: h(505) } },
+            // alice cancels #3
+            { contract: "FhishPayToken", event: "RequestCancelled", ...at(7, 40, 36), params: { id: 3n } },
+          ],
+        },
+      },
+    });
+
+    const r1 = await ix.PayRequest.getOrThrow(`${CHAIN}-${CAUSD}-1`);
+    t.expect({ payee: r1.payee_id, payer: r1.payer_id, ref: r1.ref, due: r1.dueHandle, attempts: r1.payAttempts, lastPaidAt: r1.lastPaidAt, lastPaidBlock: r1.lastPaidBlock, cancelled: r1.cancelled, expiry: r1.expiry, createdAt: r1.createdAt }).toEqual({
+      payee: CAROL,
+      payer: BOB,
+      ref: ref("rent october"),
+      due: h(500),
+      attempts: 1,
+      lastPaidAt: T0 + 10,
+      lastPaidBlock: B0 + 4,
+      cancelled: false,
+      expiry: T0 + 86_400,
+      createdAt: T0 + 1,
+    });
+    const r2 = await ix.PayRequest.getOrThrow(`${CHAIN}-${CAUSD}-2`);
+    t.expect({ attempts: r2.payAttempts, lastPaidAt: r2.lastPaidAt, cancelled: r2.cancelled }).toEqual({ attempts: 2, lastPaidAt: T0 + 30, cancelled: false });
+    const r3 = await ix.PayRequest.getOrThrow(`${CHAIN}-${CAUSD}-3`);
+    t.expect({ attempts: r3.payAttempts, cancelled: r3.cancelled, cancelledAt: r3.cancelledAt }).toEqual({ attempts: 0, cancelled: true, cancelledAt: T0 + 40 });
+    // nothing numeric about the amount, and no "paid" flag: settlement is encrypted
+    t.expect(Object.keys(r1).filter((k) => /amount|paid$|settled|status/i.test(k))).toEqual([]);
+
+    const g = await ix.GlobalStats.getOrThrow("global");
+    t.expect({ requests: g.requests, attempts: g.requestPayAttempts, cancelled: g.requestsCancelled, transfers: g.transfers }).toEqual({ requests: 3, attempts: 3, cancelled: 1, transfers: 3 });
+    const day = (await ix.DailyStats.getAll())[0]!;
+    t.expect({ requests: day.requests, attempts: day.requestPayAttempts, cancelled: day.requestsCancelled }).toEqual({ requests: 3, attempts: 3, cancelled: 1 });
+
+    const carol = await ix.Account.getOrThrow(CAROL);
+    const bob = await ix.Account.getOrThrow(BOB);
+    const alice = await ix.Account.getOrThrow(ALICE);
+    const nc = await ix.Account.getOrThrow(NEWCOMER);
+    t.expect({ carolSent: carol.requestsSent, carolRecv: carol.requestsReceived, bobRecv: bob.requestsReceived, bobSent: bob.requestsSent, aliceSent: alice.requestsSent, ncRecv: nc.requestsReceived }).toEqual({
+      carolSent: 2,
+      carolRecv: 0,
+      bobRecv: 2,
+      bobSent: 0,
+      aliceSent: 1,
+      ncRecv: 1,
+    });
+    t.expect(alice.lastSeenAt).toBe(T0 + 40); // the cancel touches the payee
+  });
+
+  it("ignores pays and cancels for requests created before the start block", async (t) => {
+    const ix = createTestIndexer();
+    await ix.process({
+      chains: {
+        [CHAIN]: {
+          simulate: [
+            { contract: "FhishPayToken", event: "RequestPaid", ...at(1, 1, 40), params: { id: 99n, payer: BOB, sent: h(600) } },
+            { contract: "FhishPayToken", event: "RequestCancelled", ...at(2, 2, 41), params: { id: 98n } },
+          ],
+        },
+      },
+    });
+    t.expect(await ix.PayRequest.getAll()).toEqual([]);
+    const g = await ix.GlobalStats.getOrThrow("global");
+    // the raw event counts still match the chain (verify.ts recomputes them from eth_getLogs)
+    t.expect({ attempts: g.requestPayAttempts, cancelled: g.requestsCancelled, requests: g.requests }).toEqual({ attempts: 1, cancelled: 1, requests: 0 });
+  });
+});

@@ -32,6 +32,10 @@ const FRIENDLY: Record<string, string> = {
   PayrollRefUsed: "A payroll with this reference was already paid. Use a new reference (e.g. the next period).",
   BatchExpired: "The signed payroll batch expired before it ran. Sign it again.",
   BadEmployerSignature: "The batch was not signed by this employer, or it was changed after signing.",
+  RequestNotOpen: "This request is not open: it was cancelled, it expired, or it does not exist.",
+  BadPayer: "Ask someone else: the payer cannot be empty or your own address.",
+  NotPayer: "Only the account this request is addressed to can pay it.",
+  NotPayee: "Only the account that sent this request can cancel it.",
 };
 
 /** Turn a viem error into one readable sentence (decoded custom errors where possible). */
@@ -242,7 +246,7 @@ export async function runPayrollViaOperator(env: PayEnv, wallet: PayWallet, oper
 
 // ------------------------------------------------------------------ activity
 
-export type ActivityKind = "received" | "sent" | "wrapped" | "cash-out" | "link-created" | "link-claimed" | "payroll-out" | "payroll-in";
+export type ActivityKind = "received" | "sent" | "wrapped" | "cash-out" | "link-created" | "link-claimed" | "payroll-out" | "payroll-in" | "request-in" | "request-out";
 
 export interface Activity {
   kind: ActivityKind;
@@ -255,23 +259,35 @@ export interface Activity {
   publicAmount?: bigint; // wraps are public by design
 }
 
+/** Monad's eth_getLogs accepts at most 100 blocks per call. */
+export const LOG_PAGE = 100n;
+const LOG_WINDOW = 10_000n; // how far back the paged fallback scans
+const LOG_CONCURRENCY = 6;
+
 async function logsChunked<T>(env: PayEnv, fetcher: (from: bigint, to: bigint) => Promise<T[]>): Promise<T[]> {
+  const head = await env.client.getBlockNumber();
+  if (head < env.fromBlock) return [];
+  if (head - env.fromBlock < LOG_PAGE) return fetcher(env.fromBlock, head);
   try {
-    return await fetcher(env.fromBlock, await env.client.getBlockNumber());
+    return await fetcher(env.fromBlock, head); // an uncapped RPC (the local fork) answers in one call
   } catch {
-    // public RPCs cap eth_getLogs ranges: scan the recent window in chunks instead
-    const head = await env.client.getBlockNumber();
+    // capped RPCs (Monad: 100 blocks): scan the recent window in 100-block pages, a few at a time
+    const floor = head - LOG_WINDOW > env.fromBlock ? head - LOG_WINDOW : env.fromBlock;
+    const pages: [bigint, bigint][] = [];
+    for (let to = head; to >= floor; to -= LOG_PAGE) pages.push([to - LOG_PAGE + 1n > floor ? to - LOG_PAGE + 1n : floor, to]);
     const out: T[] = [];
-    for (let to = head; to > head - 10_000n && to > env.fromBlock; to -= 1000n) out.push(...(await fetcher(to - 999n > env.fromBlock ? to - 999n : env.fromBlock, to)));
+    for (let i = 0; i < pages.length; i += LOG_CONCURRENCY) {
+      for (const r of await Promise.all(pages.slice(i, i + LOG_CONCURRENCY).map(([f, t]) => fetcher(f, t)))) out.push(...r);
+    }
     return out;
   }
 }
 
 /** Everything that touched `who` on cAUSD. Amounts stay ciphertext handles; only `who` can reveal them. */
 export async function activity(env: PayEnv, who: Hex): Promise<Activity[]> {
-  const ev = <N extends "ConfidentialTransfer" | "Paid" | "PayrollRun" | "LinkCreated" | "Wrapped" | "UnwrapRequested" | "Unwrapped">(eventName: N, args: Record<string, Hex>) =>
+  const ev = <N extends "ConfidentialTransfer" | "Paid" | "PayrollRun" | "LinkCreated" | "Wrapped" | "UnwrapRequested" | "Unwrapped" | "RequestPaid">(eventName: N, args: Record<string, Hex>) =>
     logsChunked(env, (fromBlock, toBlock) => env.client.getContractEvents({ address: env.token, abi: payAbi, eventName, args: args as never, fromBlock, toBlock }));
-  const [tin, tout, paidIn, paidOut, runs, wraps, unreq, undone] = await Promise.all([
+  const [tin, tout, paidIn, paidOut, runs, wraps, unreq, undone, reqPaid] = await Promise.all([
     ev("ConfidentialTransfer", { to: who }),
     ev("ConfidentialTransfer", { from: who }),
     ev("Paid", { to: who }),
@@ -280,6 +296,7 @@ export async function activity(env: PayEnv, who: Hex): Promise<Activity[]> {
     ev("Wrapped", { account: who }),
     ev("UnwrapRequested", { account: who }),
     ev("Unwrapped", { account: who }),
+    ev("RequestPaid", {}), // payRequest(): the move is a ConfidentialTransfer of the same handle
   ]);
   // cash-outs are revealed publicly by the KMS (only the amount taken out): requestId -> amount
   const reqOfTx = new Map(unreq.map((u) => [u.transactionHash, (u.args as { requestId?: bigint }).requestId]));
@@ -288,6 +305,7 @@ export async function activity(env: PayEnv, who: Hex): Promise<Activity[]> {
   const refs = new Map<string, Hex>();
   for (const l of [...paidIn, ...paidOut] as { transactionHash: Hex | null; args: { amount?: Hex; ref?: Hex } }[]) refs.set(key(l), l.args.ref ?? ("0x" as Hex));
   const payrollTx = new Set(runs.map((r) => r.transactionHash));
+  const requestMove = new Set(reqPaid.map((r) => `${r.transactionHash}:${((r.args as { sent?: Hex }).sent ?? "").toLowerCase()}`));
   const wrapAmt = new Map(wraps.map((w) => [w.transactionHash, (w.args as { amount?: bigint }).amount]));
   const out: Activity[] = [];
   for (const l of [...tin, ...tout] as { transactionHash: Hex; blockNumber: bigint; logIndex: number; args: { from?: Hex; to?: Hex; amount?: Hex } }[]) {
@@ -304,13 +322,102 @@ export async function activity(env: PayEnv, who: Hex): Promise<Activity[]> {
     else if (from === contract && to === me) kind = "link-claimed";
     else if (from === me && to === me) continue;
     else if (to === me) {
-      kind = payrollTx.has(l.transactionHash) ? "payroll-in" : "received";
+      kind = payrollTx.has(l.transactionHash) ? "payroll-in" : requestMove.has(key(l)) ? "request-in" : "received";
       cp = l.args.from!;
     } else {
-      kind = payrollTx.has(l.transactionHash) ? "payroll-out" : "sent";
+      kind = payrollTx.has(l.transactionHash) ? "payroll-out" : requestMove.has(key(l)) ? "request-out" : "sent";
       cp = l.args.to!;
     }
     out.push({ kind, counterparty: cp, handle: l.args.amount!, ref: refs.get(key(l)) ?? null, block: l.blockNumber, tx: l.transactionHash, logIndex: l.logIndex, publicAmount: kind === "wrapped" ? wrapAmt.get(l.transactionHash) : kind === "cash-out" ? released.get(reqOfTx.get(l.transactionHash)) : undefined });
   }
   return out.sort((a, b) => (a.block === b.block ? b.logIndex - a.logIndex : Number(b.block - a.block)));
+}
+
+// ------------------------------------------------------------------ payment requests (encrypted invoices)
+// The payee asks one payer for an encrypted amount. What is still owed (requestDue) is a ciphertext
+// only the two of them can open, so even "is this paid?" is private. payRequest moves the whole
+// outstanding amount, or 0 when the payer's encrypted balance is short (the request then stays open).
+
+export interface PayRequestView {
+  id: bigint;
+  payee: Hex;
+  payer: Hex;
+  expiry: number;
+  cancelled: boolean;
+  /** current requestDue handle (changes after every payRequest) */
+  due: Hex;
+  /** the amount originally asked, as a handle (from PaymentRequested) */
+  asked: Hex | null;
+  ref: Hex | null;
+  createdBlock: bigint | null;
+  payAttempts: number;
+  lastPaidBlock: bigint | null;
+}
+
+export const requestUrl = (id: bigint) => `${location.origin}/pay?request=${id}`;
+
+/** Ask `payer` for `amount`: encrypted here, bound to (this wallet, cAUSD); only payee and payer can read it. */
+export async function requestMoney(env: PayEnv, wallet: PayWallet, payer: Hex, amount: bigint, ref: string, days: number, onStep?: (s: string) => void) {
+  onStep?.("Encrypting the amount in this tab…");
+  const enc = await env.fhish.encrypt("euint64", amount, env.token, wallet.address);
+  const now = Number((await env.client.getBlock()).timestamp); // chain time: a fork can run ahead of the wall clock
+  const expiry = BigInt(Math.max(now, Math.floor(Date.now() / 1000)) + Math.round(days * 86400));
+  onStep?.(`Encrypted in ${enc.ms.encrypt} ms. Sending the request…`);
+  const sent = await callPay(env, wallet, "requestPayment", [payer, enc.handle, enc.proof, expiry, refToBytes32(ref)]);
+  const ev = parseEventLogs({ abi: payAbi, logs: sent.receipt.logs, eventName: "PaymentRequested" })[0];
+  if (!ev) throw new Error("PaymentRequested event missing");
+  return { id: ev.args.id, url: requestUrl(ev.args.id), expiry, sent };
+}
+
+export async function readRequest(env: PayEnv, id: bigint) {
+  const [payee, payer, expiry, cancelled, due] = (await env.client.readContract({ address: env.token, abi: payAbi, functionName: "payRequests", args: [id] })) as readonly [Hex, Hex, bigint, boolean, Hex];
+  return { id, payee, payer, expiry: Number(expiry), cancelled, due, exists: !/^0x0+$/.test(payee) };
+}
+
+export const requestDue = async (env: PayEnv, id: bigint) => (await env.client.readContract({ address: env.token, abi: payAbi, functionName: "requestDue", args: [id] })) as Hex;
+
+/** Payer only. Moves what is owed, or 0 if the encrypted balance is short; returns the old and new due handles. */
+export async function payRequest(env: PayEnv, wallet: PayWallet, id: bigint, onStep?: (s: string) => void) {
+  const before = await requestDue(env, id);
+  onStep?.("Paying the request (the amount never leaves its ciphertext)…");
+  const sent = await callPay(env, wallet, "payRequest", [id]);
+  return { sent, before, after: await requestDue(env, id) };
+}
+
+export const cancelRequest = (env: PayEnv, wallet: PayWallet, id: bigint) => callPay(env, wallet, "cancelRequest", [id]);
+
+type Ev<N extends string> = { transactionHash: Hex; blockNumber: bigint; args: N extends "PaymentRequested" ? { id: bigint; payee: Hex; payer: Hex; expiry: bigint; ref: Hex; due: Hex } : { id: bigint } };
+
+/** Requests `who` sent (as payee) and received (as payer), newest first, with their current on-chain state. */
+export async function listRequests(env: PayEnv, who: Hex, extra: bigint[] = [], mine = true): Promise<PayRequestView[]> {
+  const get = <N extends "PaymentRequested" | "RequestPaid">(eventName: N, args: Record<string, unknown>) =>
+    logsChunked(env, (fromBlock, toBlock) => env.client.getContractEvents({ address: env.token, abi: payAbi, eventName, args: args as never, fromBlock, toBlock })) as unknown as Promise<Ev<N>[]>;
+  const [asPayee, asPayer] = mine ? await Promise.all([get("PaymentRequested", { payee: who }), get("PaymentRequested", { payer: who })]) : [[], []];
+  const created = new Map<string, Ev<"PaymentRequested">>();
+  for (const e of [...asPayee, ...asPayer]) created.set(e.args.id.toString(), e);
+  const missing = extra.filter((id) => !created.has(id.toString()));
+  if (missing.length) for (const e of await get("PaymentRequested", { id: missing })) created.set(e.args.id.toString(), e);
+  const ids = [...new Set([...created.keys(), ...extra.map(String)])].map(BigInt).sort((a, b) => (a > b ? -1 : 1)).slice(0, 40);
+  if (!ids.length) return [];
+  const paid = await get("RequestPaid", { id: ids });
+  const views = await Promise.all(ids.map((id) => readRequest(env, id)));
+  return views
+    .filter((v) => v.exists)
+    .map((v) => {
+      const c = created.get(v.id.toString());
+      const p = paid.filter((x) => x.args.id === v.id);
+      return {
+        id: v.id,
+        payee: v.payee,
+        payer: v.payer,
+        expiry: v.expiry,
+        cancelled: v.cancelled,
+        due: v.due,
+        asked: c?.args.due ?? null,
+        ref: c?.args.ref ?? null,
+        createdBlock: c?.blockNumber ?? null,
+        payAttempts: p.length,
+        lastPaidBlock: p.length ? p[p.length - 1]!.blockNumber : null,
+      };
+    });
 }

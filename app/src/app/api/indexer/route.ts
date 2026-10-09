@@ -14,6 +14,7 @@ const DASHBOARD = `query Dashboard {
     payments pays payrollPayments linkClaims transfers uniquePayers accounts
     payrollRuns payrollRunsViaOperator
     linksCreated linksClaimed linksRefunded linksOpen linkClaimAvgSeconds linkClaimMedianSeconds
+    requests requestPayAttempts requestsCancelled
     wraps unwrapsRequested unwrapsSettled publicWrapped publicUnwrapped publicTvl
     reveals revealsFulfilled revealsPending revealsViaCre revealsViaRelayer revealCallbacksFailed revealAvgLatencySeconds revealAvgLatencyBlocks
     fheOps fheSelects fheInputsVerified fheTrivialEncrypts lastBlock lastUpdatedAt
@@ -23,6 +24,7 @@ const DASHBOARD = `query Dashboard {
     id kind amountHandle ref blockNumber timestamp txHash from_id to_id token { symbol } payrollRun { count viaOperator }
   }
   PayLink(order_by: { createdAt: desc }, limit: 8) { id linkId state sender_id claimedBy_id createdAt claimSeconds amountHandle }
+  PayRequest(order_by: [{ createdAt: desc }, { requestId: desc }], limit: 8) { id requestId payee_id payer_id ref expiry createdAt payAttempts lastPaidAt cancelled dueHandle }
   Reveal(order_by: { requestedBlock: desc }, limit: 8) { id requestId app handlesCount status path latencySeconds latencyBlocks callbackOk requestedAt }
   Unwrap(order_by: { requestedBlock: desc }, limit: 5) { id account_id settled amount settleSeconds burnedHandle token { symbol decimals } }
   FheOpStat(order_by: { count: desc }) { name count scalarCount }

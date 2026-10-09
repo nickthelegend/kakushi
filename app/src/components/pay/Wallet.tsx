@@ -104,6 +104,8 @@ const KIND: Record<Activity["kind"], string> = {
   "link-claimed": "Pay link claimed",
   "payroll-out": "Payroll paid",
   "payroll-in": "Salary",
+  "request-in": "Request payment",
+  "request-out": "Request payment",
 };
 
 export function ActivityCard({ env, wallet, revealed, setRevealed, refreshKey, title = "Activity" }: { env: PayEnv; wallet: PayWallet; revealed: Record<string, bigint>; setRevealed: (r: Record<string, bigint>) => void; refreshKey: number; title?: string }) {
@@ -145,7 +147,7 @@ export function ActivityCard({ env, wallet, revealed, setRevealed, refreshKey, t
           {items.slice(0, 30).map((i) => {
             const v = i.publicAmount ?? revealed[i.handle.toLowerCase()];
             const ref = i.ref ? bytes32ToRef(i.ref) : "";
-            const incoming = i.kind === "received" || i.kind === "payroll-in" || i.kind === "link-claimed" || i.kind === "wrapped";
+            const incoming = i.kind === "received" || i.kind === "payroll-in" || i.kind === "link-claimed" || i.kind === "wrapped" || i.kind === "request-in";
             return (
               <li key={`${i.tx}-${i.logIndex}`} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-0.5 py-2.5 text-sm">
                 <span>

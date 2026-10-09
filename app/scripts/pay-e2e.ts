@@ -3,7 +3,7 @@
 // Drives exactly what the pages do (same contract calls, same /api/payroll/run, /api/sponsor and
 // /api/faucet routes), with LOCAL ANVIL ONLY dev keys and fresh random accounts. It never touches
 // Monad testnet. Prints a PASS/FAIL table and the settlement ladder of each payment.
-import { createPublicClient, createWalletClient, defineChain, encodeFunctionData, http, parseEventLogs, parseSignature, stringToHex, type Hex } from "viem";
+import { BaseError, ContractFunctionRevertedError, createPublicClient, createWalletClient, defineChain, encodeFunctionData, http, parseEventLogs, parseSignature, stringToHex, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -192,8 +192,72 @@ await check("Cash out (unwrap via KMS callback)", async () => {
   return { pass: after - before === 400_000_000n && left[h.toLowerCase()] === 600_000_000n, detail: `E1 received ${fmt(after - before)} real AUSD ${Date.now() - t} ms after the request; private balance left ${fmt(left[h.toLowerCase()]!)}` };
 });
 
+// 7. payment request: carol asks bob for 75 (encrypted for carol); bob reveals it, pays; carol sees 0 owed
+const reqExpiry = async () => (await pub.getBlock()).timestamp + 86400n; // chain time: the fork can run ahead
+async function request(payee: PrivateKeyAccount, payer: Hex, amount: bigint, label: string) {
+  const enc = await fhish.encrypt("euint64", amount, TOKEN, payee.address); // bound to the payee: the tx sender
+  const rc = await send(payee, TOKEN, payAbi, "requestPayment", [payer, enc.handle, enc.proof, await reqExpiry(), stringToHex(label, { size: 32 })]);
+  return parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "PaymentRequested" })[0]!.args.id;
+}
+const dueOf = async (id: bigint) => (await pub.readContract({ address: TOKEN, abi: payAbi, functionName: "requestDue", args: [id] })) as Hex;
+/** the custom error a call would revert with (what the app's explain() maps to friendly text) */
+async function revertName(acct: PrivateKeyAccount, functionName: string, args: readonly unknown[]) {
+  try {
+    await pub.estimateContractGas({ address: TOKEN, abi: payAbi, functionName, args, account: acct.address } as never);
+    return "no revert";
+  } catch (e) {
+    const rev = (e as BaseError).walk?.((x) => x instanceof ContractFunctionRevertedError) as ContractFunctionRevertedError | null;
+    return rev?.data?.errorName ?? (e as Error).message.split("\n")[0]!;
+  }
+}
+await check("Payment request → payer pays → owed 0", async () => {
+  const id = await request(CAROL, BOB.address, 75_000_000n, "rent e2e");
+  const due0 = await dueOf(id);
+  const bobSees = (await decryptAs(BOB, [due0]))[due0.toLowerCase()];
+  let peek = "allowed";
+  await decryptAs(ALICE, [due0]).catch(() => (peek = "refused"));
+  const notPayer = await revertName(CAROL, "payRequest", [id]);
+  const notPayee = await revertName(BOB, "cancelRequest", [id]);
+  const selfAsk = await revertName(CAROL, "requestPayment", [CAROL.address, due0, "0x", await reqExpiry(), stringToHex("x", { size: 32 })]);
+  const [hc0, hb0] = [await handleOf(CAROL.address), await handleOf(BOB.address)];
+  const carolBefore = (await decryptAs(CAROL, [hc0]))[hc0.toLowerCase()]!;
+  const bobBefore = (await decryptAs(BOB, [hb0]))[hb0.toLowerCase()]!;
+  await send(BOB, TOKEN, payAbi, "payRequest", [id]);
+  const due1 = await dueOf(id);
+  const carolOwed = (await decryptAs(CAROL, [due1]))[due1.toLowerCase()];
+  const [hc1, hb1] = [await handleOf(CAROL.address), await handleOf(BOB.address)];
+  const carolAfter = (await decryptAs(CAROL, [hc1]))[hc1.toLowerCase()]!;
+  const bobAfter = (await decryptAs(BOB, [hb1]))[hb1.toLowerCase()]!;
+  const [, , , cancelled] = (await pub.readContract({ address: TOKEN, abi: payAbi, functionName: "payRequests", args: [id] })) as readonly [Hex, Hex, bigint, boolean, Hex];
+  return {
+    pass: bobSees === 75_000_000n && peek === "refused" && carolOwed === 0n && carolAfter - carolBefore === 75_000_000n && bobBefore - bobAfter === 75_000_000n && !cancelled && notPayer === "NotPayer" && notPayee === "NotPayee" && selfAsk === "BadPayer",
+    detail: `#${id}: bob reveals ${fmt(bobSees!)}, pays; carol now sees owed ${fmt(carolOwed!)} and +${fmt(carolAfter - carolBefore)} (bob −${fmt(bobBefore - bobAfter)}); alice peeking: ${peek}; carol paying ${notPayer}, bob cancelling ${notPayee}, self-request ${selfAsk}`,
+  };
+});
+
+// 8. an unaffordable request: E2 (750 private) is asked for 1,000,000; paying moves nothing and it stays owed
+await check("Unaffordable request stays owed, then cancelled", async () => {
+  const f = await post("/api/faucet", { address: E2.address, mon: true });
+  if (f.status !== 200) throw new Error(`faucet ${f.status}`);
+  const id = await request(CAROL, E2.address, 1_000_000_000_000n, "too much e2e");
+  const he0 = await handleOf(E2.address);
+  const e2Before = (await decryptAs(E2, [he0]))[he0.toLowerCase()]!;
+  await send(E2, TOKEN, payAbi, "payRequest", [id]); // succeeds: an encrypted 0 moves
+  const due = await dueOf(id);
+  const owedE2 = (await decryptAs(E2, [due]))[due.toLowerCase()];
+  const owedCarol = (await decryptAs(CAROL, [due]))[due.toLowerCase()];
+  const he1 = await handleOf(E2.address);
+  const e2After = (await decryptAs(E2, [he1]))[he1.toLowerCase()]!;
+  await send(CAROL, TOKEN, payAbi, "cancelRequest", [id]);
+  const afterCancel = await revertName(E2, "payRequest", [id]);
+  return {
+    pass: owedE2 === 1_000_000_000_000n && owedCarol === owedE2 && e2After === e2Before && afterCancel === "RequestNotOpen",
+    detail: `#${id}: E2 holds ${fmt(e2Before)}, pays a 1,000,000 request: still owed ${fmt(owedE2!)} (carol sees the same), E2's balance unchanged ${fmt(e2After)}; after carol cancels, paying reverts ${afterCancel}`,
+  };
+});
+
 console.log(`\nFhish Pay web flows on the local fork (${Math.round((Date.now() - t0) / 1000)} s)`);
-for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.name.padEnd(42)} ${r.detail}`);
+for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.name.padEnd(48)} ${r.detail}`);
 console.log("\nsettlement ladders (local fork: latest / safe / finalized tags, 1 s blocks; ms after the receipt):");
 for (const l of ladders) console.log(`  ${l}`);
 process.exit(results.every((r) => r.pass) ? 0 : 1);

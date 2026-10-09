@@ -14,6 +14,7 @@ interface Snapshot {
   Token: { id: string; symbol: string; underlyingSymbol: string; decimals: number; publicTvl: string; publicWrapped: string; publicUnwrapped: string; payments: number }[];
   Payment: { id: string; kind: Kind; amountHandle: string; ref: string | null; blockNumber: number; timestamp: number; txHash: string; from_id: string; to_id: string; token: { symbol: string }; payrollRun: { count: number; viaOperator: boolean } | null }[];
   PayLink: { id: string; linkId: string; state: "OPEN" | "CLAIMED" | "REFUNDED"; sender_id: string; claimedBy_id: string | null; createdAt: number; claimSeconds: number | null; amountHandle: string }[];
+  PayRequest?: { id: string; requestId: string; payee_id: string; payer_id: string; ref: string; expiry: number; createdAt: number; payAttempts: number; lastPaidAt: number | null; cancelled: boolean; dueHandle: string }[];
   Reveal: { id: string; requestId: string; app: string; handlesCount: number; status: "PENDING" | "FULFILLED"; path: "RELAYER" | "CRE" | null; latencySeconds: number | null; latencyBlocks: number | null; callbackOk: boolean | null; requestedAt: number }[];
   FheOpStat: { name: string; count: number; scalarCount: number }[];
 }
@@ -274,6 +275,58 @@ export default function ActivityPage() {
                     </li>
                   ))}
                   {s.PayLink.length === 0 && <li className="text-sm text-silt">No links yet.</li>}
+                </ul>
+              </section>
+
+              <section aria-labelledby="requests">
+                <h2 id="requests" className="font-display text-xl font-bold">
+                  Payment requests
+                </h2>
+                <p className="mt-1 text-xs text-silt">Encrypted invoices. The amount is a handle, and so is whether it is still owed: only the two parties can tell a paid request from a short one.</p>
+                <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  {(
+                    [
+                      ["requests", "requests"],
+                      ["requestPayAttempts", "pay attempts"],
+                      ["requestsCancelled", "cancelled"],
+                    ] as const
+                  ).map(([k, l]) => (
+                    <div key={k} className="flex flex-col-reverse rounded-xl border border-kelp px-2 py-2.5">
+                      <dt className="text-[11px] text-silt">{l}</dt>
+                      <dd className="font-display text-xl font-bold tabular text-foam">{fmt(n(g[k]))}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <ul className="mt-3 space-y-2">
+                  {(s.PayRequest ?? []).map((r) => {
+                    const t = refText(r.ref);
+                    const expired = !r.cancelled && r.expiry < chainNow;
+                    return (
+                      <li key={r.id} className="rounded-xl border border-kelp px-3 py-2.5 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-1.5 text-tide">
+                            #{r.requestId}
+                            <span className="truncate font-mono text-xs text-silt">
+                              {short(r.payee_id)} <span aria-label="asks">→</span> {short(r.payer_id)}
+                            </span>
+                          </span>
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${r.cancelled ? "bg-trench-2 text-tide" : expired ? "bg-trench-2 text-silt" : "bg-biolum-soft text-biolum"}`}
+                            title={r.cancelled || expired ? undefined : "Open: whether anything is still owed is encrypted"}
+                          >
+                            {r.cancelled ? "cancelled" : expired ? "expired" : "open"}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-silt">
+                          <Sealed handle={r.dueHandle} />
+                          {t && <span className="max-w-[120px] truncate text-tide" title={t}>“{t}”</span>}
+                          <span className="tabular">{r.payAttempts} pay attempt{r.payAttempts === 1 ? "" : "s"}</span>
+                          <span className="tabular">{ago(r.createdAt, chainNow)}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                  {!(s.PayRequest ?? []).length && <li className="text-sm text-silt">No requests yet.</li>}
                 </ul>
               </section>
 

@@ -80,6 +80,10 @@ type Account {
   linksCreated: Int!
   linksClaimed: Int!
   linksRefunded: Int!
+  "payment requests this account sent (as payee)"
+  requestsSent: Int!
+  "payment requests addressed to this account (as payer)"
+  requestsReceived: Int!
   wraps: Int!
   unwrapsRequested: Int!
   publicWrapped: BigInt!
@@ -93,6 +97,8 @@ type Account {
   linksSent: [PayLink!]! @derivedFrom(field: "sender")
   payrolls: [PayrollRun!]! @derivedFrom(field: "employer")
   unwraps: [Unwrap!]! @derivedFrom(field: "account")
+  requestsOut: [PayRequest!]! @derivedFrom(field: "payee")
+  requestsIn: [PayRequest!]! @derivedFrom(field: "payer")
 }
 
 """
@@ -147,6 +153,39 @@ type PayLink {
   claimPayment: Payment
   refundedAt: Int
   refundedBlock: Int
+}
+
+"""
+A payment request (an encrypted invoice): the payee asks one payer for an encrypted amount.
+Never an amount, and not even whether it is settled: payRequest() moves the outstanding amount, or 0
+when the payer's encrypted balance is short, and what is still owed is itself a ciphertext that only
+the payee and the payer can open. So payAttempts counts calls, not settlements.
+"""
+type PayRequest {
+  "chainId-token-requestId"
+  id: ID!
+  chainId: Int!
+  token: Token!
+  requestId: BigInt!
+  "who asked (msg.sender of requestPayment)"
+  payee: Account!
+  "who is asked to pay"
+  payer: Account!
+  "public reference (bytes32)"
+  ref: String!
+  "unix seconds; payRequest reverts after it"
+  expiry: Int!
+  "euint64 handle of the amount originally asked (ciphertext). payRequest re-encrypts what is owed under a new handle (read requestDue on-chain)."
+  dueHandle: String!
+  createdBlock: Int!
+  createdAt: Int! @index
+  createdTx: String!
+  "payRequest calls (each may have moved the amount owed, or 0)"
+  payAttempts: Int!
+  lastPaidAt: Int
+  lastPaidBlock: Int
+  cancelled: Boolean! @index
+  cancelledAt: Int
 }
 
 """
@@ -302,6 +341,9 @@ type DailyStats {
   linksCreated: Int!
   linksClaimed: Int!
   linksRefunded: Int!
+  requests: Int!
+  requestPayAttempts: Int!
+  requestsCancelled: Int!
   wraps: Int!
   publicWrapped: BigInt!
   publicUnwrapped: BigInt!
@@ -332,6 +374,11 @@ type GlobalStats {
   linkClaimSecondsTotal: Int!
   linkClaimAvgSeconds: Float
   linkClaimMedianSeconds: Float
+  "payment requests created (PaymentRequested)"
+  requests: Int!
+  "payRequest calls (RequestPaid). Not settlements: whether a request is paid is encrypted."
+  requestPayAttempts: Int!
+  requestsCancelled: Int!
   wraps: Int!
   unwrapsRequested: Int!
   unwrapsSettled: Int!

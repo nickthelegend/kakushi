@@ -13,6 +13,7 @@ export const lc = (a: string) => a.toLowerCase();
 export const tokenId = (chainId: number, token: string) => `${chainId}-${lc(token)}`;
 export const paymentId = (chainId: number, token: string, handle: string) => `${chainId}-${lc(token)}-${lc(handle)}`;
 export const linkId = (chainId: number, token: string, id: bigint) => `${chainId}-${lc(token)}-${id}`;
+export const requestId = (chainId: number, token: string, id: bigint) => `${chainId}-${lc(token)}-${id}`;
 export const revealId = (chainId: number, requestId: bigint) => `${chainId}-${requestId}`;
 export const unwrapId = (chainId: number, token: string, requestId: bigint) => `${chainId}-${lc(token)}-${requestId}`;
 export const txId = (chainId: number, tx: string) => `${chainId}-${lc(tx)}`;
@@ -37,6 +38,9 @@ export function emptyGlobal(): Mut<GlobalStats> {
     linkClaimSecondsTotal: 0,
     linkClaimAvgSeconds: undefined,
     linkClaimMedianSeconds: undefined,
+    requests: 0,
+    requestPayAttempts: 0,
+    requestsCancelled: 0,
     wraps: 0,
     unwrapsRequested: 0,
     unwrapsSettled: 0,
@@ -92,6 +96,9 @@ export async function loadDaily(ctx: Ctx, chainId: number, ts: number): Promise<
     linksCreated: 0,
     linksClaimed: 0,
     linksRefunded: 0,
+    requests: 0,
+    requestPayAttempts: 0,
+    requestsCancelled: 0,
     wraps: 0,
     publicWrapped: 0n,
     publicUnwrapped: 0n,
@@ -119,6 +126,8 @@ export async function loadAccount(ctx: Ctx, g: Mut<GlobalStats>, address: string
     linksCreated: 0,
     linksClaimed: 0,
     linksRefunded: 0,
+    requestsSent: 0,
+    requestsReceived: 0,
     wraps: 0,
     unwrapsRequested: 0,
     publicWrapped: 0n,

@@ -1,7 +1,7 @@
 # Fhish Pay indexer (Envio HyperIndex)
 
 Real-time analytics for **Fhish Pay**, confidential stablecoin payments on Monad: every payment, salary,
-pay link and cash-out, plus the KMS reveal pipeline and the FHE coprocessor behind them. It powers the
+pay link, payment request and cash-out, plus the KMS reveal pipeline and the FHE coprocessor behind them. It powers the
 app's live **Activity** page (`/activity`) through `app/src/app/api/indexer/route.ts`.
 
 **Privacy rule: no decrypted amount is ever indexed.** A Fhish Pay amount is an FHE ciphertext handle
@@ -16,7 +16,7 @@ HyperIndex **3.14** (V3 config: `chains:`, `indexer.onEvent`, handler-level `fie
 
 | Contract | Events |
 | --- | --- |
-| `FhishPayToken` (cAUSD over Agora AUSD; cUSDC too: any number of Fhish Pay tokens, one address list) | `Wrapped`, `UnwrapRequested`, `Unwrapped`, `ConfidentialTransfer`, `Paid`, `LinkCreated`, `LinkClaimed`, `LinkRefunded`, `PayrollRun`, `OperatorSet` |
+| `FhishPayToken` (cAUSD over Agora AUSD; cUSDC too: any number of Fhish Pay tokens, one address list) | `Wrapped`, `UnwrapRequested`, `Unwrapped`, `ConfidentialTransfer`, `Paid`, `LinkCreated`, `LinkClaimed`, `LinkRefunded`, `PayrollRun`, `OperatorSet`, `PaymentRequested`, `RequestPaid`, `RequestCancelled` |
 | `FhishDecryptionOracle` | `DecryptionRequested`, `DecryptionFulfilled` |
 | `FhishExecutor` (symbolic FHE executor, every Fhish app) | `FheOp`, `FheSelect`, `TrivialEncrypt`, `VerifyInput`, `Rand` |
 
@@ -26,15 +26,16 @@ HyperIndex **3.14** (V3 config: `chains:`, `indexer.onEvent`, handler-level `fie
 | --- | --- |
 | `Payment` | one confidential value movement: `kind` PAY / PAYROLL / LINK_CLAIM / TRANSFER, from, to, **`amountHandle`** (ciphertext), ref, payroll run, link, block, time, tx |
 | `PayLink` | state machine OPEN -> CLAIMED / REFUNDED, escrowed handle, claimer, `claimSeconds`, `claimBlocks`, the claim payment |
+| `PayRequest` | a payment request (encrypted invoice): payee, payer, ref, expiry, `dueHandle` (the asked amount as a ciphertext, never a number), `payAttempts`, `lastPaidAt`, `cancelled`. There is deliberately no "paid" flag: `payRequest()` moves the outstanding amount or 0 (balance short), and only payee and payer can tell which by decrypting `requestDue` |
 | `PayrollRun` | employer, operator (`viaOperator` when a server wallet ran it), count, ref, its salaries (`@derivedFrom`) |
 | `Reveal` | each KMS public-decryption round trip: requester app, handle count, `latencySeconds`, `latencyBlocks`, delivery `path` (Fhish relayer vs Chainlink CRE forwarder), `callbackOk` |
 | `Unwrap` | cash-out lifecycle: burned handle, linked `Reveal`, settled public amount, `settleSeconds` |
-| `Account` | payments sent / received, distinct counterparties, payrolls run / operated / received, links created / claimed / refunded, public wrapped / unwrapped, first / last seen; `sent`, `received`, `linksSent`, `payrolls`, `unwraps` relations |
+| `Account` | payments sent / received, distinct counterparties, payrolls run / operated / received, links created / claimed / refunded, requests sent / received, public wrapped / unwrapped, first / last seen; `sent`, `received`, `linksSent`, `payrolls`, `unwraps`, `requestsOut`, `requestsIn` relations |
 | `PayPair` | who-pays-whom graph: one row per ordered pair with a count (never an amount) |
 | `Token` | per Fhish Pay token: public wrapped, unwrapped, **TVL**, wraps, cash-outs, payments |
 | `FheOpStat`, `FheCallerStat` | coprocessor load per opcode and per calling contract (which apps use FHE, how much) |
-| `DailyStats` | UTC-day rollup: payments by kind, unique payers, payroll runs, links, wraps, reveals + latency, FHE ops |
-| `GlobalStats` | protocol totals: payments by kind, unique payers, accounts, payroll runs (+ via operator), links created / claimed / open, **avg and median claim time**, public TVL, reveals (pending, per path, failed callbacks, **avg latency in seconds and blocks**), FHE ops |
+| `DailyStats` | UTC-day rollup: payments by kind, unique payers, payroll runs, links, requests (created / pay attempts / cancelled), wraps, reveals + latency, FHE ops |
+| `GlobalStats` | protocol totals: payments by kind, unique payers, accounts, payroll runs (+ via operator), links created / claimed / open, **avg and median claim time**, requests / request pay attempts / requests cancelled, public TVL, reveals (pending, per path, failed callbacks, **avg latency in seconds and blocks**), FHE ops |
 
 Internal (`@internal`, not in the API): `TxScratch` (links a `ConfidentialTransfer` to the higher-level
 event that follows it in the same tx), `PayerDay` (daily unique payers), `ClaimSamples` (sorted claim
@@ -47,6 +48,7 @@ Every balance move emits `ConfidentialTransfer(from, to, handle)`. The handlers 
 - mint (`from = 0`) and burn (`to = 0`) are wraps / unwraps, not payments (the burn handle is kept for the `Unwrap`);
 - moves into the token are pay-link escrow; moves out of it are a link claim or refund, resolved by the `LinkClaimed` / `LinkRefunded` that follows (the claim becomes a `LINK_CLAIM` payment from the link's sender);
 - anything else is a `TRANSFER`, upgraded to `PAY` when a `Paid` with the same handle follows, and to `PAYROLL` when the tx ends with a matching `PayrollRun`. Counters move with the reclassification, so each payment is counted exactly once.
+- `payRequest()` moves value with a plain `ConfidentialTransfer` (payer -> payee), so it stays a `TRANSFER` payment; the `RequestPaid` that follows only bumps the request's `payAttempts` (it may have moved an encrypted 0).
 
 ## Files
 
@@ -73,7 +75,7 @@ gateway `:8890`, deployments in `contracts/deployments/local*.json`).
 cd indexer
 pnpm install                 # standalone workspace (indexer/pnpm-workspace.yaml)
 pnpm configure               # FHISH_NETWORK=local by default -> config.yaml (RPC source, start = deployBlock)
-pnpm test                    # 5 handler tests
+pnpm test                    # 7 handler tests
 ```
 
 Start the indexer, either way:
@@ -106,7 +108,7 @@ HASURA_GRAPHQL_ADMIN_SECRET=testing ENVIO_INDEXER_PORT=9908 pnpm start      # ad
 Then:
 
 ```bash
-pnpm activity                # wrap, pay, transfer, 3 pay links (2 claimed), operator payroll, unwrap + reveal
+pnpm activity                # wrap, pay, transfer, 3 pay links (2 claimed), operator payroll, 3 payment requests (paid / short / cancelled), unwrap + reveal
 node scripts/verify.ts       # chain vs indexer, every aggregate; exits 1 on any mismatch
 open http://localhost:8892/console      # Hasura (admin secret: testing)
 ```

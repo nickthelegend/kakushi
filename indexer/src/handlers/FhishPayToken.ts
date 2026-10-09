@@ -1,7 +1,8 @@
-// Fhish Pay token events: wrap / unwrap (public amounts), confidential payments, pay links, payroll.
+// Fhish Pay token events: wrap / unwrap (public amounts), confidential payments, pay links, payment
+// requests, payroll.
 // Amounts of payments are euint64 ciphertext handles; they are stored as handles, never as numbers.
-import { indexer, type PayLink, type PayrollRun, type Unwrap } from "envio";
-import { ZERO, lc, linkId, paymentId, revealId, unwrapId } from "../lib/common";
+import { indexer, type PayLink, type PayRequest, type PayrollRun, type Unwrap } from "envio";
+import { ZERO, lc, linkId, paymentId, requestId, revealId, unwrapId } from "../lib/common";
 import { Unit } from "../lib/unit";
 
 const TX = { transaction: ["hash"], block: ["timestamp"] } as const;
@@ -166,6 +167,67 @@ indexer.onEvent({ contract: "FhishPayToken", event: "LinkRefunded", fields: TX }
   const s = await u.txScratch();
   s.releaseHandle = undefined;
   s.releaseTo = undefined;
+  u.flush();
+});
+
+// ------------------------------------------------------------------ payment requests (encrypted invoices)
+// The asked amount is a ciphertext, and so is what is still owed: payRequest() moves the outstanding
+// amount or 0 (balance too low), and nobody but the payee and payer learns which. So the indexer counts
+// pay attempts, never settlements. The value move itself is the ConfidentialTransfer in the same tx
+// (indexed as a TRANSFER payment, like any other balance move).
+
+indexer.onEvent({ contract: "FhishPayToken", event: "PaymentRequested", fields: TX }, async ({ event, context }) => {
+  const u = new Unit(context, event.chainId, event.block.number, event.block.timestamp, event.transaction.hash);
+  const token = await u.token(event.srcAddress);
+  const payee = await u.account(event.params.payee);
+  const payer = await u.account(event.params.payer);
+  const req: PayRequest = {
+    id: requestId(event.chainId, event.srcAddress, event.params.id),
+    chainId: event.chainId,
+    token_id: token.id,
+    requestId: event.params.id,
+    payee_id: payee.id,
+    payer_id: payer.id,
+    ref: lc(event.params.ref),
+    expiry: Number(event.params.expiry),
+    dueHandle: lc(event.params.due),
+    createdBlock: event.block.number,
+    createdAt: event.block.timestamp,
+    createdTx: lc(event.transaction.hash),
+    payAttempts: 0,
+    lastPaidAt: undefined,
+    lastPaidBlock: undefined,
+    cancelled: false,
+    cancelledAt: undefined,
+  };
+  context.PayRequest.set(req);
+  payee.requestsSent += 1;
+  payer.requestsReceived += 1;
+  (await u.global()).requests += 1;
+  (await u.day()).requests += 1;
+  u.flush();
+});
+
+indexer.onEvent({ contract: "FhishPayToken", event: "RequestPaid", fields: TX }, async ({ event, context }) => {
+  const u = new Unit(context, event.chainId, event.block.number, event.block.timestamp, event.transaction.hash);
+  (await u.global()).requestPayAttempts += 1;
+  (await u.day()).requestPayAttempts += 1;
+  await u.account(event.params.payer); // lastSeen
+  const req = await context.PayRequest.get(requestId(event.chainId, event.srcAddress, event.params.id));
+  if (req) context.PayRequest.set({ ...req, payAttempts: req.payAttempts + 1, lastPaidAt: event.block.timestamp, lastPaidBlock: event.block.number });
+  else context.log.warn(`RequestPaid for unknown request ${event.params.id} (indexer started after it was created)`);
+  u.flush();
+});
+
+indexer.onEvent({ contract: "FhishPayToken", event: "RequestCancelled", fields: TX }, async ({ event, context }) => {
+  const u = new Unit(context, event.chainId, event.block.number, event.block.timestamp, event.transaction.hash);
+  (await u.global()).requestsCancelled += 1;
+  (await u.day()).requestsCancelled += 1;
+  const req = await context.PayRequest.get(requestId(event.chainId, event.srcAddress, event.params.id));
+  if (req) {
+    await u.account(req.payee_id); // lastSeen
+    context.PayRequest.set({ ...req, cancelled: true, cancelledAt: event.block.timestamp });
+  }
   u.flush();
 });
 
