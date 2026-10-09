@@ -1,0 +1,385 @@
+# Fhish Pay indexer: confidential payments on Monad.
+#
+# PRIVACY RULE: no decrypted amount is ever stored here. Payment amounts are FHE ciphertext handles
+# (euint64), which nobody but the payer, the payee and the KMS can open. The only plaintext amounts
+# are the ones the chain already makes public: what goes into a wrapper (wrap) and what comes out of
+# it (unwrap settlement). Oracle cleartexts, trivial-encrypt constants and scalar FHE operands are
+# deliberately NOT indexed.
+
+enum PaymentKind {
+  "pay(): a confidential payment with a public reference (invoice id, memo hash)"
+  PAY
+  "one salary inside runPayroll / runPayrollFrom"
+  PAYROLL
+  "a pay link claimed by its recipient (escrow released)"
+  LINK_CLAIM
+  "a plain confidentialTransfer / confidentialTransferFrom"
+  TRANSFER
+}
+
+enum LinkState {
+  OPEN
+  CLAIMED
+  REFUNDED
+}
+
+enum RevealStatus {
+  PENDING
+  FULFILLED
+}
+
+"How a decryption result reached the requesting contract"
+enum RevealPath {
+  "fulfill() sent directly by the Fhish relayer"
+  RELAYER
+  "a Chainlink CRE report through the KeystoneForwarder (oracle.onReport)"
+  CRE
+}
+
+"""
+A Fhish Pay token (a confidential wrapper over a public stablecoin, e.g. cAUSD over Agora AUSD).
+"""
+type Token {
+  "chainId-address"
+  id: ID!
+  chainId: Int!
+  address: String!
+  symbol: String!
+  decimals: Int!
+  "the public ERC-20 it wraps"
+  underlying: String!
+  underlyingSymbol: String!
+  "sum of public Wrapped amounts (base units)"
+  publicWrapped: BigInt!
+  "sum of public Unwrapped amounts (base units), revealed by the KMS at settlement"
+  publicUnwrapped: BigInt!
+  "publicWrapped - publicUnwrapped: the underlying held by the wrapper"
+  publicTvl: BigInt!
+  wraps: Int!
+  unwrapsRequested: Int!
+  unwrapsSettled: Int!
+  payments: Int!
+  paymentList: [Payment!]! @derivedFrom(field: "token")
+  links: [PayLink!]! @derivedFrom(field: "token")
+}
+
+"""
+Everyone who paid, got paid, wrapped, unwrapped, ran payroll or claimed a link. Never a balance.
+"""
+type Account {
+  "the address"
+  id: ID!
+  paymentsSent: Int!
+  paymentsReceived: Int!
+  "distinct accounts this account has paid"
+  counterparties: Int!
+  payrollsRun: Int!
+  "payroll runs submitted as an operator on someone else's behalf"
+  payrollsOperated: Int!
+  payrollPaymentsReceived: Int!
+  linksCreated: Int!
+  linksClaimed: Int!
+  linksRefunded: Int!
+  wraps: Int!
+  unwrapsRequested: Int!
+  publicWrapped: BigInt!
+  publicUnwrapped: BigInt!
+  firstSeenBlock: Int!
+  firstSeenAt: Int!
+  lastSeenBlock: Int!
+  lastSeenAt: Int!
+  sent: [Payment!]! @derivedFrom(field: "from")
+  received: [Payment!]! @derivedFrom(field: "to")
+  linksSent: [PayLink!]! @derivedFrom(field: "sender")
+  payrolls: [PayrollRun!]! @derivedFrom(field: "employer")
+  unwraps: [Unwrap!]! @derivedFrom(field: "account")
+}
+
+"""
+One confidential value movement between two people. The amount is a ciphertext handle.
+"""
+type Payment {
+  "chainId-token-amountHandle (every transfer yields a fresh handle)"
+  id: ID!
+  chainId: Int!
+  token: Token!
+  kind: PaymentKind!
+  from: Account!
+  to: Account!
+  "euint64 ciphertext handle: the amount, encrypted. Not a number."
+  amountHandle: String!
+  "public reference for PAY / PAYROLL (bytes32)"
+  ref: String
+  payrollRun: PayrollRun
+  link: PayLink
+  blockNumber: Int! @index
+  timestamp: Int! @index
+  txHash: String! @index
+  logIndex: Int!
+}
+
+"""
+A pay link: an encrypted amount escrowed behind a one-time claim key. OPEN -> CLAIMED | REFUNDED.
+"""
+type PayLink {
+  "chainId-token-linkId"
+  id: ID!
+  chainId: Int!
+  token: Token!
+  linkId: BigInt!
+  sender: Account!
+  "address of the one-time key that travels inside the link"
+  claimKey: String!
+  "unix seconds"
+  expiry: Int!
+  "escrowed amount, encrypted"
+  amountHandle: String!
+  state: LinkState! @index
+  createdBlock: Int!
+  createdAt: Int!
+  createdTx: String!
+  claimedBy: Account
+  claimedBlock: Int
+  claimedAt: Int
+  "seconds from creation to claim"
+  claimSeconds: Int
+  claimBlocks: Int
+  claimPayment: Payment
+  refundedAt: Int
+  refundedBlock: Int
+}
+
+"""
+One runPayroll / runPayrollFrom transaction: many encrypted salaries in a single tx.
+"""
+type PayrollRun {
+  "chainId-txHash-logIndex"
+  id: ID!
+  chainId: Int!
+  token: Token!
+  employer: Account!
+  "msg.sender: the employer itself or an operator (e.g. a policy-limited server wallet)"
+  operator: Account!
+  viaOperator: Boolean!
+  count: Int!
+  ref: String!
+  blockNumber: Int!
+  timestamp: Int!
+  txHash: String!
+  payments: [Payment!]! @derivedFrom(field: "payrollRun")
+}
+
+"""
+An operator approval (setOperator), e.g. the employer allowing a payroll server wallet.
+"""
+type OperatorGrant {
+  "chainId-token-holder-operator"
+  id: ID!
+  token: Token!
+  holder: Account!
+  operator: Account!
+  "unix seconds; 0 revokes"
+  until: Int!
+  updatedAt: Int!
+}
+
+"""
+A public-decryption request to the Fhish oracle and its delivery. Only metadata and latency;
+the cleartexts of DecryptionFulfilled are deliberately not indexed.
+"""
+type Reveal {
+  "chainId-requestId"
+  id: ID!
+  chainId: Int!
+  requestId: BigInt!
+  "the contract that asked for the reveal"
+  requester: String!
+  "token symbol when the requester is an indexed Fhish Pay token, else 'app'"
+  app: String!
+  handlesCount: Int!
+  callback: String!
+  status: RevealStatus! @index
+  requestedBlock: Int!
+  requestedAt: Int!
+  requestTx: String!
+  fulfilledBlock: Int
+  fulfilledAt: Int
+  fulfillTx: String
+  latencyBlocks: Int
+  latencySeconds: Int
+  "msg.sender of fulfill (relayer) or the CRE forwarder"
+  via: String
+  path: RevealPath
+  callbackOk: Boolean
+}
+
+"""
+A cash-out: an encrypted amount burned, revealed by the KMS, and paid out in the public token.
+"""
+type Unwrap {
+  "chainId-token-requestId"
+  id: ID!
+  chainId: Int!
+  token: Token!
+  account: Account!
+  requestId: BigInt!
+  reveal: Reveal!
+  "the burned amount, still encrypted when requested"
+  burnedHandle: String
+  requestedBlock: Int!
+  requestedAt: Int!
+  requestTx: String!
+  settled: Boolean!
+  "public once settled: the unwrap amount is revealed on purpose (it leaves the private pool)"
+  amount: BigInt
+  settledBlock: Int
+  settledAt: Int
+  settleSeconds: Int
+}
+
+"""
+Who pays whom: one row per ordered pair, with how often (never how much).
+"""
+type PayPair {
+  "chainId-from-to"
+  id: ID!
+  from: Account!
+  to: Account!
+  count: Int!
+  firstAt: Int!
+  lastAt: Int!
+}
+
+"""
+Per-opcode counters for the symbolic FHE executor (every Fhish app on the chain).
+"""
+type FheOpStat {
+  "chainId-name"
+  id: ID!
+  chainId: Int!
+  name: String!
+  "FheOp opcode; null for select / trivialEncrypt / verifyInput / rand"
+  opcode: Int
+  count: Int!
+  "operations with a plaintext right-hand side"
+  scalarCount: Int!
+  lastBlock: Int!
+}
+
+"""
+FHE work per calling contract: which apps use the coprocessor and how much.
+"""
+type FheCallerStat {
+  "chainId-callerAddress"
+  id: ID!
+  chainId: Int!
+  caller: String!
+  "token symbol when the caller is an indexed Fhish Pay token, else 'app'"
+  label: String!
+  ops: Int!
+  selects: Int!
+  inputsVerified: Int!
+  lastBlock: Int!
+}
+
+"""
+Daily rollup (UTC day).
+"""
+type DailyStats {
+  "chainId-dayIndex"
+  id: ID!
+  chainId: Int!
+  "YYYY-MM-DD (UTC)"
+  date: String!
+  dayStart: Int! @index
+  payments: Int!
+  pays: Int!
+  payrollPayments: Int!
+  linkClaims: Int!
+  transfers: Int!
+  uniquePayers: Int!
+  payrollRuns: Int!
+  linksCreated: Int!
+  linksClaimed: Int!
+  linksRefunded: Int!
+  wraps: Int!
+  publicWrapped: BigInt!
+  publicUnwrapped: BigInt!
+  reveals: Int!
+  revealsFulfilled: Int!
+  revealLatencySecondsTotal: Int!
+  fheOps: Int!
+}
+
+"""
+Protocol-wide aggregates (id 'global').
+"""
+type GlobalStats {
+  id: ID!
+  payments: Int!
+  pays: Int!
+  payrollPayments: Int!
+  linkClaims: Int!
+  transfers: Int!
+  uniquePayers: Int!
+  accounts: Int!
+  payrollRuns: Int!
+  payrollRunsViaOperator: Int!
+  linksCreated: Int!
+  linksClaimed: Int!
+  linksRefunded: Int!
+  linksOpen: Int!
+  linkClaimSecondsTotal: Int!
+  linkClaimAvgSeconds: Float
+  linkClaimMedianSeconds: Float
+  wraps: Int!
+  unwrapsRequested: Int!
+  unwrapsSettled: Int!
+  publicWrapped: BigInt!
+  publicUnwrapped: BigInt!
+  "underlying held by all Fhish Pay wrappers: wrapped - unwrapped"
+  publicTvl: BigInt!
+  reveals: Int!
+  revealsFulfilled: Int!
+  revealsPending: Int!
+  revealsViaCre: Int!
+  revealsViaRelayer: Int!
+  revealCallbacksFailed: Int!
+  revealLatencySecondsTotal: Int!
+  revealLatencyBlocksTotal: Int!
+  revealAvgLatencySeconds: Float
+  revealAvgLatencyBlocks: Float
+  fheOps: Int!
+  fheSelects: Int!
+  fheInputsVerified: Int!
+  fheTrivialEncrypts: Int!
+  fheRands: Int!
+  lastBlock: Int!
+  lastUpdatedAt: Int!
+}
+
+# ------------------------------------------------------------------ handler bookkeeping (not in the API)
+
+"Per-transaction scratch: links a ConfidentialTransfer to the higher-level event that follows it"
+type TxScratch @internal {
+  "chainId-txHash"
+  id: ID!
+  "last escrow release (token -> claimer) handle and recipient"
+  releaseHandle: String
+  releaseTo: String
+  "last burn handle (unwrap)"
+  burnHandle: String
+  "payments created by Paid in this tx, waiting for a PayrollRun"
+  paidIds: [String!]!
+}
+
+"marker: account X paid at least once on day D"
+type PayerDay @internal {
+  id: ID!
+}
+
+"all link claim durations, sorted, for the median"
+type ClaimSamples @internal {
+  id: ID!
+  samples: [Int!]!
+}
