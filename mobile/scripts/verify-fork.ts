@@ -12,7 +12,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import type { WebAuthnClient } from "@category-labs/mera";
 import { NETWORKS } from "../src/lib/config.ts";
 import { devWallet, createPasskeyWallet, passkeyWallet } from "../src/lib/wallet.ts";
-import { linkUrls, parseLink } from "../src/lib/links.ts";
+import { linkUrls, parseLink, parseRequestLink, requestUrls } from "../src/lib/links.ts";
 import { MonadHeads } from "../src/lib/monad.ts";
 import * as P from "../src/lib/pay.ts";
 
@@ -133,12 +133,82 @@ const U = await P.unwrap(ctx, bob.account, P.parseAusd("2"), (s) => stages.push(
 const ausdB1 = (await P.balances(ctx, bob.address)).ausd;
 check("cash out: unwrap + oracle callback", ausdB1 - ausdB0 === 2_000_000n && U.paid === 2_000_000n, `request #${U.requestId} · callback after ${U.callbackMs} ms · bob AUSD +${P.formatAusd(ausdB1 - ausdB0)} · stages ${stages.join(">")}`);
 
+// payment requests ("Request money"): alice (payee) asks bob (payer) for an encrypted amount
+const reveal1 = async (who: typeof alice) => P.reveal(ctx, who.account, (await P.balances(ctx, who.address)).handle);
+const reqAmt = P.parseAusd("9.75");
+const RQ = await P.requestPayment(ctx, alice.account, bob.address, reqAmt, "rent october", 86400);
+const rql = await P.settle(ctx, RQ.tx, null, () => {});
+const rUrls = requestUrls("local", RQ.id, RQ.tx.blockNumber, "rent october");
+const rApp = parseRequestLink(rUrls.app);
+const rWeb = parseRequestLink(rUrls.web);
+const rInfo = await P.requestInfo(ctx, RQ.id);
+const rRef = await P.requestRef(ctx, rApp!.id, rApp!.block!);
+const reqCalldata = (await ctx.pub.getTransaction({ hash: RQ.tx.hash })).input.toLowerCase();
+check(
+  "request: alice asks bob (encrypted) + link round trip",
+  rApp?.id === RQ.id && rWeb?.id === RQ.id && rWeb?.memo === "rent october" && rInfo.status === "Open" && rInfo.payee === alice.address && rInfo.payer === bob.address && !!rRef && P.memoMatches(rApp!.memo!, rRef) && !reqCalldata.includes(reqAmt.toString(16).padStart(16, "0")),
+  `request #${RQ.id} · ${rUrls.app} · memo hash matches on-chain ref · amount absent from calldata · ${ladder(rql)}`,
+);
+const bobSees = await P.reveal(ctx, bob.account, rInfo.due);
+const aliceSees = await P.reveal(ctx, alice.account, rInfo.due);
+check("request: payer reveals the requested amount", bobSees === reqAmt && aliceSees === reqAmt, `bob (payer) revealed ${P.formatAusd(bobSees)}, alice (payee) ${P.formatAusd(aliceSees)}`);
+
+const aliceR0 = await reveal1(alice);
+const bobR0 = await reveal1(bob);
+const PR = await P.payRequest(ctx, bob.account, RQ.id);
+const prl = await P.settle(ctx, PR.tx, null, () => {});
+const owedAfter = await P.reveal(ctx, alice.account, (await P.requestInfo(ctx, RQ.id)).due);
+const aliceR1 = await reveal1(alice);
+const bobR1 = await reveal1(bob);
+check(
+  "request: bob pays -> alice reveals owed 0, balance +amount",
+  owedAfter === 0n && aliceR1 - aliceR0 === reqAmt && bobR0 - bobR1 === reqAmt,
+  `owed ${P.formatAusd(owedAfter)} · alice +${P.formatAusd(aliceR1 - aliceR0)} · bob -${P.formatAusd(bobR0 - bobR1)} · ${ladder(prl)}`,
+);
+
+// a request bob cannot afford: paying moves nothing and it stays owed
+const tooMuch = bobR1 + P.parseAusd("1000");
+const BIG = await P.requestPayment(ctx, alice.account, bob.address, tooMuch, "too much", 86400);
+await P.payRequest(ctx, bob.account, BIG.id);
+const bigInfo = await P.requestInfo(ctx, BIG.id);
+const bigOwed = await P.reveal(ctx, bob.account, bigInfo.due);
+const bobR2 = await reveal1(bob);
+const aliceR2 = await reveal1(alice);
+check(
+  "request: unaffordable request stays owed",
+  bigOwed === tooMuch && bobR2 === bobR1 && aliceR2 === aliceR1 && bigInfo.status === "Open",
+  `request #${BIG.id} for ${P.formatAusd(tooMuch)} (bob holds ${P.formatAusd(bobR1)}): paid tx ok, nothing moved, still owed ${P.formatAusd(bigOwed)}, still open`,
+);
+
+// guards: cancel is payee-only; a cancelled request cannot be paid; only the payer pays; no self-requests
+const CX = await P.requestPayment(ctx, alice.account, bob.address, P.parseAusd("1"), "", 86400);
+let notPayee = "";
+await P.cancelRequest(ctx, bob.account, CX.id).catch((e) => (notPayee = P.describeError(e)));
+let notPayer = "";
+await P.payRequest(ctx, alice.account, CX.id).catch((e) => (notPayer = P.describeError(e)));
+await P.cancelRequest(ctx, alice.account, CX.id);
+let afterCancel = "";
+await P.payRequest(ctx, bob.account, CX.id).catch((e) => (afterCancel = P.describeError(e)));
+const cxInfo = await P.requestInfo(ctx, CX.id);
+check("request: cancelled by payee, then pay refused", cxInfo.status === "Cancelled" && /no longer open/.test(afterCancel), `#${CX.id} ${cxInfo.status.toLowerCase()} · bob pays: "${afterCancel}"`);
+let selfReq = "";
+await P.requestPayment(ctx, alice.account, alice.address, P.parseAusd("1"), "", 86400).catch((e) => (selfReq = P.describeError(e)));
+check("request: role guards", /Only the person who sent/.test(notPayee) && /Only the person this request was sent to/.test(notPayer) && /payer other than yourself/.test(selfReq), `bob cancels: "${notPayee}" · alice pays own: "${notPayer}" · self-request: "${selfReq}"`);
+
 // activity from events
 const act = await P.activity(ctx, alice.address);
 const kinds = new Set(act.map((a) => a.kind));
 check("activity from on-chain events", kinds.has("wrapped") && kinds.has("sent") && kinds.has("link-created") && kinds.has("link-claimed"), `${act.length} items for alice: ${[...kinds].join(", ")}`);
 const actB = await P.activity(ctx, bob.address);
 check("activity (receiver side)", actB.some((a) => a.kind === "received") && actB.some((a) => a.kind === "cashed-out"), `${actB.length} items for bob`);
+const reqKinds = (xs: P.ActivityItem[], id: bigint) => xs.filter((a) => a.requestId === id).map((a) => `${a.kind}${a.role ? `(${a.role})` : ""}`);
+const aliceReq = [...reqKinds(act, RQ.id), ...reqKinds(act, CX.id)];
+const bobReq = [...reqKinds(actB, RQ.id), ...reqKinds(actB, BIG.id)];
+check(
+  "activity: requests on both sides",
+  ["request-sent(payee)", "request-paid(payee)", "request-cancelled(payee)"].every((k) => aliceReq.includes(k)) && ["request-received(payer)", "request-paid(payer)"].every((k) => bobReq.includes(k)),
+  `alice: ${[...new Set(aliceReq)].join(", ")} · bob: ${[...new Set(bobReq)].join(", ")}`,
+);
 
 // live Monad heartbeat (read-only WebSocket to Monad testnet)
 const heads = new MonadHeads("wss://testnet-rpc.monad.xyz");

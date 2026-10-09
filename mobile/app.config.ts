@@ -19,7 +19,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: appId,
     supportsTablet: false,
-    // webcredentials: passkeys for rpId. applinks: https://<rpId>/claim#... pay links open the app.
+    // webcredentials: passkeys for rpId. applinks: https://<rpId>/claim#... pay links and /request?... request links open the app.
     associatedDomains: [`webcredentials:${rpId}`, `applinks:${rpId}`],
     infoPlist: { NSAppTransportSecurity: { NSAllowsLocalNetworking: true } },
   },
@@ -29,7 +29,10 @@ const config: ExpoConfig = {
       {
         action: "VIEW",
         autoVerify: true,
-        data: [{ scheme: "https", host: rpId, pathPrefix: "/claim" }],
+        data: [
+          { scheme: "https", host: rpId, pathPrefix: "/claim" },
+          { scheme: "https", host: rpId, pathPrefix: "/request" },
+        ],
         category: ["BROWSABLE", "DEFAULT"],
       },
     ],

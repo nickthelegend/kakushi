@@ -15,12 +15,13 @@ import { AppProvider, useApp } from "./src/state/AppState";
 import { EncryptorHost } from "./src/fhe/EncryptorHost";
 import { NavCtx, TabBar, TABS, type Route } from "./src/ui/Screen";
 import { C } from "./src/ui/theme";
-import { parseLink } from "./src/lib/links";
+import { parseLink, parseRequestLink } from "./src/lib/links";
 import { Onboarding } from "./src/screens/Onboarding";
 import { Home } from "./src/screens/Home";
 import { Send } from "./src/screens/Send";
 import { Fund } from "./src/screens/Fund";
 import { Claim } from "./src/screens/Claim";
+import { Request, RequestDetail } from "./src/screens/Request";
 import { CashOut } from "./src/screens/CashOut";
 import { Activity } from "./src/screens/Activity";
 import { Account } from "./src/screens/Account";
@@ -59,8 +60,15 @@ function Root() {
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
 
   // pay links: fhishpay://claim?...#k=... and https://<host>/claim?...#k=... (never logged)
+  // request links: fhishpay://request?net=...&id=...  and https://<host>/request?... (no secret)
   useEffect(() => {
     const handle = (url: string | null) => {
+      const r = url ? parseRequestLink(url) : null;
+      if (r) {
+        setStack([{ name: "home" }, { name: "request-detail", link: r }]);
+        if (Platform.OS === "web" && typeof history !== "undefined") history.replaceState(null, "", "/");
+        return;
+      }
       const l = url ? parseLink(url) : null;
       if (!l) return;
       app.setPendingClaim(l);
@@ -82,7 +90,7 @@ function Root() {
   const nav = useMemo(() => ({ route, go, back }), [route, go, back]);
 
   if (!app.loaded) return <ActivityIndicator style={{ flex: 1 }} color={C.biolum} />;
-  if (!app.stored && route.name !== "claim") return <Onboarding />;
+  if (!app.stored && route.name !== "claim" && route.name !== "request-detail") return <Onboarding />;
   if (!app.ctx && app.stored) {
     // account exists but this network has no deployment: let them switch back
     return (
@@ -106,6 +114,12 @@ function Root() {
       break;
     case "claim":
       screen = <Claim link={route.link} />;
+      break;
+    case "request":
+      screen = <Request />;
+      break;
+    case "request-detail":
+      screen = <RequestDetail link={route.link} />;
       break;
     case "cashout":
       screen = <CashOut />;

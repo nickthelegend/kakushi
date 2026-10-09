@@ -6,7 +6,7 @@ import { C, F, S } from "./theme";
 import { T, Row, Chip } from "./kit";
 import { useApp } from "../state/AppState";
 import { shortHex, describeError } from "../lib/pay";
-import type { ParsedLink } from "../lib/links";
+import type { ParsedLink, ParsedRequestLink } from "../lib/links";
 
 export type Route =
   | { name: "home" }
@@ -15,7 +15,9 @@ export type Route =
   | { name: "account" }
   | { name: "fund" }
   | { name: "cashout" }
-  | { name: "claim"; link?: ParsedLink };
+  | { name: "claim"; link?: ParsedLink }
+  | { name: "request" }
+  | { name: "request-detail"; link: ParsedRequestLink };
 export const TABS = ["home", "send", "activity", "account"] as const;
 
 export const NavCtx = createContext<{ route: Route; go(r: Route): void; back(): void }>({ route: { name: "home" }, go() {}, back() {} });

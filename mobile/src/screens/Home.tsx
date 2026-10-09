@@ -84,6 +84,10 @@ export function Home() {
       <Gap h={S.lg} />
       <View style={h.grid}>
         <Action label="Send" glyph="↗" onPress={() => nav.go({ name: "send" })} primary />
+        <Action label="Request" glyph="↤" onPress={() => nav.go({ name: "request" })} />
+      </View>
+      <Gap h={S.sm} />
+      <View style={h.grid}>
         <Action label="Add AUSD" glyph="+" onPress={() => nav.go({ name: "fund" })} />
         <Action label="Claim link" glyph="⌁" onPress={() => nav.go({ name: "claim" } as Route)} />
         <Action label="Cash out" glyph="↙" onPress={() => nav.go({ name: "cashout" })} />

@@ -45,6 +45,14 @@ export const payAbi = parseAbi([
   "event Wrapped(address indexed account, uint256 amount)",
   "event UnwrapRequested(uint256 indexed requestId, address indexed account)",
   "event Unwrapped(uint256 indexed requestId, address indexed account, uint256 amount)",
+  "function requestPayment(address payer, bytes32 encryptedAmount, bytes inputProof, uint64 expiry, bytes32 ref) returns (uint256)",
+  "function payRequest(uint256 id) returns (bytes32)",
+  "function cancelRequest(uint256 id)",
+  "function requestDue(uint256 id) view returns (bytes32)",
+  "function payRequests(uint256) view returns (address payee, address payer, uint64 expiry, bool cancelled, bytes32 due)",
+  "event PaymentRequested(uint256 indexed id, address indexed payee, address indexed payer, uint64 expiry, bytes32 ref, bytes32 due)",
+  "event RequestPaid(uint256 indexed id, address indexed payer, bytes32 sent)",
+  "event RequestCancelled(uint256 indexed id)",
   "error AmountTooLarge()",
   "error BadClaimSignature()",
   "error FhishNotConfigured()",
@@ -55,6 +63,10 @@ export const payAbi = parseAbi([
   "error TransferFailed()",
   "error UnauthorizedHandle(bytes32 handle)",
   "error UnauthorizedSpender(address holder, address spender)",
+  "error RequestNotOpen(uint256 id)",
+  "error BadPayer()",
+  "error NotPayer()",
+  "error NotPayee()",
 ]);
 
 export const erc20Abi = parseAbi([
@@ -137,6 +149,10 @@ export function describeError(e: unknown): string {
         BadClaimSignature: "The link key does not match this link.",
         NotSender: "Only the sender can refund this link.",
         TransferFailed: "AUSD transfer failed.",
+        RequestNotOpen: "This request is no longer open: it was cancelled, it expired, or it does not exist.",
+        BadPayer: "Ask someone else: a request needs a payer other than yourself.",
+        NotPayer: "Only the person this request was sent to can pay it.",
+        NotPayee: "Only the person who sent this request can cancel it.",
       };
       return map[n] ?? `Reverted: ${n}${rev.data.args?.length ? `(${rev.data.args.join(", ")})` : ""}`;
     }
@@ -335,6 +351,73 @@ export async function refundLink(ctx: PayContext, account: LocalAccount, id: big
   return sendTx(ctx, account, ctx.causd, payAbi, "refundLink", [id]);
 }
 
+// ------------------------------------------------------------------ payment requests
+
+/**
+ * Ask `payer` for an encrypted amount ("Request money"). The amount is encrypted on this device for
+ * the payee (the tx sender); only the payee and the payer can ever decrypt it, or what is still owed.
+ * The reference goes on-chain only as keccak256(memo); the readable memo travels in the request link.
+ */
+export async function requestPayment(ctx: PayContext, account: LocalAccount, payer: Hex, amount: bigint, memo = "", ttlSec = 7 * 86400, hooks: Hooks = {}) {
+  const expiry = BigInt(Math.floor(Date.now() / 1000) + ttlSec);
+  const ref = refFromMemo(memo);
+  const enc = await ctx.fhish.encrypt("euint64", amount, ctx.causd, account.address);
+  hooks.encrypted?.(enc);
+  const tx = await sendTx(ctx, account, ctx.causd, payAbi, "requestPayment", [payer, enc.handle, enc.proof, expiry, ref]);
+  const ev = parseEventLogs({ abi: payAbi, logs: tx.logs, eventName: "PaymentRequested" })[0];
+  if (!ev) throw new Error("PaymentRequested not found in receipt");
+  return { tx, enc, id: ev.args.id, expiry, ref, due: ev.args.due as Hex };
+}
+
+/**
+ * Pay request `id` (payer only, from the payer's own account: it pays the gas). Moves what is still
+ * owed, or nothing if the encrypted balance is short; then the request stays open with the same
+ * amount owed. Which of the two happened is private: decrypt requestDue afterwards to learn it.
+ */
+export async function payRequest(ctx: PayContext, account: LocalAccount, id: bigint) {
+  const tx = await sendTx(ctx, account, ctx.causd, payAbi, "payRequest", [id]);
+  const ev = parseEventLogs({ abi: payAbi, logs: tx.logs, eventName: "RequestPaid" })[0];
+  return { tx, sent: ((ev?.args as { sent?: Hex } | undefined)?.sent ?? null) as Hex | null };
+}
+
+/** Withdraw request `id` (payee only). */
+export async function cancelRequest(ctx: PayContext, account: LocalAccount, id: bigint) {
+  return sendTx(ctx, account, ctx.causd, payAbi, "cancelRequest", [id]);
+}
+
+export type RequestStatus = "None" | "Open" | "Cancelled" | "Expired";
+
+export interface RequestInfo {
+  id: bigint;
+  payee: Hex;
+  payer: Hex;
+  expiry: bigint;
+  cancelled: boolean;
+  /** encrypted amount still owed (decryptable by payee and payer) */
+  due: Hex;
+  status: RequestStatus;
+}
+
+/** On-chain state of request `id`. Whether it was paid is private: reveal `due` to learn it. */
+export async function requestInfo(ctx: PayContext, id: bigint): Promise<RequestInfo> {
+  const [r, block] = await Promise.all([
+    ctx.pub.readContract({ address: ctx.causd, abi: payAbi, functionName: "payRequests", args: [id] }) as Promise<readonly [Hex, Hex, bigint, boolean, Hex]>,
+    ctx.pub.getBlock({ blockTag: "latest" }),
+  ]);
+  const [payee, payer, expiry, cancelled, due] = r;
+  const status: RequestStatus = /^0x0{40}$/i.test(payee) ? "None" : cancelled ? "Cancelled" : block.timestamp > expiry ? "Expired" : "Open";
+  return { id, payee, payer, expiry, cancelled, due, status };
+}
+
+/** The request's on-chain reference (keccak256 of the memo), read from its PaymentRequested event at `block`. */
+export async function requestRef(ctx: PayContext, id: bigint, block: bigint): Promise<Hex | null> {
+  const logs = await ctx.pub.getLogs({ address: ctx.causd, event: ev("PaymentRequested"), args: { id } as never, fromBlock: block, toBlock: block } as never);
+  return ((logs[0] as any)?.args?.ref as Hex | undefined) ?? null;
+}
+
+/** Does `memo` (from a request link) match the reference committed on-chain? */
+export const memoMatches = (memo: string, ref: Hex) => refFromMemo(memo).toLowerCase() === ref.toLowerCase();
+
 // ------------------------------------------------------------------ cash out
 
 /**
@@ -367,7 +450,20 @@ export async function unwrap(ctx: PayContext, account: LocalAccount, amount: big
 
 // ------------------------------------------------------------------ activity
 
-export type ActivityKind = "sent" | "received" | "link-created" | "link-claimed" | "link-received" | "link-refunded" | "wrapped" | "cashout-requested" | "cashed-out";
+export type ActivityKind =
+  | "sent"
+  | "received"
+  | "link-created"
+  | "link-claimed"
+  | "link-received"
+  | "link-refunded"
+  | "wrapped"
+  | "cashout-requested"
+  | "cashed-out"
+  | "request-sent"
+  | "request-received"
+  | "request-paid"
+  | "request-cancelled";
 
 export interface ActivityItem {
   kind: ActivityKind;
@@ -381,39 +477,60 @@ export interface ActivityItem {
   amount?: bigint;
   linkId?: bigint;
   ref?: Hex;
-}
-
-async function chunkedLogs(ctx: PayContext, params: Record<string, unknown>, from: bigint, to: bigint) {
-  const out: any[] = [];
-  for (let a = from; a <= to; a += ctx.net.logRange) {
-    const b = a + ctx.net.logRange - 1n < to ? a + ctx.net.logRange - 1n : to;
-    out.push(...(await ctx.pub.getLogs({ address: ctx.causd, ...params, fromBlock: a, toBlock: b } as never)));
-  }
-  return out;
+  /** payment requests: the request id and which side of it `who` is on */
+  requestId?: bigint;
+  role?: "payee" | "payer";
 }
 
 const ev = (name: string) => payAbi.find((x) => x.type === "event" && x.name === name) as never;
+
+/**
+ * Every cAUSD event in [from, to], paged at the network's eth_getLogs range (100 blocks on Monad) with
+ * a few pages in flight. One pass over the contract's logs, filtered in memory, instead of one paged
+ * scan per event and argument: activity loads in seconds instead of minutes.
+ */
+async function contractLogs(ctx: PayContext, from: bigint, to: bigint, concurrency = 6) {
+  const pages: [bigint, bigint][] = [];
+  for (let a = from; a <= to; a += ctx.net.logRange) pages.push([a, a + ctx.net.logRange - 1n < to ? a + ctx.net.logRange - 1n : to]);
+  const out: unknown[][] = new Array(pages.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, pages.length) }, async () => {
+      while (next < pages.length) {
+        const k = next++;
+        out[k] = await ctx.pub.getLogs({ address: ctx.causd, fromBlock: pages[k]![0], toBlock: pages[k]![1] });
+      }
+    }),
+  );
+  return parseEventLogs({ abi: payAbi, logs: out.flat() as never }) as any[];
+}
 
 /** Sends and receives from on-chain events. Amounts stay ciphertext handles. */
 export async function activity(ctx: PayContext, who: Hex, lookback = 200_000n): Promise<ActivityItem[]> {
   const latest = await ctx.pub.getBlockNumber();
   const deploy = BigInt(ctx.net.deployment!.deployBlock);
   const from = latest - lookback > deploy ? latest - lookback : deploy;
-  const q = (event: string, args: Record<string, unknown>) => chunkedLogs(ctx, { event: ev(event), args }, from, latest);
-  const [sent, recv, created, claimedTo, wrapped, unwrapReq, unwrapped] = await Promise.all([
-    q("Paid", { from: who }),
-    q("Paid", { to: who }),
-    q("LinkCreated", { sender: who }),
-    q("LinkClaimed", { to: who }),
-    q("Wrapped", { account: who }),
-    q("UnwrapRequested", { account: who }),
-    q("Unwrapped", { account: who }),
-  ]);
-  // claims / refunds of links I created
-  const myIds = created.map((l) => l.args.id as bigint);
-  const [claimedMine, refunded] = myIds.length
-    ? await Promise.all([q("LinkClaimed", { id: myIds }), q("LinkRefunded", { id: myIds })])
-    : [[], []];
+  const logs = await contractLogs(ctx, from, latest);
+  const me = who.toLowerCase();
+  const is = (a: unknown) => typeof a === "string" && a.toLowerCase() === me;
+  const q = (event: string, match: (args: any) => boolean) => logs.filter((l) => l.eventName === event && match(l.args));
+  const sent = q("Paid", (a) => is(a.from));
+  const recv = q("Paid", (a) => is(a.to));
+  const created = q("LinkCreated", (a) => is(a.sender));
+  const claimedTo = q("LinkClaimed", (a) => is(a.to));
+  const wrapped = q("Wrapped", (a) => is(a.account));
+  const unwrapReq = q("UnwrapRequested", (a) => is(a.account));
+  const unwrapped = q("Unwrapped", (a) => is(a.account));
+  const asked = q("PaymentRequested", (a) => is(a.payee));
+  const askedOf = q("PaymentRequested", (a) => is(a.payer));
+  // claims / refunds of links I created; payments / cancellations of requests I am part of
+  const myIds = new Set(created.map((l) => l.args.id as bigint));
+  const role = new Map<bigint, "payee" | "payer">([...asked.map((l) => [l.args.id as bigint, "payee"] as const), ...askedOf.map((l) => [l.args.id as bigint, "payer"] as const)]);
+  const claimedMine = q("LinkClaimed", (a) => myIds.has(a.id));
+  const refunded = q("LinkRefunded", (a) => myIds.has(a.id));
+  const reqPaid = q("RequestPaid", (a) => role.has(a.id));
+  const reqCancelled = q("RequestCancelled", (a) => role.has(a.id));
+  const counterparty = new Map<bigint, Hex>([...asked.map((l) => [l.args.id as bigint, l.args.payer as Hex] as const), ...askedOf.map((l) => [l.args.id as bigint, l.args.payee as Hex] as const)]);
   const base = (l: any) => ({ block: l.blockNumber as bigint, logIndex: Number(l.logIndex), tx: l.transactionHash as Hex });
   const items: ActivityItem[] = [
     ...sent.map((l) => ({ ...base(l), kind: "sent" as const, counterparty: l.args.to, handle: l.args.amount, ref: l.args.ref })),
@@ -425,6 +542,10 @@ export async function activity(ctx: PayContext, who: Hex, lookback = 200_000n): 
     ...wrapped.map((l) => ({ ...base(l), kind: "wrapped" as const, amount: l.args.amount })),
     ...unwrapReq.map((l) => ({ ...base(l), kind: "cashout-requested" as const })),
     ...unwrapped.map((l) => ({ ...base(l), kind: "cashed-out" as const, amount: l.args.amount })),
+    ...asked.map((l) => ({ ...base(l), kind: "request-sent" as const, requestId: l.args.id, role: "payee" as const, counterparty: l.args.payer, handle: l.args.due, ref: l.args.ref })),
+    ...askedOf.map((l) => ({ ...base(l), kind: "request-received" as const, requestId: l.args.id, role: "payer" as const, counterparty: l.args.payee, handle: l.args.due, ref: l.args.ref })),
+    ...reqPaid.map((l) => ({ ...base(l), kind: "request-paid" as const, requestId: l.args.id, role: role.get(l.args.id), counterparty: counterparty.get(l.args.id), handle: l.args.sent })),
+    ...reqCancelled.map((l) => ({ ...base(l), kind: "request-cancelled" as const, requestId: l.args.id, role: role.get(l.args.id), counterparty: counterparty.get(l.args.id) })),
   ];
   return items.sort((a, b) => (a.block === b.block ? b.logIndex - a.logIndex : a.block > b.block ? -1 : 1));
 }
