@@ -71,4 +71,4 @@ jobs:
         working-directory: packages/cre
         run: |
           export PATH="$HOME/.cre/bin:$PWD/node_modules/.bin:$PATH"
-          for w in attest-monad attest-sepolia attest-base source-native; do cre workflow build ./workflows/$w; done
+          for w in attest-monad attest-sepolia attest-base attest-arbitrum attest-op source-native; do cre workflow build ./workflows/$w; done

@@ -25,6 +25,17 @@ describe("transfers", () => {
   it("raw native path sends value straight to the Maker", () => {
     expect(buildTransferTx(k, { srcChainId: CHAINS.sepolia.chainId, token: zeroAddress, maker, gross: 10n ** 16n + 9003n, sender: user })).toEqual({ to: maker, value: 10n ** 16n + 9003n });
   });
+  it("Arbitrum Sepolia and OP Sepolia are addressed by 9004 and 9005", () => {
+    expect(buildGross(10n ** 16n, CHAINS.arbitrumSepolia.chainId)).toEqual({ gross: 10n ** 16n + 9004n, code: 9004 });
+    expect(buildGross(5_000_000n, CHAINS.opSepolia.chainId)).toEqual({ gross: 5_009_005n, code: 9005 });
+    const tx = buildTransferTx(k, { srcChainId: CHAINS.opSepolia.chainId, token: CHAINS.opSepolia.usdc.address, maker, gross: 5_009_001n, sender: user });
+    expect(tx.to).toBe(CHAINS.opSepolia.usdc.address);
+  });
+  it("names an undeployed spoke instead of reading undefined routers", () => {
+    const partial = new Kakushi({ network: "local", deployments: { network: "local", hub: {} as never, chains: { 10143: dep(10143), 11155111: dep(11155111) } } as never });
+    expect(partial.chains.map((c) => c.key)).toEqual(["monadTestnet", "sepolia"]);
+    expect(() => buildTransferTx(partial, { srcChainId: CHAINS.arbitrumSepolia.chainId, token: zeroAddress, maker, gross: 10n ** 16n + 9001n, sender: user, recipient: "0x00000000000000000000000000000000000000cc" })).toThrow("not deployed on Arbitrum Sepolia");
+  });
   it("custom recipient goes through SourceRouter with an approval", () => {
     const other = "0x00000000000000000000000000000000000000cc" as const;
     const tx = buildTransferTx(k, { srcChainId: CHAINS.sepolia.chainId, token: CHAINS.sepolia.usdc.address, maker, gross: 5_009_001n, sender: user, recipient: other });

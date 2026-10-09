@@ -1,16 +1,36 @@
-// pnpm deploy:local — deploy Kakushi to the three local forks and seed a two-Maker market.
-// Requires `pnpm stack:up`. Everything here is real contracts and real signed transactions
-// on local forks; balances are funded with anvil cheat RPCs (labelled "local fork funding").
+// pnpm deploy:local — deploy Kakushi to the local forks and seed a two-Maker market.
+// Requires `pnpm stack:up` (three forks; the optional Arbitrum Sepolia / OP Sepolia forks of
+// KAKUSHI_EXTRA_FORKS are used when they answer on their ports). Everything here is real
+// contracts and real signed transactions on local forks; balances are funded with anvil
+// cheat RPCs (labelled "local fork funding").
 import { execFileSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { type Hex, parseUnits, maxUint256, zeroAddress, type PublicClient } from "viem";
-import { CHAINS, type ChainKey, ETH_USD_FEED_MONAD_TESTNET, PROTOCOL } from "@kakushi/config";
-import { loadDeployments } from "@kakushi/config/deployments";
+import { CHAINS, type ChainKey, ETH_USD_FEED_MONAD_TESTNET, OPTIONAL_LOCAL_CHAINS, PROTOCOL } from "@kakushi/config";
+import { DEPLOYMENTS_DIR, loadDeployments } from "@kakushi/config/deployments";
 import { publicClient, walletClient, ebcAbi, mdcAbi, erc20Abi } from "@kakushi/sdk";
 import { LOCAL_KEYS, localAccount } from "./local-accounts.ts";
 
 process.env.KAKUSHI_NETWORK = "local";
 const keys: ChainKey[] = ["monadTestnet", "sepolia", "baseSepolia"];
+
+/** An optional fork is used only if it answers on its port with its own chain id. */
+async function forkUp(k: ChainKey): Promise<boolean> {
+  try {
+    const r = await fetch(`http://127.0.0.1:${CHAINS[k].localPort}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }),
+      signal: AbortSignal.timeout(2000),
+    });
+    const j = (await r.json()) as { result?: string };
+    if (j.result !== undefined && Number(j.result) !== CHAINS[k].chainId) throw new Error(`port ${CHAINS[k].localPort} serves chain ${Number(j.result)}, not ${CHAINS[k].name}`);
+    return j.result !== undefined;
+  } catch (e) {
+    if ((e as Error).message.startsWith("port ")) throw e;
+    return false;
+  }
+}
 
 function forge(role: "hub" | "spoke", port: number) {
   execFileSync(
@@ -39,6 +59,12 @@ async function rpc(c: PublicClient, method: string, params: unknown[]) {
 
 async function main() {
   const t0 = Date.now();
+  for (const k of OPTIONAL_LOCAL_CHAINS) {
+    if (await forkUp(k)) keys.push(k);
+    // no fork this run: drop any record from an earlier one so nothing watches a dead port
+    else rmSync(`${DEPLOYMENTS_DIR}/local/${CHAINS[k].chainId}.json`, { force: true });
+  }
+  console.log(`local forks: ${keys.map((k) => CHAINS[k].shortName).join(", ")}`);
   for (const k of keys) forge(k === "monadTestnet" ? "hub" : "spoke", CHAINS[k].localPort);
   const d = loadDeployments("local");
   console.log(`deployed: hub ${d.hub.disputeModule} (DisputeModule), PayoutRouter ${d.hub.payoutRouter} on all chains`);
@@ -103,14 +129,24 @@ async function main() {
     await reg("monadTestnet", "sepolia", false, u(m.usdcWithholding[1]!), m.bps, u("1"), u("500"));
     await reg("sepolia", "baseSepolia", true, e("0.0001"), m.ethBps, e("0.001"), e("0.05"));
     await reg("baseSepolia", "sepolia", true, e("0.0001"), m.ethBps, e("0.001"), e("0.05"));
-    // refund fees (what a Maker keeps when returning an unroutable payment)
-    for (const [k, tok, fee] of [
+    const refundFees: [ChainKey, Hex, bigint][] = [
       ["sepolia", CHAINS.sepolia.usdc.address, u("0.03")],
       ["monadTestnet", CHAINS.monadTestnet.usdc.address, u("0.03")],
       ["sepolia", zeroAddress, e("0.00005")],
       ["baseSepolia", zeroAddress, e("0.00005")],
-    ] as const) {
-      await send(() => w.writeContract({ chain: w.chain, account: acct, address: d.hub.ebc, abi: ebcAbi, functionName: "setRefundFee", args: [BigInt(CHAINS[k as ChainKey].chainId), tok as Hex, fee as bigint] }));
+    ];
+    // optional spokes: USDC to and from Monad, native ETH to and from Sepolia (12 pairs with
+    // both; EBC caps a Maker at 16, so the rest of the ETH mesh is left to the Maker console)
+    for (const k of keys.filter((x) => OPTIONAL_LOCAL_CHAINS.includes(x))) {
+      await reg(k, "monadTestnet", false, u(m.usdcWithholding[0]!), m.bps, u("1"), u("500"));
+      await reg("monadTestnet", k, false, u(m.usdcWithholding[1]!), m.bps, u("1"), u("500"));
+      await reg("sepolia", k, true, e("0.0001"), m.ethBps, e("0.001"), e("0.05"));
+      await reg(k, "sepolia", true, e("0.0001"), m.ethBps, e("0.001"), e("0.05"));
+      refundFees.push([k, CHAINS[k].usdc.address, u("0.03")], [k, zeroAddress, e("0.00005")]);
+    }
+    // refund fees (what a Maker keeps when returning an unroutable payment)
+    for (const [k, tok, fee] of refundFees) {
+      await send(() => w.writeContract({ chain: w.chain, account: acct, address: d.hub.ebc, abi: ebcAbi, functionName: "setRefundFee", args: [BigInt(CHAINS[k].chainId), tok, fee] }));
     }
     // Makers approve the PayoutRouter for USDC on every chain (fills pull from the Maker's EOA)
     for (const k of keys) {
@@ -118,7 +154,7 @@ async function main() {
       const h = await wk.writeContract({ chain: wk.chain, account: acct, address: CHAINS[k].usdc.address, abi: erc20Abi, functionName: "approve", args: [d.chains[CHAINS[k].chainId]!.payoutRouter, maxUint256] });
       await publicClient(k, "local").waitForTransactionReceipt({ hash: h });
     }
-    console.log(`${m.name} ${acct.address}: 2000 USDC margin, 4 pairs`);
+    console.log(`${m.name} ${acct.address}: 2000 USDC margin, ${4 + 4 * (keys.length - 3)} pairs`);
   }
 
   // app/runtime config for the local network

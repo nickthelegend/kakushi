@@ -22,6 +22,7 @@
 - **Where:**
   - USDC moves Sepolia ↔ Monad testnet (both directions).
   - Native ETH moves Sepolia ↔ Base Sepolia.
+  - Added 2026-10-09: Arbitrum Sepolia and OP Sepolia spokes. USDC moves between each of them and Monad (both directions), and native ETH moves between any two of the four ETH spokes.
   - Every dispute settles on the **Monad testnet hub** (~600 ms finality).
 - **Status today:** the repo is **empty**; every task is `[NOT STARTED]`. Completion is 0%.
 - **Deadline:** **Tue 2026-10-13 23:59 ET** (2026-10-14 03:59 UTC). The internal submit target is **2026-10-13 20:00 ET**. There are about 5.5 working days, solo, with Claude agents in parallel.
@@ -126,14 +127,14 @@ Out of scope for the hackathon. See POST-MVP in §6.
 | D1 | Identity | Kakushi = the NEXUS spec, renamed. No privacy feature. |
 | D2 | Event | Monad Metropolis, **T4**, spare teammate account |
 | D3 | Capacity | Solo + Claude Max. **No feature cuts.** Core, UI and bounties run in parallel. |
-| D4 | Chains | Monad testnet **10143** (hub) · Ethereum Sepolia **11155111** · Base Sepolia **84532** |
-| D5 | Routes | USDC Sepolia⇄Monad (both ways). Native ETH Sepolia⇄Base Sepolia, arbitrated on the Monad hub with USDC margin priced by Chainlink ETH/USD. |
+| D4 | Chains | Monad testnet **10143** (hub) · Ethereum Sepolia **11155111** · Base Sepolia **84532** · Arbitrum Sepolia **421614** · OP Sepolia **11155420** (the last two added 2026-10-09) |
+| D5 | Routes | USDC Sepolia/Arbitrum Sepolia/OP Sepolia⇄Monad (both ways). Native ETH between the ETH spokes (Sepolia, Base Sepolia, Arbitrum Sepolia, OP Sepolia), arbitrated on the Monad hub with USDC margin priced by Chainlink ETH/USD. EBC caps a Maker at 16 pairs, so one Maker serves a subset of the 12 ETH lanes. |
 | D6 | Payment encoding | User leg = **raw transfer to the Maker EOA**, code in the last 4 digits (native, or ERC-20 `transfer`). An optional `SourceRouter` lets the user set a custom recipient. Maker leg = **must** go through `PayoutRouter` (emits `Payout`, one payout per `srcRef`). |
 | D7 | Fees and refunds | The corrected formula in §7.3. Wrong/unknown code, out-of-range amount or inactive pair ⇒ **refund obligation**, enforced like a fill. |
 | D8 | Arbitration | One **Monad hub**: EBC, MDC, DisputeModule, AttestationOracle, verifiers |
 | D9 | Attester | **Chainlink CRE** workflows post sorted Poseidon2 window roots. The demo run is `cre workflow simulate --broadcast`. |
 | D10 | ZK | **Noir + Barretenberg (UltraHonk)**. Two circuits: `PaymentCompliance` and `PayoutInclusion`. |
-| D11 | Assets | Circle test USDC (6 dp) on all 3 chains; native ETH on Sepolia and Base Sepolia |
+| D11 | Assets | Circle test USDC (6 dp) on every chain; native ETH on the four ETH spokes |
 | D12 | Account layer | **Privy**: external wallets plus an embedded wallet; Monad gas sponsorship; the Maker hot wallet as a Privy server wallet whose policy only allows `PayoutRouter` calls |
 | D13 | Bounties | Chainlink CRE, Privy, Envio, Cleanverse. **Not targeted:** Alchemy, Kimi, Qwen, Nansen, Aurora, Dynamic, Mera. |
 | D14 | Disputes | Anyone can open one. A **Watchtower** service auto-disputes. Bond **0.05 MON**, which goes to the Maker if the Maker proves a payout. The challenger is rewarded from the slash. |
@@ -290,7 +291,7 @@ The whole app is responsive at 390 px, keyboard-accessible, and supports light a
 
 ```mermaid
 flowchart LR
-  subgraph SRC[Source chain: Sepolia / Monad / Base Sepolia]
+  subgraph SRC[Source chain: Sepolia / Monad / Base Sepolia / Arbitrum Sepolia / OP Sepolia]
     S[Sender] -- "raw transfer: gross = principal + code(4 digits)" --> MEOA[(Maker EOA)]
     MEOA -. refund if bad code .-> PRs[PayoutRouter.refund]
   end
@@ -368,6 +369,8 @@ deadline   = srcBlockTimestamp + FILL_WINDOW
 | 9001 | Monad testnet | 10143 |
 | 9002 | Sepolia | 11155111 |
 | 9003 | Base Sepolia | 84532 |
+| 9004 | Arbitrum Sepolia | 421614 |
+| 9005 | OP Sepolia | 11155420 |
 | 9101 | Monad testnet, Cleanverse compliant lane (aUSDC) | 10143 |
 
 **Worked example** (fixes the spec's arithmetic): the user wants ~100 USDC on Monad from Sepolia via Maker A (withholding 0.05 USDC, 10 bps).
@@ -438,12 +441,13 @@ For native ETH, an 18 dp example: gross = 0.01 ETH + 9002 wei = 10_000_000_000_0
 **DEMO ASSUMPTIONS** (in circuit comments and the README):
 - Leaves are *normalized* data attested by CRE, not raw receipt-trie (MPT/keccak) proofs.
 - Inclusion is against CRE-posted roots.
-- Sepolia and Base Sepolia attest at 3 confirmations, not finality.
+- Sepolia, Base Sepolia, Arbitrum Sepolia and OP Sepolia attest at 3 confirmations, not finality.
+- One `kakushi-attest-<chain>` run covers at most 100 blocks every 30 s (3.3 blocks/s). Arbitrum Sepolia produces up to ~4 blocks/s, so its attestation coverage can lag under sustained load.
 
 **Tooling:**
 - nargo and bb pinned in `packages/zk/TOOLCHAIN` (install via `noirup` / `bbup`). They are **not installed on this machine yet**.
 - `bb write_solidity_verifier` (UltraHonk, keccak oracle hash) generates the verifiers. Their size is fine under Monad's 128 KB code limit.
-- Sepolia and Base Sepolia never host verifiers.
+- The ETH spokes never host verifiers.
 
 ### 7.6 Envio schema (derived entities)
 - **Raw:** `SourcePayment`, `Payout`, `Refund`, `AttestationWindow`, `Dispute`, `MarginEvent`, `Pair`.
@@ -477,6 +481,9 @@ For native ETH, an 18 dp example: gross = 0.01 ETH + 9002 wei = 10_000_000_000_0
   |---|---|
   | Circle USDC, Sepolia | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
   | Circle USDC, Base Sepolia | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+  | Circle USDC, Arbitrum Sepolia (verified 2026-10-09: Circle docs, `symbol`/`decimals` on chain) | `0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d` |
+  | Circle USDC, OP Sepolia (verified 2026-10-09: Circle docs, `symbol`/`decimals` on chain) | `0x5fd84259d66Cd46123540766Be93DFE6D43130D7` |
+  | CreateX on Arbitrum Sepolia and OP Sepolia (verified 2026-10-09, `eth_getCode`) | same runtime code as on Sepolia |
   | Circle USDC, Monad testnet | `0x534b2f3A21130d7a60830c2Df862319e593943A3` |
   | Chainlink ETH/USD, Monad testnet | fresh (updated about 45 min before the check) |
   | Monad testnet WETH `0x4547…A2D7` | totalSupply 0, so it **can't be used** (the reason for D5) |
@@ -579,7 +586,7 @@ Statuses: `[DONE] [IN PROGRESS] [NOT STARTED] [BLOCKED]`. Owner "A" means an age
   - **Accept:** every transition is tested; bond flows; challenger reward; `Expired`.
 - **T1.6 [NOT STARTED] Invariant and fuzz tests**: see §11.2. Each is a named test (`test_Invariant_…` / `invariant_…`).
 - **T1.7 [NOT STARTED] `Deploy.s.sol`**
-  - Deploys the hub to the Monad fork. Deploys the routers via CreateX to all three forks with the same salt. Writes `deployments/<network>.json`. Registers ident codes 9001/9002/9003/9101.
+  - Deploys the hub to the Monad fork. Deploys the routers via CreateX to all three forks with the same salt. Writes `deployments/<network>.json`. Registers ident codes 9001/9002/9003/9004/9005/9101.
   - **Accept:** idempotent re-run; addresses are identical across chains for the routers.
 
 **Exit criteria:** `forge test` green, coverage ≥ 90% on src, slither run with findings triaged in `docs/SECURITY.md`.
@@ -780,6 +787,8 @@ Statuses: `[DONE] [IN PROGRESS] [NOT STARTED] [BLOCKED]`. Owner "A" means an age
 | anvil Monad fork | 18710 |
 | anvil Sepolia fork | 18711 |
 | anvil Base Sepolia fork | 18712 |
+| anvil Arbitrum Sepolia fork (optional, `KAKUSHI_EXTRA_FORKS`) | 18713 |
+| anvil OP Sepolia fork (optional, `KAKUSHI_EXTRA_FORKS`) | 18714 |
 | app | 3710 |
 | Maker A | 3711 |
 | Maker B | 3712 |
@@ -805,7 +814,7 @@ Rough funding (the final amounts get computed in DEPLOY-LATER after a gas dry-ru
 - **Monitoring:** `/health` on each service; the `/attestations` lag panel; structured JSON logs; the Watchtower alert log.
 
 ### 12.3 Env vars (names only; never commit values)
-- `MONAD_TESTNET_RPC_URL`, `MONAD_TESTNET_WS_URL`, `SEPOLIA_RPC_URL`, `BASE_SEPOLIA_RPC_URL`
+- `MONAD_TESTNET_RPC_URL`, `MONAD_TESTNET_WS_URL`, `SEPOLIA_RPC_URL`, `BASE_SEPOLIA_RPC_URL`, `ARBITRUM_SEPOLIA_RPC_URL`, `OP_SEPOLIA_RPC_URL`
 - `DEPLOYER_PK`, `MAKER_A_PK`, `MAKER_B_PK`, `WATCHTOWER_PK`, `CRE_ETH_PRIVATE_KEY`
 - `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY`, `PRIVY_MAKER_WALLET_ID`
 - `ENVIO_API_TOKEN`, `NEXT_PUBLIC_INDEXER_URL`

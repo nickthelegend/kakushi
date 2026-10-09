@@ -1,7 +1,7 @@
 // The single chain registry. Adding a chain to Kakushi = one entry here + an IChainAdapter
 // instance (packages/adapters). Every other package reads chains from this file.
 
-export type ChainKey = "monadTestnet" | "sepolia" | "baseSepolia";
+export type ChainKey = "monadTestnet" | "sepolia" | "baseSepolia" | "arbitrumSepolia" | "opSepolia";
 export type Network = "local" | "testnet";
 
 export interface ChainConfig {
@@ -25,8 +25,8 @@ export interface ChainConfig {
   finality: "monad" | "confirmations";
   /** blocks a Maker waits before filling (Monad: finalized tag) */
   makerConfirmations: number;
-  /** blocks the attester waits before committing a window. DEMO ASSUMPTION for Sepolia /
-   *  Base Sepolia: 3 confirmations instead of `finalized` (~13 min on Sepolia). */
+  /** blocks the attester waits before committing a window. DEMO ASSUMPTION for the ETH
+   *  spokes: 3 confirmations instead of `finalized` (~13 min on Sepolia, longer on the L2s). */
   attestConfirmations: number;
   /** Chainlink CRE chain selector name */
   creChainName: string;
@@ -103,7 +103,58 @@ export const CHAINS: Record<ChainKey, ChainConfig> = {
     isHub: false,
     envPrefix: "BASE_SEPOLIA",
   },
+  arbitrumSepolia: {
+    key: "arbitrumSepolia",
+    chainId: 421614,
+    name: "Arbitrum Sepolia",
+    shortName: "Arbitrum Sepolia",
+    vmKind: "evm",
+    identCode: 9004,
+    nativeSymbol: "ETH",
+    nativeDecimals: 18,
+    publicRpc: "https://sepolia-rollup.arbitrum.io/rpc",
+    publicWs: "wss://arbitrum-sepolia-rpc.publicnode.com",
+    localPort: 18713,
+    explorer: "https://sepolia.arbiscan.io",
+    // Circle USDC (developers.circle.com/stablecoins/usdc-contract-addresses)
+    usdc: { address: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", decimals: 6 },
+    finality: "confirmations",
+    makerConfirmations: 1,
+    attestConfirmations: 3,
+    creChainName: "ethereum-testnet-sepolia-arbitrum-1",
+    // ~250 ms sequencer blocks (~4 per second when busy)
+    blockTimeMs: 250,
+    isHub: false,
+    envPrefix: "ARBITRUM_SEPOLIA",
+  },
+  opSepolia: {
+    key: "opSepolia",
+    chainId: 11155420,
+    name: "OP Sepolia",
+    shortName: "OP Sepolia",
+    vmKind: "evm",
+    identCode: 9005,
+    nativeSymbol: "ETH",
+    nativeDecimals: 18,
+    publicRpc: "https://sepolia.optimism.io",
+    publicWs: "wss://optimism-sepolia-rpc.publicnode.com",
+    localPort: 18714,
+    explorer: "https://sepolia-optimism.etherscan.io",
+    // Circle USDC (developers.circle.com/stablecoins/usdc-contract-addresses)
+    usdc: { address: "0x5fd84259d66Cd46123540766Be93DFE6D43130D7", decimals: 6 },
+    finality: "confirmations",
+    makerConfirmations: 1,
+    attestConfirmations: 3,
+    creChainName: "ethereum-testnet-sepolia-optimism-1",
+    blockTimeMs: 2000,
+    isHub: false,
+    envPrefix: "OP_SEPOLIA",
+  },
 };
+
+/** Spokes the local stack forks only on request (scripts/stack.sh, KAKUSHI_EXTRA_FORKS):
+ *  the default local demo runs the hub, Sepolia and Base Sepolia. */
+export const OPTIONAL_LOCAL_CHAINS: readonly ChainKey[] = ["arbitrumSepolia", "opSepolia"];
 
 /** Cleanverse compliant lane: payouts of CVA (aUSDC) on Monad, gated by CVI. */
 export const COMPLIANT_LANE = {
@@ -162,6 +213,13 @@ export function chainById(chainId: number): ChainConfig {
 
 export function chainByIdentCode(code: number): ChainConfig | undefined {
   return CHAIN_LIST.find((x) => x.identCode === code);
+}
+
+/** The chains a deployment covers: the hub plus every spoke with a deployment record, in
+ *  registry order. A spoke without a record (e.g. a local stack without the optional forks)
+ *  is not watched, attested or quoted. */
+export function deployedChains(d: { chains: Record<number, unknown> }): ChainConfig[] {
+  return CHAIN_LIST.filter((c) => d.chains[c.chainId] !== undefined);
 }
 
 export function currentNetwork(): Network {

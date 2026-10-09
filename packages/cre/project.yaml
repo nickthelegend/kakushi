@@ -1,6 +1,7 @@
 # Chainlink CRE project settings. Every `cre` command runs from this folder with -T <target>.
 #
-# local-settings:   the three local anvil forks (scripts/stack.sh). The Monad fork carries
+# local-settings:   the local anvil forks (scripts/stack.sh; Arbitrum Sepolia and OP Sepolia
+#                   only with KAKUSHI_EXTRA_FORKS). The Monad fork carries
 #                   Chainlink's MockKeystoneForwarder (cloned from testnet), so
 #                   `cre workflow simulate --broadcast` writes reports to the local hub.
 # staging-settings: the public testnets through the simulation forwarder.
@@ -14,6 +15,10 @@ local-settings:
       url: http://127.0.0.1:18711
     - chain-name: ethereum-testnet-sepolia-base-1
       url: http://127.0.0.1:18712
+    - chain-name: ethereum-testnet-sepolia-arbitrum-1
+      url: http://127.0.0.1:18713
+    - chain-name: ethereum-testnet-sepolia-optimism-1
+      url: http://127.0.0.1:18714
 
 staging-settings:
   rpcs:
@@ -23,6 +28,10 @@ staging-settings:
       url: https://ethereum-sepolia-rpc.publicnode.com
     - chain-name: ethereum-testnet-sepolia-base-1
       url: https://sepolia.base.org
+    - chain-name: ethereum-testnet-sepolia-arbitrum-1
+      url: https://sepolia-rollup.arbitrum.io/rpc
+    - chain-name: ethereum-testnet-sepolia-optimism-1
+      url: https://sepolia.optimism.io
 
 production-settings:
   rpcs:
@@ -32,3 +41,7 @@ production-settings:
       url: ${SEPOLIA_RPC_URL}
     - chain-name: ethereum-testnet-sepolia-base-1
       url: ${BASE_SEPOLIA_RPC_URL}
+    - chain-name: ethereum-testnet-sepolia-arbitrum-1
+      url: ${ARBITRUM_SEPOLIA_RPC_URL}
+    - chain-name: ethereum-testnet-sepolia-optimism-1
+      url: ${OP_SEPOLIA_RPC_URL}

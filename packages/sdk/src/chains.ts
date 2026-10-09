@@ -1,5 +1,6 @@
 import { defineChain, type Chain } from "viem";
-import { CHAINS, type ChainConfig, type ChainKey, type Network, rpcUrl, currentNetwork } from "@kakushi/config";
+import { CHAINS, type ChainConfig, type ChainKey, type Network, rpcUrl, currentNetwork, chainById } from "@kakushi/config";
+import type { Deployments, SpokeDeployment } from "@kakushi/config/deployments";
 
 /** viem chain for a Kakushi chain on a network (local forks keep the real chain ids). */
 export function viemChain(c: ChainConfig, network: Network = currentNetwork(), rpc?: string): Chain {
@@ -19,4 +20,11 @@ export function chainKeyOf(chainId: number): ChainKey {
   const k = (Object.keys(CHAINS) as ChainKey[]).find((key) => CHAINS[key].chainId === chainId);
   if (!k) throw new Error(`unknown chain ${chainId}`);
   return k;
+}
+
+/** The routers on `chainId` in `d`; throws if the deployment does not cover that chain. */
+export function deploymentOf(d: Pick<Deployments, "chains"> & { network?: Network }, chainId: number): SpokeDeployment {
+  const dep = d.chains[chainId];
+  if (!dep) throw new Error(`Kakushi is not deployed on ${chainById(chainId).name} (${d.network ?? "this network"})`);
+  return dep;
 }

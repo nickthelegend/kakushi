@@ -1,7 +1,7 @@
 // The Maker engine: see a payment, classify it with the hub's rules, fill or refund it through
 // PayoutRouter before the deadline, and defend against disputes with PayoutInclusion proofs.
 import { type Account, type Hex, encodeFunctionData, parseAbiItem, zeroAddress } from "viem";
-import { CHAIN_LIST, CHAINS, chainById, type ChainKey } from "@kakushi/config";
+import { CHAINS, chainById, type ChainKey } from "@kakushi/config";
 import { encodeGross, net, splitCode, toHex32 } from "@kakushi/attest-core";
 import { prove } from "@kakushi/attest-core/prover";
 import { EvmAdapter, type IncomingPayment } from "@kakushi/adapters";
@@ -37,7 +37,7 @@ export class MakerEngine {
     this.db = opts.db;
     this.log = opts.log ?? ((m) => console.log(`[${opts.name}] ${m}`));
     this.deadlineMargin = BigInt(opts.deadlineMarginSec ?? 2);
-    for (const c of CHAIN_LIST) this.adapters[c.chainId] = new EvmAdapter(k, c.key, account);
+    for (const c of k.chains) this.adapters[c.chainId] = new EvmAdapter(k, c.key, account);
   }
 
   get address(): Hex {
@@ -54,7 +54,7 @@ export class MakerEngine {
   // ------------------------------------------------------------------ watching
 
   start(): void {
-    for (const c of CHAIN_LIST) void this.watchChain(c.key);
+    for (const c of this.k.chains) void this.watchChain(c.key);
     void this.watchDisputes();
     void this.recover();
   }
@@ -62,7 +62,8 @@ export class MakerEngine {
   /** After a restart: resume unpaid payments; settle rows that were in flight via the on-chain guard. */
   private async recover(): Promise<void> {
     for (const row of this.db.inFlight()) {
-      const a = this.adapters[row.obligationChainId]!;
+      const a = this.adapters[row.obligationChainId];
+      if (!a) continue; // chain no longer covered by this deployment: leave the row for an operator
       const done = (await this.k.clientById(row.obligationChainId).readContract({
         address: a.payoutRouter,
         abi: payoutRouterAbi,
@@ -161,10 +162,15 @@ export class MakerEngine {
       this.log(`missed ${srcRef.slice(0, 10)}: deadline passed`);
       return;
     }
+    const chain = row.obligationChainId;
+    const a = this.adapters[chain];
+    if (!a) {
+      // a pair may name a chain this deployment does not cover (e.g. a local stack without the optional forks)
+      this.db.setStatus(srcRef, "failed", { note: `not deployed on ${chainById(chain).shortName}` });
+      return;
+    }
     if (!this.db.claim(srcRef)) return;
     const isFill = row.kind === "FILL";
-    const chain = row.obligationChainId;
-    const a = this.adapters[chain]!;
     const c = await this.k.classify(this.address, row.srcChainId, row.token as Hex, BigInt(row.gross), BigInt(row.timestamp));
     const token = c.payToken;
     const amount = BigInt(row.expected);
@@ -271,6 +277,7 @@ export class MakerEngine {
     const pairs = await this.pairs();
     const pair = pairs.find((p) => p.srcChainId === q.src && p.dstChainId === q.dst && p.srcToken.toLowerCase() === q.token.toLowerCase());
     if (!pair) return { error: "no pair for this route" };
+    if (!this.adapters[q.src] || !this.adapters[q.dst]) return { error: "route not covered by this deployment" };
     const gross = encodeGross(q.amount, pair.identCode);
     const { principal } = splitCode(gross);
     const base = principal > pair.withholdingFee ? principal - pair.withholdingFee : 0n;

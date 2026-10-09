@@ -1,4 +1,4 @@
-// pnpm demo — the judge path, end to end, on three local forks (real contracts, real signed
+// pnpm demo — the judge path, end to end, on the local forks (real contracts, real signed
 // transactions, real Noir proofs; Chainlink CRE logic via the local runner, labelled).
 //
 //   A  USDC Sepolia -> Monad, filled by the best-quoting Maker
@@ -7,12 +7,15 @@
 //      Maker B keeps filling new transfers (it is a market, not one operator)
 //   C  a mistyped ident code (9999): the Maker refunds on the source chain, no loss
 //   D  native ETH Sepolia -> Base Sepolia (raw value transfer, code in the wei)
+//   E  USDC Arbitrum Sepolia -> Monad      (only when the optional Arbitrum Sepolia fork is deployed)
+//   F  native ETH Sepolia -> OP Sepolia    (only when the optional OP Sepolia fork is deployed)
+//      Start them with KAKUSHI_EXTRA_FORKS=all pnpm stack:up (or let the demo start the stack).
 //
 // Flags: --keep (leave stack and services running), --no-deploy (reuse the current deployment)
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { mkdirSync, openSync, appendFileSync, writeFileSync } from "node:fs";
 import { type Hex, formatUnits, parseUnits, zeroAddress } from "viem";
-import { CHAINS } from "@kakushi/config";
+import { CHAINS, type ChainKey } from "@kakushi/config";
 import { Kakushi, buildGross, buildTransferTx, erc20Abi, findPayout, findSourcePayment, srcRefOf, walletClient, publicClient } from "@kakushi/sdk";
 import { loadDeployments } from "@kakushi/config/deployments";
 import { LOCAL_KEYS, localAccount } from "./local-accounts.ts";
@@ -22,6 +25,7 @@ const args = new Set(process.argv.slice(2));
 const children: ChildProcess[] = [];
 let ownsStack = false;
 let keepSuccessfulStack = false;
+let expected = 4; // scenarios this run must pass (E/F join when their forks are deployed)
 const results: { scenario: string; pass: boolean; detail: string }[] = [];
 const t0 = Date.now();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -72,7 +76,7 @@ async function main() {
   mkdirSync(".stack", { recursive: true });
   writeFileSync(".stack/demo-pids", "");
   if (!stack("status").includes(" up")) {
-    say("starting three local forks (Monad testnet hub, Sepolia, Base Sepolia)");
+    say(`starting local forks (Monad testnet hub, Sepolia, Base Sepolia${process.env.KAKUSHI_EXTRA_FORKS ? ` + ${process.env.KAKUSHI_EXTRA_FORKS}` : ""})`);
     console.log(stack("up").trim());
     ownsStack = true;
   }
@@ -82,6 +86,9 @@ async function main() {
   }
   const d = loadDeployments("local");
   const k = new Kakushi({ network: "local", deployments: d });
+  const hasArbitrum = d.chains[CHAINS.arbitrumSepolia.chainId] !== undefined;
+  const hasOp = d.chains[CHAINS.opSepolia.chainId] !== undefined;
+  expected = 4 + Number(hasArbitrum) + Number(hasOp);
 
   say("starting services: local CRE runner, Maker A, Maker B, Watchtower");
   start("attester", "node", ["local/runner.ts"], { KAKUSHI_ATTEST_INTERVAL: "6", KAKUSHI_ATTEST_VERBOSE: "1" }, "packages/cre");
@@ -111,6 +118,21 @@ async function main() {
     const p = await findSourcePayment(k, CHAINS.sepolia.chainId, hash);
     if (!p) throw new Error("payment not recognized");
     return { hash, p, gross, sentAt: Date.now(), marks };
+  }
+
+  /** A raw transfer on `src` coded for `dst` (USDC or native), with block marks on `dst`. */
+  async function payRoute(src: ChainKey, dst: ChainKey, maker: Hex, amount: bigint, native: boolean) {
+    const sc = publicClient(src, "local");
+    const dc = publicClient(dst, "local");
+    const w = walletClient(src, LOCAL_KEYS.user, "local");
+    const { gross } = buildGross(amount, CHAINS[dst].chainId);
+    const tx = buildTransferTx(k, { srcChainId: CHAINS[src].chainId, token: native ? zeroAddress : CHAINS[src].usdc.address, maker, gross, sender: user.address });
+    const mark = await dc.getBlockNumber();
+    const hash = await w.sendTransaction({ chain: w.chain, account: user, to: tx.to as Hex, data: tx.data, value: tx.value ?? 0n });
+    await sc.waitForTransactionReceipt({ hash });
+    const p = await findSourcePayment(k, CHAINS[src].chainId, hash);
+    if (!p) throw new Error("payment not recognized");
+    return { hash, p, gross, mark };
   }
 
   // ---------------------------------------------------------------- A
@@ -190,6 +212,36 @@ async function main() {
     results.push({ scenario: "D native ETH Sepolia->Base", pass: false, detail: (e as Error).message });
   }
 
+  // ---------------------------------------------------------------- E
+  if (hasArbitrum) try {
+    say("E · 5 USDC Arbitrum Sepolia -> Monad");
+    const quotes = await k.quote({ srcChainId: CHAINS.arbitrumSepolia.chainId, dstChainId: CHAINS.monadTestnet.chainId, token: "USDC", amount: parseUnits("5", 6), makerUrls });
+    // Maker A is offline since B: the quote comes from Maker B
+    const best = quotes.find((q) => q.quotable);
+    if (!best) throw new Error(`no quotable Maker: ${JSON.stringify(quotes.map((q) => q.reason))}`);
+    const before = await bal(monad, usdcMonad, user.address);
+    const { p, gross, mark } = await payRoute("arbitrumSepolia", "monadTestnet", best.maker, parseUnits("5", 6), false);
+    await waitFor("fill", () => findPayout(monad, d.chains[CHAINS.monadTestnet.chainId]!.payoutRouter, srcRefOf(p), best.maker, mark), 60_000, 300);
+    const got = (await bal(monad, usdcMonad, user.address)) - before;
+    results.push({ scenario: "E fill USDC Arbitrum->Monad", pass: got === BigInt(best.net), detail: `sent ${formatUnits(gross, 6)} USDC (code ${gross % 10_000n}), received ${formatUnits(got, 6)} USDC on Monad` });
+  } catch (e) {
+    results.push({ scenario: "E fill USDC Arbitrum->Monad", pass: false, detail: (e as Error).message });
+  }
+
+  // ---------------------------------------------------------------- F
+  if (hasOp) try {
+    say("F · native ETH Sepolia -> OP Sepolia");
+    const maker = localAccount("makerB").address;
+    const op = publicClient("opSepolia", "local");
+    const before = await op.getBalance({ address: user.address });
+    const { p, gross, mark } = await payRoute("sepolia", "opSepolia", maker, parseUnits("0.01", 18), true);
+    const fill = await waitFor("eth fill", () => findPayout(op, d.chains[CHAINS.opSepolia.chainId]!.payoutRouter, srcRefOf(p), maker, mark), 60_000, 500);
+    const after = await op.getBalance({ address: user.address });
+    results.push({ scenario: "F native ETH Sepolia->OP", pass: after - before === fill.amount, detail: `sent ${formatUnits(gross, 18)} ETH (code ${gross % 10_000n} in the wei), received ${formatUnits(fill.amount, 18)} ETH on OP Sepolia` });
+  } catch (e) {
+    results.push({ scenario: "F native ETH Sepolia->OP", pass: false, detail: (e as Error).message });
+  }
+
   say(`Kakushi demo (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.scenario.padEnd(30)} ${r.detail}`);
   console.log("\nCRE attestation: local runner (CRE workflow logic + Chainlink MockKeystoneForwarder), not a DON. Logs: .stack/*.log");
@@ -205,9 +257,9 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, () => 
 
 main()
   .then(() => {
-    keepSuccessfulStack = args.has("--keep") && results.length === 4 && results.every((r) => r.pass);
+    keepSuccessfulStack = args.has("--keep") && results.length === expected && results.every((r) => r.pass);
     cleanup();
-    process.exit(results.length === 4 && results.every((r) => r.pass) ? 0 : 1);
+    process.exit(results.length === expected && results.every((r) => r.pass) ? 0 : 1);
   })
   .catch((e) => {
     console.error(e);

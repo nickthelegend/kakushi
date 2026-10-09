@@ -4,6 +4,7 @@ import { chainById } from "@kakushi/config";
 import { computeSrcRef, NATIVE_LOG_INDEX, TOPIC_PAYOUT, toHex32 } from "@kakushi/attest-core";
 import { erc20Abi, sourceRouterAbi, payoutRouterAbi } from "./abi.ts";
 import type { Kakushi } from "./kakushi.ts";
+import { deploymentOf } from "./chains.ts";
 import type { SourcePayment } from "./types.ts";
 
 export interface TxRequest {
@@ -25,7 +26,7 @@ export function buildTransferTx(k: Kakushi, a: { srcChainId: number; token: Hex;
     if (a.token === zeroAddress) return { to: a.maker, value: a.gross };
     return { to: a.token, data: encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [a.maker, a.gross] }) };
   }
-  const router = k.d.chains[a.srcChainId]!.sourceRouter;
+  const router = deploymentOf(k.d, a.srcChainId).sourceRouter;
   return {
     to: router,
     value: a.token === zeroAddress ? a.gross : 0n,
@@ -41,7 +42,7 @@ export async function findSourcePayments(k: Kakushi, srcChainId: number, txHash:
   if (rc.status !== "success") return [];
   const blk = await client.getBlock({ blockNumber: rc.blockNumber });
   const makers = new Set((await k.makers()).map((m) => m.toLowerCase()));
-  const router = k.d.chains[srcChainId]!.sourceRouter.toLowerCase();
+  const router = deploymentOf(k.d, srcChainId).sourceRouter.toLowerCase();
   const usdc = chainById(srcChainId).usdc.address.toLowerCase();
   const payments: SourcePayment[] = [];
   for (const log of rc.logs) {

@@ -11,7 +11,7 @@ cd packages/indexer
 KAKUSHI_NETWORK=local INDEXER_DB=.data/local.sqlite node src/main.ts
 ```
 
-Deployment addresses and starting blocks come from `config/deployments`; local RPCs use the shared registry (ports 18710/18711/18712). Existing `<CHAIN_PREFIX>_RPC_URL` overrides follow the shared loopback restriction for the local network. This process never signs or submits transactions. It requires the locally deployed forks and contracts; it does not start forks itself.
+Deployment addresses and starting blocks come from `config/deployments`; local RPCs use the shared registry (ports 18710/18711/18712, plus 18713/18714 for the optional Arbitrum Sepolia and OP Sepolia forks). Chains without a deployment record are skipped. Existing `<CHAIN_PREFIX>_RPC_URL` overrides follow the shared loopback restriction for the local network. This process never signs or submits transactions. It requires the locally deployed forks and contracts; it does not start forks itself.
 
 `INDEXER_HOST` defaults to `127.0.0.1`; `INDEXER_PORT` defaults to 4201. Optional `INDEXER_CORS_ORIGIN` sets one allowed origin. Do not expose raw RPC history publicly without applying the deployment's access policy.
 

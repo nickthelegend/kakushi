@@ -19,7 +19,7 @@ interface ICreateX {
 
 /// @notice Deploys Kakushi on one chain.
 ///   KAKUSHI_ROLE=hub   -> Monad: EBC, MDC, AttestationOracle, verifiers, DisputeModule + routers
-///   KAKUSHI_ROLE=spoke -> Sepolia / Base Sepolia: PayoutRouter + SourceRouter only
+///   KAKUSHI_ROLE=spoke -> Sepolia / Base Sepolia / Arbitrum Sepolia / OP Sepolia: PayoutRouter + SourceRouter only
 /// Routers go through CreateX with a deployer-guarded salt, so they have the SAME address on
 /// every chain. Writes deployments/<chainId>.json.
 ///
@@ -29,6 +29,8 @@ contract Deploy is Script {
     uint64 constant MONAD_TESTNET = 10143;
     uint64 constant SEPOLIA = 11155111;
     uint64 constant BASE_SEPOLIA = 84532;
+    uint64 constant ARBITRUM_SEPOLIA = 421614;
+    uint64 constant OP_SEPOLIA = 11155420;
 
     function run() external {
         uint256 pk = vm.envUint("DEPLOYER_PK");
@@ -44,6 +46,8 @@ contract Deploy is Script {
         vm.serializeAddress(obj, "payoutRouter", payoutRouter);
         vm.serializeAddress(obj, "sourceRouter", sourceRouter);
         vm.serializeUint(obj, "chainId", block.chainid);
+        // the script's block.number is the RPC's own height (on Arbitrum the L2 block number, the
+        // numbering eth_getLogs and the attesters use; on-chain it would be the L1 estimate)
         vm.serializeUint(obj, "deployBlock", block.number);
         vm.serializeAddress(obj, "deployer", deployer);
 
@@ -62,7 +66,11 @@ contract Deploy is Script {
         bool hub = keccak256(bytes(role)) == keccak256("hub");
         bool spoke = keccak256(bytes(role)) == keccak256("spoke");
         require(hub || spoke, "invalid Kakushi role");
-        require(block.chainid == MONAD_TESTNET || block.chainid == SEPOLIA || block.chainid == BASE_SEPOLIA, "unsupported Kakushi chain");
+        require(
+            block.chainid == MONAD_TESTNET || block.chainid == SEPOLIA || block.chainid == BASE_SEPOLIA
+                || block.chainid == ARBITRUM_SEPOLIA || block.chainid == OP_SEPOLIA,
+            "unsupported Kakushi chain"
+        );
         require(hub == (block.chainid == MONAD_TESTNET), "role does not match chain");
         bool local = keccak256(bytes(network)) == keccak256("local");
         require(local || keccak256(bytes(network)) == keccak256("testnet"), "invalid Kakushi network");
@@ -98,7 +106,7 @@ contract Deploy is Script {
             }
         }
         SourceRouter source = SourceRouter(sr);
-        uint16[4] memory codes = [uint16(9001), 9002, 9003, 9101];
+        uint16[6] memory codes = [uint16(9001), 9002, 9003, 9004, 9005, 9101];
         for (uint256 i; i < codes.length; i++) {
             if (!source.knownCodes(codes[i])) source.setCode(codes[i], true);
         }
@@ -136,6 +144,8 @@ contract Deploy is Script {
         ebc.registerIdentCode(9001, MONAD_TESTNET);
         ebc.registerIdentCode(9002, SEPOLIA);
         ebc.registerIdentCode(9003, BASE_SEPOLIA);
+        ebc.registerIdentCode(9004, ARBITRUM_SEPOLIA);
+        ebc.registerIdentCode(9005, OP_SEPOLIA);
         ebc.registerIdentCode(9101, MONAD_TESTNET); // Cleanverse compliant lane (aUSDC)
 
         vm.serializeAddress(obj, "ebc", address(ebc));

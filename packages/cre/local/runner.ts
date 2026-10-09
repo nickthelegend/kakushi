@@ -14,7 +14,7 @@
 import { createServer } from "node:http";
 import { type Hex, keccak256, toHex, decodeEventLog, encodeFunctionData } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { CHAIN_LIST, CHAINS, CRE_FORWARDERS, chainById, currentNetwork } from "@kakushi/config";
+import { CHAINS, CRE_FORWARDERS, chainById, currentNetwork, deployedChains } from "@kakushi/config";
 import { loadDeployments } from "@kakushi/config/deployments";
 import {
   buildChainWindows,
@@ -32,6 +32,7 @@ import { checkNative } from "../src/native-checks.ts";
 
 const network = currentNetwork();
 const d = loadDeployments(network);
+const chains = deployedChains(d); // spokes without a deployment record are not attested
 const INTERVAL = Number(process.env.KAKUSHI_ATTEST_INTERVAL ?? "8") * 1000;
 const PORT = Number(process.env.KAKUSHI_ATTEST_PORT ?? "3714");
 const MAX_BLOCKS = 100n; // CRE's log-query limit
@@ -44,7 +45,7 @@ const hubWallet = walletClient("monadTestnet", account);
 const forwarder = (d.hub.creForwarder ?? CRE_FORWARDERS.simulation) as Hex;
 
 const status: Record<number, { lastTo?: string; lastRoot?: string; lastAt?: number; error?: string; windows: number }> = {};
-for (const c of CHAIN_LIST) status[c.chainId] = { windows: 0 };
+for (const c of chains) status[c.chainId] = { windows: 0 };
 
 async function deliver(windows: AttestWindow[], label: string): Promise<Hex> {
   const body = encodeReport(windows);
@@ -83,6 +84,8 @@ async function deliver(windows: AttestWindow[], label: string): Promise<Hex> {
 
 async function attestChain(chainId: number): Promise<void> {
   const c = chainById(chainId);
+  const dep = d.chains[chainId];
+  if (!dep) throw new Error(`${c.name} is not in this deployment`);
   const client = publicClient(c.key);
   let reads = 0;
   const makers = (await hub.readContract({ address: d.hub.ebc, abi: ebcAbi, functionName: "allMakers" })) as Hex[];
@@ -91,9 +94,9 @@ async function attestChain(chainId: number): Promise<void> {
   const head = await client.getBlockNumber();
   reads += 1;
   const conf = network === "local" ? 0n : BigInt(c.attestConfirmations);
-  const range = nextRange(lastTo, BigInt(d.chains[chainId]!.deployBlock), head - conf, MAX_BLOCKS);
+  const range = nextRange(lastTo, BigInt(dep.deployBlock), head - conf, MAX_BLOCKS);
   if (!range) return;
-  const cfg = { chainId, payoutRouter: d.chains[chainId]!.payoutRouter, sourceRouter: d.chains[chainId]!.sourceRouter, tokens: [c.usdc.address], makers };
+  const cfg = { chainId, payoutRouter: dep.payoutRouter, sourceRouter: dep.sourceRouter, tokens: [c.usdc.address], makers };
   let logs: RawLog[] = [];
   for (const f of windowLogFilters(cfg)) {
     reads += 1;
@@ -126,6 +129,7 @@ async function attestChain(chainId: number): Promise<void> {
 
 export async function attestNative(chainId: number, txHash: Hex): Promise<{ root: string; tx: Hex }> {
   const c = chainById(chainId);
+  if (!d.chains[chainId]) throw new Error(`${c.name} is not in this deployment`);
   const client = publicClient(c.key);
   const [tx, rc, head] = await Promise.all([client.getTransaction({ hash: txHash }), client.getTransactionReceipt({ hash: txHash }), client.getBlockNumber()]);
   const blk = await client.getBlock({ blockNumber: rc.blockNumber });
@@ -143,7 +147,7 @@ async function tick(): Promise<void> {
   if (busy) return;
   busy = true;
   try {
-    for (const c of CHAIN_LIST) {
+    for (const c of chains) {
       try {
         await attestChain(c.chainId);
       } catch (e) {

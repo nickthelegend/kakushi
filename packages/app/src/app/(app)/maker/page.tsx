@@ -10,18 +10,19 @@ import { Amount, Loading, Notice, PageHead, Pill, Route, Stat, fieldCls, readErr
 import { useRuntime } from "@/lib/runtime";
 import { useWallet } from "@/lib/wallet";
 import { usePoll } from "@/lib/usePoll";
-import { ROUTES } from "@/lib/routes";
+import { routesFor } from "@/lib/routes";
 import { marginAmount, routeParameters } from "@/lib/maker-form";
 import { requireSuccessfulReceipt } from "@/lib/bridge-state";
 
 export default function MakerConsole() {
-  const { k } = useRuntime();
+  const { k, cfg } = useRuntime();
+  const routes = routesFor(cfg?.deployments);
   const w = useWallet();
   const [busy, setBusy] = useState<string | null>(null);
   const running = useRef(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
   const [amount, setAmount] = useState("100");
-  const [form, setForm] = useState({ route: ROUTES[0]!.id, withholding: "0.05", bps: "10", min: "1", max: "500" });
+  const [form, setForm] = useState({ route: routes[0]!.id, withholding: "0.05", bps: "10", min: "1", max: "500" });
   const usdc = CHAINS.monadTestnet.usdc.address;
   const load = useCallback(async () => {
     const me = w.address!;
@@ -56,7 +57,7 @@ export default function MakerConsole() {
 
   if (!w.address) return <div><PageHead title="Maker console" sub="Post margin, register routes and fees, and manage withdrawals." /><Notice title="Connect the Maker's wallet">Use the Connect button at the top right. The console reads margin and routes for the connected address.</Notice></div>;
   const now = BigInt(Math.floor(Date.now() / 1000));
-  const r = ROUTES.find((x) => x.id === form.route)!;
+  const r = routes.find((x) => x.id === form.route) ?? routes[0]!;
   const native = r.asset === "ETH";
   const dec = native ? 18 : 6;
   return (
@@ -127,7 +128,7 @@ export default function MakerConsole() {
               <h3 className="mb-3 text-[16px] font-medium">Register a route</h3>
               <div className="grid grid-cols-2 gap-2">
                 <select aria-label="Route" value={form.route} onChange={(e) => setForm({ ...form, route: e.target.value })} className={`${fieldCls} col-span-2`}>
-                  {ROUTES.map((x) => <option key={x.id} value={x.id}>{CHAINS[x.src].shortName} → {CHAINS[x.dst].shortName} · {x.asset}</option>)}
+                  {routes.map((x) => <option key={x.id} value={x.id}>{CHAINS[x.src].shortName} → {CHAINS[x.dst].shortName} · {x.asset}</option>)}
                 </select>
                 {(["withholding", "bps", "min", "max"] as const).map((f) => (
                   <label key={f} className="grid min-w-0 gap-1.5 text-[13px] text-ui-muted">

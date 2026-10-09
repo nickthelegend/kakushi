@@ -1,11 +1,12 @@
 // The Kakushi client: one object holding the deployments and per-chain clients.
 import { type Hex, type PublicClient, isAddress, zeroAddress } from "viem";
-import { CHAINS, type ChainKey, CHAIN_LIST, type Network, chainById } from "@kakushi/config";
-import type { Deployments } from "@kakushi/config/deployments";
+import { CHAINS, type ChainConfig, type ChainKey, CHAIN_LIST, type Network, chainById, deployedChains } from "@kakushi/config";
+import type { Deployments, SpokeDeployment } from "@kakushi/config/deployments";
 import { type ChainAttestConfig, encodeGross, splitCode } from "@kakushi/attest-core";
 import { ebcAbi, mdcAbi, attestationOracleAbi, disputeModuleAbi } from "./abi.ts";
 import { publicClient } from "./clients.ts";
 import { allMakers, type ChainCtx } from "./attestations.ts";
+import { deploymentOf } from "./chains.ts";
 import type { MakerQuote, PairInfo } from "./types.ts";
 
 export interface Classification {
@@ -45,6 +46,16 @@ export class Kakushi {
     return this.client("monadTestnet");
   }
 
+  /** The chains this deployment covers (hub first); spokes without a record are left out. */
+  get chains(): ChainConfig[] {
+    return deployedChains(this.d);
+  }
+
+  /** The routers on `chainId`; throws if this deployment does not cover that chain. */
+  deployment(chainId: number): SpokeDeployment {
+    return deploymentOf(this.d, chainId);
+  }
+
   get fillWindow(): bigint {
     return BigInt(this.d.hub.fillWindow);
   }
@@ -61,7 +72,7 @@ export class Kakushi {
   /** Attestation config for a chain (same inputs the CRE workflow uses). */
   async chainCtx(chainId: number, makers?: Hex[]): Promise<ChainCtx> {
     const c = chainById(chainId);
-    const dep = this.d.chains[chainId]!;
+    const dep = this.deployment(chainId);
     const cfg: ChainAttestConfig = {
       chainId,
       payoutRouter: dep.payoutRouter,

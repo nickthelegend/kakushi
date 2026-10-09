@@ -9,7 +9,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { type Hex, encodeFunctionData, zeroAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { CHAIN_LIST, CHAINS, chainById } from "@kakushi/config";
+import { CHAINS, chainById } from "@kakushi/config";
 import { toHex32 } from "@kakushi/attest-core";
 import { prove } from "@kakushi/attest-core/prover";
 import { EvmAdapter, type IncomingPayment } from "@kakushi/adapters";
@@ -34,7 +34,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS watched (
 
 const log = (m: string) => console.log(`[watchtower] ${m}`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const adapters = Object.fromEntries(CHAIN_LIST.map((c) => [c.chainId, new EvmAdapter(k, c.key)]));
+const adapters = Object.fromEntries(k.chains.map((c) => [c.chainId, new EvmAdapter(k, c.key)]));
 
 type Row = { srcRef: string; maker: string; srcChainId: number; txHash: string; logIndex: number; sender: string; token: string; gross: string; recipient: string; blockNumber: string; timestamp: number; via: string; status: string; note: string | null; disputeKey: string | null; openTx: string | null; proveTx: string | null; proofMs: number | null; updatedAt: number };
 
@@ -90,7 +90,7 @@ async function drive(r: Row) {
   if (c.kind === 0) return setRow(r.srcRef, r.maker, { status: "no-obligation" });
   const deadline = p.timestamp + k.fillWindow;
   const now = BigInt(Math.floor(Date.now() / 1000));
-  const router = k.d.chains[c.obligationChainId]!.payoutRouter;
+  const router = k.deployment(c.obligationChainId).payoutRouter;
   const oblClient = k.clientById(c.obligationChainId);
   const fromBlock = await blockBefore(oblClient, p.timestamp - k.clockSkew, chainById(c.obligationChainId).blockTimeMs);
   const paid = await findPayout(oblClient, router, BigInt(r.srcRef), p.maker, fromBlock);
@@ -194,5 +194,5 @@ createServer(async (req, res) => {
   }
 }).listen(port, "127.0.0.1", () => log(`challenger ${account.address} on :${port} (${k.network}); attester ${attesterUrl}`));
 
-for (const c of CHAIN_LIST) void watchChain(c.chainId);
+for (const c of k.chains) void watchChain(c.chainId);
 void driveLoop();

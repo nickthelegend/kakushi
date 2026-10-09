@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Cpu, Gavel, Search, ShieldCheck } from "lucide-react";
 import { DataTable, PanelCard, PrimaryButton, SecondaryButton } from "@kakushi/ui";
 import { encodeFunctionData, encodeAbiParameters, keccak256, type Hex } from "viem";
-import { CHAIN_LIST, CHAINS, chainById } from "@kakushi/config";
+import { CHAIN_LIST, CHAINS, chainById, deployedChains } from "@kakushi/config";
 import { disputeModuleAbi, findSourcePayments, prepareDispute, srcRefOf, type DisputeReadiness, type SourcePayment } from "@kakushi/sdk";
 import { Amount, ChainName, Loading, Notice, PageHead, Pill, Spinner, ago, fieldCls, readError, short , ArtBanner } from "@/components/kit";
 import { useRouter } from "next/navigation";
@@ -108,7 +108,7 @@ function DisputeYourself() {
       <p className="max-w-[70ch] text-[15px] leading-[1.5] text-ui-muted">Your browser rebuilds the CRE-attested windows from chain data, checks their roots, and proves that your payment exists and no compliant payout does. Nobody has to trust you, or anyone else.</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_110px_auto]">
         <select aria-label="Source chain" disabled={!!stage} value={chainId} onChange={(e) => { clearCheckedTransfer(); setChainId(Number(e.target.value)); }} className={fieldCls}>
-          {CHAIN_LIST.map((c) => <option key={c.chainId} value={c.chainId}>{c.shortName}</option>)}
+          {(cfg?.deployments ? deployedChains(cfg.deployments) : CHAIN_LIST).map((c) => <option key={c.chainId} value={c.chainId}>{c.shortName}</option>)}
         </select>
         <input aria-label="Source transaction hash" disabled={!!stage} value={tx} onChange={(e) => { clearCheckedTransfer(); setTx(e.target.value.trim()); }} placeholder="0x… your payment transaction" className={`${fieldCls} font-mono text-[14px]`} />
         <input aria-label="Receipt log index (optional)" placeholder="Log index" inputMode="numeric" value={log} disabled={!!stage} onChange={(e) => { clearCheckedTransfer(); setLog(e.target.value); }} className={fieldCls} />

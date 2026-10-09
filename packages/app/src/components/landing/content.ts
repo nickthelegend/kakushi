@@ -151,11 +151,11 @@ export const faq = {
   heading: ["Questions,", "answered."],
   sub: "About codes, Makers, proofs and what you still trust.",
   items: [
-    { q: "How do I choose where the money goes?", a: "You don't type a destination. The bridge computes the exact amount, and its last four digits name the chain: 9001 Monad, 9002 Sepolia, 9003 Base Sepolia." },
+    { q: "How do I choose where the money goes?", a: "You don't type a destination. The bridge computes the exact amount, and its last four digits name the chain: 9001 Monad, 9002 Sepolia, 9003 Base Sepolia, 9004 Arbitrum Sepolia, 9005 OP Sepolia." },
     { q: "What if I mistype the amount?", a: "If the last four digits aren't a route, the Maker must refund you on the source chain minus a small fee. That refund is enforced by the same proof and margin as a fill." },
     { q: "Why a zero-knowledge proof if Chainlink attests?", a: "Chainlink CRE commits data: one root per block window. The proof does the judging over it (your payment, the code, the fee math, the missing payout) at a fixed cost on Monad. The roots could later come from a light client without changing the circuit." },
     { q: "Who are the Makers?", a: "Anyone who posts margin on Monad, registers routes and fees in the EBC, and runs the open-source Maker node." },
-    { q: "Which chains and assets?", a: "USDC between Sepolia and Monad testnet, and native ETH between Sepolia and Base Sepolia. A new chain is a config entry and an adapter." },
+    { q: "Which chains and assets?", a: "USDC between Monad testnet and Sepolia, Arbitrum Sepolia and OP Sepolia, both ways, and native ETH between Sepolia, Base Sepolia, Arbitrum Sepolia and OP Sepolia. A new chain is a config entry and a router." },
     { q: "What do I still trust?", a: "That each attested root is the true set of logs in its window, which today is Chainlink's DON. Everything else, from fee math to who gets slashed, is checked by the proof and the contracts." },
   ],
 };

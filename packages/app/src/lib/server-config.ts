@@ -84,6 +84,8 @@ export function rpcFor(chainId: number): string | null {
     10143: { env: "MONAD_TESTNET_RPC_URL", local: 18710, pub: "https://testnet-rpc.monad.xyz" },
     11155111: { env: "SEPOLIA_RPC_URL", local: 18711, pub: "https://ethereum-sepolia-rpc.publicnode.com" },
     84532: { env: "BASE_SEPOLIA_RPC_URL", local: 18712, pub: "https://sepolia.base.org" },
+    421614: { env: "ARBITRUM_SEPOLIA_RPC_URL", local: 18713, pub: "https://sepolia-rollup.arbitrum.io/rpc" },
+    11155420: { env: "OP_SEPOLIA_RPC_URL", local: 18714, pub: "https://sepolia.optimism.io" },
   };
   const t = table[chainId];
   if (!t) return null;

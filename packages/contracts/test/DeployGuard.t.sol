@@ -31,6 +31,18 @@ contract DeployGuardTest is Test {
         vm.chainId(11155111);
         vm.expectRevert("role does not match chain"); deploy.run();
     }
+    function test_AcceptArbitrumAndOpSepoliaSpokes() public {
+        uint64[2] memory spokes = [uint64(421614), 11155420];
+        for (uint256 i; i < spokes.length; i++) {
+            resetEnvironment();
+            vm.setEnv("KAKUSHI_ROLE", "spoke");
+            vm.chainId(spokes[i]);
+            // passes the chain and role checks; stops only at the missing factory in this test EVM
+            vm.expectRevert("CreateX unavailable"); deploy.run();
+            vm.setEnv("KAKUSHI_ROLE", "hub");
+            vm.expectRevert("role does not match chain"); deploy.run();
+        }
+    }
     function test_RejectMisspelledNetwork() public {
         resetEnvironment();
         vm.setEnv("KAKUSHI_NETWORK", "tesnet");

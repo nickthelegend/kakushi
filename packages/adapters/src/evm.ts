@@ -34,10 +34,10 @@ export class EvmAdapter implements IChainAdapter {
   }
 
   get payoutRouter(): Hex {
-    return this.k.d.chains[this.chainId]!.payoutRouter;
+    return this.k.deployment(this.chainId).payoutRouter;
   }
   get sourceRouter(): Hex {
-    return this.k.d.chains[this.chainId]!.sourceRouter;
+    return this.k.deployment(this.chainId).sourceRouter;
   }
   get usdc(): Hex {
     return CHAINS[this.key].usdc.address;

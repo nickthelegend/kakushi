@@ -10,7 +10,7 @@ import { CHAINS, chainById, chainByIdentCode, type ChainKey } from "@kakushi/con
 import { buildTransferTx, erc20Abi, type MakerQuote } from "@kakushi/sdk";
 import { AssetCoin, ChainCoin } from "@/components/coins";
 import { readError } from "@/components/kit";
-import { ROUTES, tokenOf, type Route } from "@/lib/routes";
+import { ROUTES, routesFor, tokenOf, type Route } from "@/lib/routes";
 import { maximumPrincipal, parseBridgeAmount, requireSuccessfulReceipt } from "@/lib/bridge-state";
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
@@ -27,13 +27,10 @@ const ago = (ts: number) => {
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : `${Math.floor(s / 86400)}d ago`;
 };
 
-const SRC_CHAINS = [...new Set(ROUTES.map((r) => r.src))];
-const ASSETS = [...new Set(ROUTES.map((r) => r.asset))];
-
 /** The route that best keeps what the user just picked, falling back to the first live one. */
-function pickRoute(want: Partial<Pick<Route, "src" | "dst" | "asset">>, current: Route): Route {
+function pickRoute(routes: Route[], want: Partial<Pick<Route, "src" | "dst" | "asset">>, current: Route): Route {
   const score = (r: Route) => (want.src && r.src === want.src ? 4 : 0) + (want.dst && r.dst === want.dst ? 4 : 0) + (want.asset && r.asset === want.asset ? 4 : 0) + (r.src === current.src ? 1 : 0) + (r.dst === current.dst ? 1 : 0) + (r.asset === current.asset ? 1 : 0);
-  return [...ROUTES].sort((a, b) => score(b) - score(a))[0]!;
+  return [...routes].sort((a, b) => score(b) - score(a))[0]!;
 }
 
 function useBalance(route: Route, who: Hex | null) {
@@ -76,7 +73,7 @@ function ChainPicker({ label, value, options, onPick }: { label: string; value: 
   );
 }
 
-function AssetPicker({ value, chain, onPick }: { value: Route["asset"]; chain: ChainKey; onPick: (a: Route["asset"]) => void }) {
+function AssetPicker({ value, chain, assets, onPick }: { value: Route["asset"]; chain: ChainKey; assets: Route["asset"][]; onPick: (a: Route["asset"]) => void }) {
   return (
     <Menu
       label="Token"
@@ -98,7 +95,7 @@ function AssetPicker({ value, chain, onPick }: { value: Route["asset"]; chain: C
         </span>
       }
     >
-      {ASSETS.map((a) => (
+      {assets.map((a) => (
         <Menu.Item key={a} icon={<AssetCoin asset={a} size={22} />} onSelect={() => onPick(a)} description={a === "USDC" ? "Circle USDC" : "Native ether"}>
           {a}
         </Menu.Item>
@@ -109,7 +106,7 @@ function AssetPicker({ value, chain, onPick }: { value: Route["asset"]; chain: C
 
 /* ── the card ─────────────────────────────────────────────────────────────── */
 
-function BridgeCard({ route, setRoute }: { route: Route; setRoute: (r: Route) => void }) {
+function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route; setRoute: (r: Route) => void }) {
   const { k, cfg, makerUrls, error } = useRuntime();
   const w = useWallet();
   const router = useRouter();
@@ -156,8 +153,10 @@ function BridgeCard({ route, setRoute }: { route: Route; setRoute: (r: Route) =>
   const recipientOk = !custom || isAddress(recipient);
   const insufficient = gross !== null && balance !== null && balance < gross;
   const fixed = gross !== null ? (() => { const s = gross.toString().padStart(src.decimals + 1, "0"); return `${s.slice(0, -src.decimals)}.${s.slice(-src.decimals)}`; })() : "";
-  const reverse = ROUTES.find((r) => r.src === route.dst && r.dst === route.src && r.asset === route.asset);
-  const dstOptions = [...new Set(ROUTES.filter((r) => r.src === route.src).map((r) => r.dst))];
+  const reverse = routes.find((r) => r.src === route.dst && r.dst === route.src && r.asset === route.asset);
+  const srcOptions = [...new Set(routes.map((r) => r.src))];
+  const dstOptions = [...new Set(routes.filter((r) => r.src === route.src && r.asset === route.asset).map((r) => r.dst))];
+  const assetOptions = [...new Set(routes.filter((r) => r.src === route.src).map((r) => r.asset))];
   const dp = route.asset === "ETH" ? 6 : 2;
 
   async function send() {
@@ -214,7 +213,7 @@ function BridgeCard({ route, setRoute }: { route: Route; setRoute: (r: Route) =>
       <div className="rounded-[22px] bg-ui-canvas p-4">
         <div className="flex items-center justify-between text-[13px] text-ui-muted">
           <span className="flex items-center gap-2">
-            From <ChainPicker label="Source chain" value={route.src} options={SRC_CHAINS} onPick={(s) => setRoute(pickRoute({ src: s }, route))} />
+            From <ChainPicker label="Source chain" value={route.src} options={srcOptions} onPick={(s) => setRoute(pickRoute(routes, { src: s }, route))} />
           </span>
           <button
             type="button"
@@ -235,7 +234,7 @@ function BridgeCard({ route, setRoute }: { route: Route; setRoute: (r: Route) =>
             placeholder="0"
             className={cn("ui-figure min-w-0 flex-1 bg-transparent text-[34px] font-medium tracking-[-0.03em] outline-none placeholder:text-ui-dim", amountStr.trim() !== "" && amount === null && "text-ui-down")}
           />
-          <AssetPicker value={route.asset} chain={route.src} onPick={(a) => setRoute(pickRoute({ asset: a, src: route.src }, route))} />
+          <AssetPicker value={route.asset} chain={route.src} assets={assetOptions} onPick={(a) => setRoute(pickRoute(routes, { asset: a, src: route.src }, route))} />
         </div>
       </div>
 
@@ -255,7 +254,7 @@ function BridgeCard({ route, setRoute }: { route: Route; setRoute: (r: Route) =>
       <div className="rounded-[22px] bg-ui-canvas p-4">
         <div className="flex items-center justify-between text-[13px] text-ui-muted">
           <span className="flex items-center gap-2">
-            To <ChainPicker label="Destination chain" value={route.dst} options={dstOptions} onPick={(d) => setRoute(pickRoute({ src: route.src, dst: d }, route))} />
+            To <ChainPicker label="Destination chain" value={route.dst} options={dstOptions} onPick={(d) => setRoute(pickRoute(routes, { src: route.src, dst: d }, route))} />
           </span>
           <span>{q ? `from ${q.name}` : null}</span>
         </div>
@@ -384,13 +383,16 @@ function Recent() {
 }
 
 export default function BridgePage() {
-  const [route, setRoute] = useState<Route>(ROUTES[0]!);
+  const { cfg } = useRuntime();
+  const routes = useMemo(() => routesFor(cfg?.deployments), [cfg]);
+  const [picked, setRoute] = useState<Route>(ROUTES[0]!);
+  const route = routes.some((r) => r.id === picked.id) ? picked : routes[0]!;
   return (
     <div className="mx-auto w-full max-w-[480px] pt-4 pb-16 sm:pt-8">
       <h1 className="sr-only">Bridge</h1>
       <button
         type="button"
-        onClick={() => setRoute(pickRoute({ src: "sepolia", dst: "monadTestnet", asset: "USDC" }, route))}
+        onClick={() => setRoute(pickRoute(routes, { src: "sepolia", dst: "monadTestnet", asset: "USDC" }, route))}
         className="mb-4 flex w-full items-center justify-between gap-3 rounded-full bg-[linear-gradient(90deg,#16205a,#0b0f1f)] py-1.5 pr-4 pl-1.5 ring-1 ring-ui-hairline-strong"
       >
         <span className="inline-flex items-center gap-2 rounded-full bg-ui-surface-2 py-1 pr-3 pl-1 text-[13px] font-medium">
@@ -401,7 +403,7 @@ export default function BridgePage() {
           <ChainCoin chainId={10143} size={22} /> Monad in ≈1 s
         </span>
       </button>
-      <BridgeCard route={route} setRoute={setRoute} />
+      <BridgeCard routes={routes} route={route} setRoute={setRoute} />
       <p className="mt-4 flex items-center justify-center gap-1.5 text-[12px] text-ui-muted">
         <Gavel aria-hidden size={13} /> Maker didn&rsquo;t pay? <Link href="/disputes" className="text-ui-lime-text hover:underline">Claim it from their margin</Link>
       </p>

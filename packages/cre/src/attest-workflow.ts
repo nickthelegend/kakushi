@@ -5,7 +5,7 @@
  * 15-EVM-reads quota):
  *   1. hub reads: EBC.allMakers(), AttestationOracle.lastPayoutToBlock(chain)
  *   2. the chain's safe head (finalized tag on Monad; latest - confirmations elsewhere,
- *      DEMO ASSUMPTION: 3 confirmations on Sepolia/Base Sepolia instead of finality)
+ *      DEMO ASSUMPTION: 3 confirmations on the ETH spokes instead of finality)
  *   3. the next contiguous block range (<= 100 blocks, CRE's log-query limit)
  *   4. filterLogs: PayoutRouter.Payout + SourceRouter.PaymentEncoded, and USDC Transfer(to = Maker)
  *   5. one header per block holding a log (timestamps), the window shrunk to fit the quota

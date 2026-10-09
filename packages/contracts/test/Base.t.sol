@@ -20,9 +20,13 @@ abstract contract Base is Test {
     uint64 constant HUB = 10143;
     uint64 constant SEPOLIA = 11155111;
     uint64 constant BASE_SEPOLIA = 84532;
+    uint64 constant ARBITRUM_SEPOLIA = 421614;
+    uint64 constant OP_SEPOLIA = 11155420;
     uint16 constant CODE_MONAD = 9001;
     uint16 constant CODE_SEPOLIA = 9002;
     uint16 constant CODE_BASE = 9003;
+    uint16 constant CODE_ARBITRUM = 9004;
+    uint16 constant CODE_OP = 9005;
 
     uint64 constant FILL_WINDOW = 20;
     uint64 constant DISPUTE_WINDOW = 120;
@@ -78,6 +82,8 @@ abstract contract Base is Test {
         ebc.registerIdentCode(CODE_MONAD, HUB);
         ebc.registerIdentCode(CODE_SEPOLIA, SEPOLIA);
         ebc.registerIdentCode(CODE_BASE, BASE_SEPOLIA);
+        ebc.registerIdentCode(CODE_ARBITRUM, ARBITRUM_SEPOLIA);
+        ebc.registerIdentCode(CODE_OP, OP_SEPOLIA);
         vm.stopPrank();
         vm.deal(challenger, 10 ether);
         vm.deal(sender, 10 ether);

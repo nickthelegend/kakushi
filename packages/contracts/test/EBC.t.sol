@@ -6,7 +6,7 @@ import {EBC} from "../src/EBC.sol";
 import {Errors} from "../src/lib/Errors.sol";
 import {Kinds} from "../src/lib/Kinds.sol";
 import {IVerifier} from "../src/interfaces/IVerifier.sol";
-import {ToggleVerifier} from "./utils/TestToken.sol";
+import {ToggleVerifier, TestFeed} from "./utils/TestToken.sol";
 
 contract EBCTest is Base {
     bytes32 pairId;
@@ -166,6 +166,45 @@ contract EBCTest is Base {
             EBC.Params(0, 50_000, 10, 1_000_000, 500_000_000),
             EBC.MarginConfig(address(usdc), address(0), 18, true)
         );
+    }
+
+    /// Arbitrum Sepolia (9004) and OP Sepolia (9005): USDC to and from Monad, and native ETH
+    /// between the ETH spokes, priced in Monad USDC margin like Sepolia <-> Base Sepolia.
+    function test_ArbitrumAndOpSepoliaLanes() public {
+        address arbUsdc = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
+        TestFeed feed = new TestFeed();
+        feed.set(2_500e8, block.timestamp);
+        EBC.Params memory usdcP = EBC.Params(0, 50_000, 10, 1_000_000, 500_000_000);
+        EBC.Params memory ethP = EBC.Params(0, 0.0001 ether, 30, 0.001 ether, 0.05 ether);
+        EBC.MarginConfig memory usdcM = EBC.MarginConfig(address(usdc), address(0), 6, true);
+        EBC.MarginConfig memory ethM = EBC.MarginConfig(address(usdc), address(feed), 18, true);
+        vm.startPrank(maker);
+        ebc.registerPair(EBC.Pair(maker, ARBITRUM_SEPOLIA, arbUsdc, HUB, address(usdc), CODE_MONAD), usdcP, usdcM);
+        ebc.registerPair(EBC.Pair(maker, HUB, address(usdc), OP_SEPOLIA, address(9), CODE_OP), usdcP, usdcM);
+        ebc.registerPair(EBC.Pair(maker, SEPOLIA, address(0), ARBITRUM_SEPOLIA, address(0), CODE_ARBITRUM), ethP, ethM);
+        ebc.registerPair(EBC.Pair(maker, SEPOLIA, address(0), OP_SEPOLIA, address(0), CODE_OP), ethP, ethM);
+        ebc.registerPair(EBC.Pair(maker, OP_SEPOLIA, address(0), ARBITRUM_SEPOLIA, address(0), CODE_ARBITRUM), ethP, ethM);
+        // a code must name its own chain
+        vm.expectRevert(abi.encodeWithSelector(Errors.IdentCodeChainMismatch.selector, CODE_OP, OP_SEPOLIA, ARBITRUM_SEPOLIA));
+        ebc.registerPair(EBC.Pair(maker, BASE_SEPOLIA, address(0), ARBITRUM_SEPOLIA, address(0), CODE_OP), ethP, ethM);
+        vm.stopPrank();
+
+        uint64 ts = uint64(block.timestamp);
+        EBC.Classification memory c = ebc.classify(maker, ARBITRUM_SEPOLIA, arbUsdc, 100_009_001, ts);
+        assertEq(c.kind, Kinds.FILL);
+        assertEq(c.obligationChainId, HUB);
+        c = ebc.classify(maker, SEPOLIA, address(0), 0.01 ether + 9005, ts);
+        assertEq(c.kind, Kinds.FILL);
+        assertEq(c.obligationChainId, OP_SEPOLIA);
+        assertEq(c.priceFeed, address(feed));
+        c = ebc.classify(maker, OP_SEPOLIA, address(0), 0.01 ether + 9004, ts);
+        assertEq(c.kind, Kinds.FILL);
+        assertEq(c.obligationChainId, ARBITRUM_SEPOLIA);
+        // no Arbitrum -> OP pair: an ETH payment coded 9005 on Arbitrum has no margin config there
+        assertEq(ebc.classify(maker, ARBITRUM_SEPOLIA, address(0), 0.01 ether + 9005, ts).kind, Kinds.NONE);
+        // ETH lanes are margined in Monad USDC at the Chainlink price (0.05 ETH x 2500 x 1.2 x 1.1 = 165 USDC);
+        // the 500 USDC pairs dominate
+        assertEq(mdc.required(maker, address(usdc)), 550_000_000);
     }
 
     function test_RefundFeeChangesAreDelayed() public {

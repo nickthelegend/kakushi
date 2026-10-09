@@ -1,6 +1,6 @@
 # Kakushi Envio HyperIndex v3 package
 
-Real HyperIndex configuration, generated types and event handlers for Kakushi's three chains (10143, 11155111, 84532). Envio is pinned to 3.12.1. This directory is separate from the SQLite RPC fallback and has its own dependencies. No Docker, Hasura, HyperSync, Cloud or public testnet indexing run is claimed by the offline verification below.
+Real HyperIndex configuration, generated types and event handlers for Kakushi's chains (10143, 11155111, 84532, and 421614 / 11155420 when deployed; the generated `config.yaml` lists only the chains with a deployment record). Envio is pinned to 3.12.1. This directory is separate from the SQLite RPC fallback and has its own dependencies. No Docker, Hasura, HyperSync, Cloud or public testnet indexing run is claimed by the offline verification below.
 
 ## Configure and validate
 

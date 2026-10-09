@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { DataTable, PanelCard } from "@kakushi/ui";
-import { CHAIN_LIST } from "@kakushi/config";
+import { CHAIN_LIST, deployedChains } from "@kakushi/config";
 import { readWindows, windowCount } from "@kakushi/sdk";
 import { ChainName, Notice, PageHead, Pill, Stat, ago, readError , ArtBanner } from "@/components/kit";
 import { useRuntime } from "@/lib/runtime";
@@ -10,10 +10,11 @@ import { usePoll } from "@/lib/usePoll";
 
 export default function AttestationsPage() {
   const { k, cfg, error: runtimeError } = useRuntime();
+  const chains = useMemo(() => (cfg?.deployments ? deployedChains(cfg.deployments) : CHAIN_LIST), [cfg]);
   const load = useCallback(async () => {
     const n = await windowCount(k!.hub, k!.d.hub.attestationOracle);
     const ws = n === 0 ? [] : await readWindows(k!.hub, k!.d.hub.attestationOracle, Math.max(1, n - 59), n);
-    const covered = await Promise.all(CHAIN_LIST.map(async (c) => ({ chainId: c.chainId, until: await k!.payoutCoveredUntil(c.chainId) })));
+    const covered = await Promise.all(chains.map(async (c) => ({ chainId: c.chainId, until: await k!.payoutCoveredUntil(c.chainId) })));
     let indexedLag: { chainId: number; kind: number; confirmedLagSeconds: number | null }[] | null = null;
     let lagError: string | null = null;
     if (cfg?.services.indexer) {
@@ -30,7 +31,7 @@ export default function AttestationsPage() {
       }
     }
     return { n, ws: ws.reverse(), covered, indexedLag, lagError };
-  }, [k, cfg]);
+  }, [k, cfg, chains]);
   const { data, error, loading } = usePoll(k ? load : null, 3000, [k, cfg]);
   const now = Math.floor(Date.now() / 1000);
   return (
@@ -44,9 +45,9 @@ export default function AttestationsPage() {
       {!k && runtimeError && <Notice tone="warn" title="The hub is not reachable">{runtimeError}</Notice>}
       {data?.lagError && <Notice tone="warn">{data.lagError}</Notice>}
       {error && <Notice tone="warn" title="The oracle can't be read">{readError(error)}</Notice>}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Windows on the hub" value={data ? data.n.toLocaleString() : "—"} sub={data ? "sorted Poseidon2 roots" : loading ? "reading the oracle…" : "unavailable"} className="bg-ui-surface-1" />
-        {(data?.covered ?? CHAIN_LIST.map((c) => ({ chainId: c.chainId, until: 0n }))).map((c) => {
+        {(data?.covered ?? chains.map((c) => ({ chainId: c.chainId, until: 0n }))).map((c) => {
           const payout = data?.indexedLag?.find((x) => x.chainId === c.chainId && x.kind === 2);
           const source = data?.indexedLag?.find((x) => x.chainId === c.chainId && x.kind === 1);
           return (
