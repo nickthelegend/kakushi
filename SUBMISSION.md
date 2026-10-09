@@ -80,10 +80,13 @@ against the real SDK but need the owner's Privy app to run (`app/PRIVY.md`).
 
 HyperIndex over Fhish Pay, the decryption oracle and the FHE executor. Derived entities: payment
 graph without amounts, pay-link lifecycle and claim times, payroll runs, reveal latency, public TVL,
-FHE ops per opcode. Powers the app's Activity page (`/activity`).
+FHE ops per opcode. It drives two core features: every user's payment history on `/pay` (Monad's
+`eth_getLogs` covers 100 blocks per call, so without the indexer a wallet can only show the last few
+minutes; the app reads the indexed history and only the unindexed tip from the chain) and the
+network-wide Activity page (`/activity`).
 
 Evidence: live HyperIndex run on the Monad fork; `indexer/scripts/verify.ts` recomputes all 22
-aggregates from raw logs and they match; 5 handler tests; `indexer/EVIDENCE.md`. Testnet uses HyperSync
+aggregates and every request/wrap row from raw logs and they match; `app/scripts/activity-parity.ts` proves the indexer-backed feed equals the log-derived feed for every account; 7 handler tests; `indexer/EVIDENCE.md`. Testnet uses HyperSync
 (`https://10143.hypersync.xyz`) once the contracts are deployed; Envio Cloud deploy needs the owner's
 account (`indexer/README.md`).
 
