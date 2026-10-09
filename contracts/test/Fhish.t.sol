@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {FhishPayToken} from "../src/examples/Examples.sol";
 import {Test, Vm} from "forge-std/Test.sol";
 import {FhishExecutor} from "../src/lib/FhishExecutor.sol";
 import {FhishACL} from "../src/lib/FhishACL.sol";
@@ -289,5 +290,102 @@ contract FhishTest is Test {
         assertTrue(sawNoMatch);
         (,,, bool open) = d.orderInfo(id);
         assertTrue(open, "order stays open, its limit still secret");
+    }
+
+    // ------------------------------------------------------------------ Fhish Pay
+
+    function _payToken() internal returns (FhishPayToken c, TestToken usd) {
+        usd = new TestToken();
+        c = new FhishPayToken(IERC20Like(address(usd)), "Confidential AUSD", "cAUSD");
+        usd.mint(alice, 1_000e6);
+        vm.startPrank(alice);
+        usd.approve(address(c), type(uint256).max);
+        c.wrapWithPermit(500e6, block.timestamp, 0, bytes32(0), bytes32(0)); // no permit support: falls back to the allowance
+        vm.stopPrank();
+    }
+
+    function test_PayLinkClaimsOnlyWithTheLinkKey() public {
+        (FhishPayToken c,) = _payToken();
+        (address key, uint256 keyPk) = makeAddrAndKey("link-key");
+        (bytes32 h, bytes memory p) = _input(FhishType.EUINT64, alice, address(c));
+        vm.prank(alice);
+        uint256 id = c.createLink(externalEuint64.wrap(h), p, key, uint64(block.timestamp + 1 days));
+        // the sender can read what she escrowed; the escrow holds it, not bob yet
+        assertTrue(acl.isAllowed(euint64.unwrap(c.linkAmount(id)), alice));
+        assertFalse(acl.isAllowed(euint64.unwrap(c.linkAmount(id)), bob));
+
+        // a signature for carol cannot be replayed to bob, and a wrong key fails
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(keyPk, c.claimDigest(id, carol));
+        vm.expectRevert(abi.encodeWithSignature("BadClaimSignature()"));
+        c.claimLink(id, bob, abi.encodePacked(r, s, v));
+        (, uint256 otherPk) = makeAddrAndKey("other");
+        (v, r, s) = vm.sign(otherPk, c.claimDigest(id, bob));
+        vm.expectRevert(abi.encodeWithSignature("BadClaimSignature()"));
+        c.claimLink(id, bob, abi.encodePacked(r, s, v));
+
+        // anyone (a gas sponsor) can submit the key's signature for bob
+        (v, r, s) = vm.sign(keyPk, c.claimDigest(id, bob));
+        vm.prank(carol);
+        c.claimLink(id, bob, abi.encodePacked(r, s, v));
+        assertTrue(acl.isAllowed(euint64.unwrap(c.confidentialBalanceOf(bob)), bob), "bob can read his new balance");
+        vm.expectRevert(abi.encodeWithSignature("LinkNotOpen(uint256)", id));
+        c.claimLink(id, bob, abi.encodePacked(r, s, v));
+    }
+
+    function test_PayLinkRefundsOnlyAfterExpiryAndOnlyToSender() public {
+        (FhishPayToken c,) = _payToken();
+        (address key, uint256 keyPk) = makeAddrAndKey("link-key");
+        (bytes32 h, bytes memory p) = _input(FhishType.EUINT64, alice, address(c));
+        vm.prank(alice);
+        uint256 id = c.createLink(externalEuint64.wrap(h), p, key, uint64(block.timestamp + 1 hours));
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("LinkNotExpired(uint256)", id));
+        c.refundLink(id);
+        vm.warp(block.timestamp + 2 hours);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(keyPk, c.claimDigest(id, bob));
+        vm.expectRevert(abi.encodeWithSignature("LinkExpired(uint256)", id));
+        c.claimLink(id, bob, abi.encodePacked(r, s, v));
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSignature("NotSender()"));
+        c.refundLink(id);
+        vm.prank(alice);
+        c.refundLink(id);
+    }
+
+    function test_PayrollPaysEachEmployeeASeparateCiphertext() public {
+        (FhishPayToken c,) = _payToken();
+        address[] memory staff = new address[](2);
+        staff[0] = bob;
+        staff[1] = carol;
+        externalEuint64[] memory amounts = new externalEuint64[](2);
+        bytes[] memory proofs = new bytes[](2);
+        address ops = makeAddr("payroll-operator");
+        for (uint256 i; i < 2; i++) {
+            (bytes32 h, bytes memory p) = _input(FhishType.EUINT64, ops, address(c));
+            amounts[i] = externalEuint64.wrap(h);
+            proofs[i] = p;
+        }
+        // not an operator yet
+        vm.prank(ops);
+        vm.expectRevert(abi.encodeWithSignature("UnauthorizedSpender(address,address)", alice, ops));
+        c.runPayrollFrom(alice, staff, amounts, proofs, "2026-10");
+        vm.prank(alice);
+        c.setOperator(ops, uint48(block.timestamp + 1 days));
+        vm.recordLogs();
+        vm.prank(ops);
+        c.runPayrollFrom(alice, staff, amounts, proofs, "2026-10");
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 paid;
+        for (uint256 i; i < logs.length; i++) if (logs[i].topics[0] == keccak256("Paid(address,address,bytes32,bytes32)")) paid++;
+        assertEq(paid, 2);
+        bytes32 bobBal = euint64.unwrap(c.confidentialBalanceOf(bob));
+        assertTrue(acl.isAllowed(bobBal, bob));
+        assertFalse(acl.isAllowed(bobBal, carol), "carol cannot read bob's salary");
+        // a mismatched batch is rejected
+        address[] memory one = new address[](1);
+        one[0] = bob;
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("LengthMismatch()"));
+        c.runPayroll(one, amounts, proofs, "x");
     }
 }

@@ -9,6 +9,7 @@ import {ConfidentialERC20Wrapper, IERC20Like} from "../apps/ConfidentialERC20Wra
 import {SealedBidAuction} from "../apps/SealedBidAuction.sol";
 import {ConfidentialVoting} from "../apps/ConfidentialVoting.sol";
 import {DarkOTC} from "../apps/DarkOTC.sol";
+import {ConfidentialPayments} from "../apps/ConfidentialPayments.sol";
 
 /// cUSDC: confidential Monad USDC (wrap any ERC-20).
 contract ConfidentialWrappedToken is FhishConfig, ConfidentialERC20Wrapper {
@@ -26,3 +27,10 @@ contract FhishVote is FhishConfig, ConfidentialVoting {
 }
 
 contract FhishDarkOTC is FhishConfig, DarkOTC {}
+
+/// Fhish Pay token: confidential AUSD / USDC with private payments, pay links and payroll.
+contract FhishPayToken is FhishConfig, ConfidentialPayments {
+    constructor(IERC20Like underlying_, string memory name_, string memory symbol_)
+        ConfidentialPayments(underlying_, name_, symbol_)
+    {}
+}

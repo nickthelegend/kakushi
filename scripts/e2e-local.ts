@@ -6,9 +6,10 @@
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
 import { readFileSync, openSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createPublicClient, createWalletClient, http, parseEventLogs, defineChain, type Hex, parseAbi, getContract } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { createPublicClient, createWalletClient, http, parseEventLogs, defineChain, type Hex, parseAbi, getContract, keccak256, toHex, parseSignature } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { FhishClient, waitForDecryption } from "../sdk/src/index.ts";
+import { trackByTags, type CommitTimeline } from "../sdk/src/monad.ts";
 import { nativeEncryptor } from "../sdk/src/node.ts";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -17,6 +18,8 @@ const RPC = `http://127.0.0.1:${PORT}`;
 const GATEWAY = "http://127.0.0.1:8890";
 const ENGINE_BIN = `${ROOT}engine/bin/fhish-engine`;
 const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3"; // Circle USDC on Monad testnet
+const AUSD = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC"; // Agora AUSD on Monad testnet (6 dp, ERC-2612 + ERC-3009)
+const AUSD_FAUCET = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C"; // Agora's testnet faucet: requestFunds(address) -> 10,000 AUSD, 60 s global cooldown
 const keep = process.argv.includes("--keep");
 const viaCre = process.argv.join(" ").includes("--deliver cre");
 const CRE_FORWARDER = "0xB9F79d863261869B234c481D1f9A7af84AeAd192"; // Chainlink MockKeystoneForwarder on Monad testnet
@@ -68,6 +71,22 @@ async function send(k: keyof typeof KEYS, address: Hex, abi: any, functionName: 
   const rc = await pub.waitForTransactionReceipt({ hash });
   if (rc.status !== "success") throw new Error(`${functionName} reverted`);
   return rc;
+}
+
+
+/** 10,000 real AUSD from Agora's faucet (the fork runs its real code); skips its 60 s cooldown on the fork. */
+async function fundAusd(to: Hex) {
+  const faucet = parseAbi(["function requestFunds(address)"]);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await send("alice", AUSD_FAUCET, faucet, "requestFunds", [to]);
+      return;
+    } catch {
+      await rpc("evm_increaseTime", ["0x3d"]);
+      await rpc("evm_mine", []);
+    }
+  }
+  throw new Error("AUSD faucet refused");
 }
 
 async function main() {
@@ -191,6 +210,83 @@ async function main() {
     results.push({ name: "Dark OTC", pass: false, detail: (e as Error).message });
   }
 
+
+  // ---------------------------------------------------------------- Fhish Pay on real AUSD
+  try {
+    say("5 · Fhish Pay on real Agora AUSD: gasless wrap, encrypted payroll, pay link to a new account, cash out");
+    const ladder = (tl: CommitTimeline) => `proposed ${tl.at.Proposed} ms · voted ${tl.at.Voted} ms · finalized ${tl.at.Finalized} ms`;
+    const settle = async (rc: { blockNumber: bigint }) => trackByTags(pub as never, rc.blockNumber, { pollMs: 50 });
+    await fundAusd(addr("alice")); // 10,000 AUSD from Agora's faucet
+    const pay = await deployApp("Examples.sol", "FhishPayToken", [AUSD, "Confidential AUSD", "cAUSD"], "alice");
+    const ausd = parseAbi(["function balanceOf(address) view returns (uint256)"]);
+
+    // gasless onboarding: alice signs an ERC-3009 authorization, carol (a sponsor) submits it
+    const nonce = keccak256(toHex(`fhish-wrap-${Date.now()}`));
+    const value = 5_000_000_000n; // 5,000 AUSD
+    const auth = await privateKeyToAccount(KEYS.alice).signTypedData({
+      domain: { name: "Agora Dollar", version: "1", chainId: 10143, verifyingContract: AUSD },
+      types: { ReceiveWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
+      primaryType: "ReceiveWithAuthorization",
+      message: { from: addr("alice"), to: pay.address, value, validAfter: 0n, validBefore: BigInt(Math.floor(Date.now() / 1000) + 3600), nonce },
+    });
+    const sig = parseSignature(auth);
+    const w0 = await send("carol", pay.address, pay.abi, "wrapWithAuthorization", [addr("alice"), value, 0n, BigInt(Math.floor(Date.now() / 1000) + 3600), nonce, Number(sig.v), sig.r, sig.s]);
+    console.log(`  alice wrapped 5,000 AUSD with one signature; carol paid the gas · ${ladder(await settle(w0))}`);
+
+    // encrypted payroll, run by an operator (a server wallet in production)
+    const ops = "carol" as const;
+    await send("alice", pay.address, pay.abi, "setOperator", [addr(ops), Math.floor(Date.now() / 1000) + 86400]);
+    const salaries: [keyof typeof KEYS, bigint][] = [["bob", 3_200_000_000n], ["carol", 1_150_000_000n]];
+    const enc = [];
+    for (const [, amt] of salaries) enc.push(await fhish.encrypt("euint64", amt, pay.address, addr(ops)));
+    const pr = await send(ops, pay.address, pay.abi, "runPayrollFrom", [addr("alice"), salaries.map(([w]) => addr(w)), enc.map((e) => e.handle), enc.map((e) => e.proof), toHex("2026-10", { size: 32 })]);
+    console.log(`  payroll: 2 encrypted salaries in one tx · ${ladder(await settle(pr))}`);
+
+    // pay link: bob sends 250 AUSD to someone with no account yet (cross-border, by link)
+    const linkKey = generatePrivateKey();
+    const linkAddr = privateKeyToAccount(linkKey).address;
+    const amt = await fhish.encrypt("euint64", 250_000_000n, pay.address, addr("bob"));
+    const lr = await send("bob", pay.address, pay.abi, "createLink", [amt.handle, amt.proof, linkAddr, BigInt(Math.floor(Date.now() / 1000) + 7 * 86400)]);
+    const linkId = (parseEventLogs({ abi: pay.abi, logs: lr.logs, eventName: "LinkCreated" })[0] as any).args.id as bigint;
+    const newcomer = privateKeyToAccount(generatePrivateKey()); // a brand-new account (e.g. created by a passkey)
+    const digest = (await pub.readContract({ address: pay.address, abi: pay.abi, functionName: "claimDigest", args: [linkId, newcomer.address] })) as Hex;
+    const claimSig = await privateKeyToAccount(linkKey).sign({ hash: digest });
+    const cr = await send("carol", pay.address, pay.abi, "claimLink", [linkId, newcomer.address, claimSig]); // sponsor submits
+    console.log(`  pay link #${linkId} claimed by a new account that never held gas · ${ladder(await settle(cr))}`);
+
+    // everyone reads only their own number
+    const c = getContract({ address: pay.address, abi: pay.abi, client: pub });
+    const bal = async (who: Hex) => (await c.read.confidentialBalanceOf([who])) as Hex;
+    const [hb, hc, ha, hn] = [await bal(addr("bob")), await bal(addr("carol")), await bal(addr("alice")), await bal(newcomer.address)];
+    const b = await fhish.userDecrypt([hb], pay.address, wallet("bob") as never);
+    const cc = await fhish.userDecrypt([hc], pay.address, wallet("carol") as never);
+    const a = await fhish.userDecrypt([ha], pay.address, wallet("alice") as never);
+    const nw = createWalletClient({ chain, account: newcomer, transport: http(RPC) });
+    const n = await fhish.userDecrypt([hn], pay.address, nw as never);
+    let peek = false;
+    await fhish.userDecrypt([hb], pay.address, wallet("carol") as never).catch(() => (peek = true));
+
+    // bob cashes out 1,000 AUSD (only that amount is ever revealed)
+    const out = await fhish.encrypt("euint64", 1_000_000_000n, pay.address, addr("bob"));
+    const before = (await pub.readContract({ address: AUSD, abi: ausd, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
+    const ur = await send("bob", pay.address, pay.abi, "unwrap", [out.handle, out.proof]);
+    await waitForDecryption(pub as never, dep.oracle, (parseEventLogs({ abi: pay.abi, logs: ur.logs, eventName: "UnwrapRequested" })[0] as any).args.requestId as bigint);
+    const after = (await pub.readContract({ address: AUSD, abi: ausd, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
+
+    const okBalances =
+      b[hb.toLowerCase()] === 3_200_000_000n - 250_000_000n &&
+      cc[hc.toLowerCase()] === 1_150_000_000n &&
+      a[ha.toLowerCase()] === 5_000_000_000n - 4_350_000_000n &&
+      n[hn.toLowerCase()] === 250_000_000n;
+    results.push({
+      name: "Fhish Pay on real AUSD",
+      pass: okBalances && peek && after - before === 1_000_000_000n,
+      detail: `salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; carol refused bob's balance; bob cashed out 1,000 real AUSD`,
+    });
+  } catch (e) {
+    results.push({ name: "Fhish Pay on real AUSD", pass: false, detail: (e as Error).message.split("\n")[0]! });
+  }
+
   if (viaCre) {
     const ful = await pub.getLogs({ address: dep.oracle, event: parseAbi(["event DecryptionFulfilled(uint256 indexed requestId, uint256[] cleartexts, bool callbackOk, address via)"])[0], fromBlock: BigInt(dep.deployBlock) });
     const viaFwd = ful.filter((l) => l.args.via?.toLowerCase() === CRE_FORWARDER.toLowerCase()).length;
@@ -198,12 +294,16 @@ async function main() {
   }
 
   if (keep) {
-    say("5 · deploying long-lived demo apps for the playground");
+    say("6 · deploying long-lived demo apps for the playground");
     const auction = await deployApp("Examples.sol", "FhishAuction", ["Genesis hanko #2", 3600n], "alice");
     const cusdc = await deployApp("Examples.sol", "ConfidentialWrappedToken", [USDC, "Confidential USDC", "cUSDC"], "alice");
     const otc = await deployApp("Examples.sol", "FhishDarkOTC", [], "alice");
-    for (const k of Object.values(KEYS)) await rpc("anvil_dealERC20", [privateKeyToAccount(k).address, USDC, "0x" + (1_000_000_000n).toString(16)]);
-    const apps = { auction: auction.address, cusdc: cusdc.address, otc: otc.address, usdc: USDC };
+    const causd = await deployApp("Examples.sol", "FhishPayToken", [AUSD, "Confidential AUSD", "cAUSD"], "alice");
+    for (const k of Object.values(KEYS)) {
+      await rpc("anvil_dealERC20", [privateKeyToAccount(k).address, USDC, "0x" + (1_000_000_000n).toString(16)]);
+      await fundAusd(privateKeyToAccount(k).address);
+    }
+    const apps = { auction: auction.address, cusdc: cusdc.address, otc: otc.address, usdc: USDC, causd: causd.address, ausd: AUSD };
     (await import("node:fs")).writeFileSync(`${ROOT}contracts/deployments/local-apps.json`, JSON.stringify(apps, null, 2));
     console.log("  playground apps:", JSON.stringify(apps));
   }
