@@ -16,6 +16,7 @@
     "@kakushi/config": "workspace:*",
     "@kakushi/sdk": "workspace:*",
     "@kakushi/ui": "workspace:*",
+    "@kakushi/widget": "workspace:*",
     "@privy-io/react-auth": "^3.40.0",
     "clsx": "2.1.1",
     "lenis": "^1.3.26",

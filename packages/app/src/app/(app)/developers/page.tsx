@@ -3,6 +3,7 @@
 import { CodeBlock, type CodeSample } from "@kakushi/ui";
 import { Boxes, EyeOff, Package, Shield, Zap } from "lucide-react";
 import { developers } from "@/components/landing/content";
+import { WidgetDemo } from "@/components/widget-demo";
 
 const STEPS = [
   { icon: <Package size={18} />, title: "Install", body: "pnpm add @kakushi/sdk" },
@@ -29,6 +30,10 @@ export default function DevelopersPage() {
           </li>
         ))}
       </ol>
+      <section className="mt-8 rounded-[28px] bg-ui-surface-1/80 p-5 ring-1 ring-ui-hairline-strong backdrop-blur sm:p-6">
+        <h2 className="mb-4 text-[20px] font-medium">Try the widget</h2>
+        <WidgetDemo />
+      </section>
       <div className="mt-6">
         <CodeBlock aria-label="Kakushi SDK examples" note={developers.note} copyable defaultKey="send" samples={developers.samples as unknown as CodeSample[]} />
       </div>
