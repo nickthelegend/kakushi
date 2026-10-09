@@ -6,12 +6,21 @@
   "description": "Fhish on Monad: plug-and-play fully homomorphic encryption for any Solidity contract. Native Zama tfhe-rs coprocessor, k-of-n KMS with automatic decryption callbacks, Chainlink CRE delivery.",
   "type": "module",
   "packageManager": "pnpm@10.29.2",
-  "engines": { "node": ">=22.18.0" },
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "contracts:test": "cd contracts && forge test",
     "engine:build": "cd engine && cargo build --release",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "e2e": "node scripts/e2e-local.ts"
   },
-  "devDependencies": { "typescript": "^5.9.3", "@types/node": "^22.20.1" }
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.20.1"
+  },
+  "dependencies": {
+    "viem": "^2.38.0"
+  }
 }
