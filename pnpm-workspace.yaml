@@ -1,0 +1,8 @@
+packages:
+  - "coprocessor"
+  - "sdk"
+  - "app"
+  - "cre"
+onlyBuiltDependencies:
+  - bun
+  - esbuild
