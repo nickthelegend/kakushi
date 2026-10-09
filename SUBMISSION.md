@@ -31,6 +31,8 @@ can never leak a number.
 - **Payroll.** An employer pays the whole team in one transaction. Each salary is a separate
   ciphertext that only the employer and that employee can read. A policy-limited server wallet
   (Privy) can run it on schedule.
+- **Request money.** Ask someone abroad for an encrypted amount; only the two of you can read it,
+  and even whether it has been paid stays private to you both.
 - **Cash out** to real AUSD at any time; only the amount you take out is revealed.
 
 ## Main-track scoring map
@@ -38,7 +40,7 @@ can never leak a number.
 | Criterion (20% each) | Evidence |
 |---|---|
 | Product quality | Mobile app (Mera passkeys), web pay + payroll console (Privy), activity explorer (Envio); every number encrypted on the user's device; live Monad heartbeat |
-| Technical excellence | Native tfhe-rs engine and parallel coprocessor, k-of-n input attestation and KMS, sealed user decryption, finality-gated reveals; pay links bound to a one-time key (front-run-proof claims), payroll operators, ERC-2612/ERC-3009 gasless onboarding; Solidity, TypeScript and end-to-end tests on real AUSD |
+| Technical excellence | Native tfhe-rs engine and parallel coprocessor, k-of-n input attestation and KMS, sealed user decryption, finality-gated reveals; pay links bound to a one-time key (front-run-proof claims); encrypted requests whose outstanding balance is a ciphertext; payroll operators that can only relay employer-signed, single-use EIP-712 batches; ERC-2612/ERC-3009 gasless onboarding; Solidity, TypeScript and end-to-end tests on real AUSD |
 | Monad integration | `monadNewHeads` commit-state ladder in the product; reveals gated on `finalized`; `eth_sendRawTransactionSync`; gas set on the limit; 100-block log paging; Agora AUSD + faucet and Circle USDC on Monad testnet |
 | Track fit (T2) | Consumer payments: private sends, cross-border pay links, payroll, private balances |
 | Innovation | First FHE payments stack on Monad; encrypted amounts with sub-second, visible finality |

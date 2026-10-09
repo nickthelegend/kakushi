@@ -95,7 +95,8 @@ payments token; deploy `FhishPayToken(underlying, name, symbol)` from `src/examp
 | Onboard without gas | user signs ERC-3009 `ReceiveWithAuthorization` (to = token); anyone submits `wrapWithAuthorization(...)`; or `wrapWithPermit` |
 | Pay with an invoice/memo reference | `pay(to, encAmount, proof, ref)` → `Paid(from, to, handle, ref)` |
 | Pay someone without an account | `createLink(encAmount, proof, claimKey, expiry)`; recipient signs nothing, the link's one-time key signs `claimDigest(id, to)`; anyone submits `claimLink(id, to, sig)`; sender `refundLink` after expiry |
-| Payroll | `runPayroll(to[], amounts[], proofs[], ref)`; or authorize an operator with `setOperator(op, until)` and let it call `runPayrollFrom(employer, …)` (the operator encrypts the salaries, so the inputs are bound to it) |
+| Request money | `requestPayment(payer, encAmount, proof, expiry, ref)`; payer `payRequest(id)`; payee `cancelRequest(id)`; `requestDue(id)` is the encrypted amount still owed (payee and payer can decrypt) |
+| Payroll | `runPayroll(to[], amounts[], proofs[], ref)`; or authorize an operator with `setOperator(op, until)` and let it relay `runPayrollFrom(employer, to, amounts, proofs, ref, deadline, employerSig)`: the employer signs the EIP-712 `PayrollBatch` (domain "Fhish Payroll" v1, verifyingContract = token), the contract verifies it (EOA, 7702 or ERC-1271) and pays each `(employer, ref)` once. The operator encrypts the salaries, so the inputs are bound to it |
 | Cash out | `unwrap(encAmount, proof)`; the oracle callback releases the underlying |
 
 A transfer of more than the balance silently moves 0 (`FHE.select`), so failed payments leak nothing.

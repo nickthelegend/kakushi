@@ -10,7 +10,8 @@ payment, salary and pay link is a ciphertext. The chain sees who paid whom and w
 | Make AUSD private (one signature, gas sponsored) | `wrapWithAuthorization` (ERC-3009): a public deposit becomes an encrypted balance |
 | Pay a friend | `pay(to, encryptedAmount, proof, ref)`: both balances updated homomorphically |
 | Send across borders by link | `createLink` escrows an encrypted amount behind a one-time key; the recipient creates a passkey account and `claimLink`s it, gasless |
-| Run payroll | `runPayroll` / `runPayrollFrom` (a policy-limited operator): one tx, one ciphertext per salary |
+| Request money (an invoice) | `requestPayment(payer, encryptedAmount, …)`: only payee and payer can read it; `payRequest` pays it; what is still owed is itself a ciphertext |
+| Run payroll | `runPayroll` / `runPayrollFrom` (a relaying operator that can only submit batches the employer signed, each reference once): one tx, one ciphertext per salary |
 | See your balance | EIP-712 request; the value is sealed to a key only your device holds |
 | Cash out | `unwrap`: only the amount you take out is revealed, after Monad finality |
 
@@ -88,7 +89,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | `FhishACL` | `contracts/src/lib` | Persistent grants plus **transient** grants in EIP-1153 storage (free within a tx). |
 | `FhishInputVerifier` | `contracts/src/lib` | k-of-n EIP-712 `InputAttestation(handle, user, contract)`: an input only works for the user and contract it was encrypted for. |
 | `FhishDecryptionOracle` | `contracts/src/oracle` | Public reveals with **automatic callbacks**, k-of-n KMS signatures, Chainlink CRE `onReport`. |
-| `ConfidentialPayments` | `contracts/src/apps` | Fhish Pay: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payroll with operators, gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
+| `ConfidentialPayments` | `contracts/src/apps` | Fhish Pay: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payment requests, encrypted payroll (operators relay only employer-signed EIP-712 batches, one payment per reference), gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
 | `FhishRegistry` | `contracts/src/lib` | CREATE3 via CreateX: **the same address on every chain** (`0x2152Ed4dD179fCDe7FE0c2F35e274Ce4D7b0BaF9`). `FhishConfig` reads it, which makes the integration one inheritance. |
 | fhish-engine | `engine/` | Rust + axum over tfhe-rs 1.8.1: keygen, input validation, every op, select, random, decrypt. |
 | coprocessor | `coprocessor/` | Follows the executor's events and schedules the op graph in parallel, respecting handle dependencies. Gateway (inputs, sealed user decryption), KMS, metrics. |
@@ -162,7 +163,7 @@ tfhe-rs ciphertexts on a fork of Monad testnet (`node scripts/e2e-local.ts --del
 PASS  Sealed-bid auction               winner bob @ 1337; close -> callback 4950 ms; bob user-decrypted his bid = 1337; losing bids never decrypted
 PASS  Confidential USDC (any ERC-20)   bob sees 20 cUSDC, alice 30 cUSDC, carol refused; bob unwrapped 5 real USDC
 PASS  Dark OTC                         bob @3000 missed (nothing revealed), carol @3200 crossed at the maker's 3150
-PASS  Fhish Pay on real AUSD           salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; carol refused bob's balance; bob cashed out 1,000 real AUSD
+PASS  Fhish Pay on real AUSD           salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD
 PASS  Chainlink CRE delivery           4/4 callbacks delivered by CRE reports through the KeystoneForwarder (KMS signatures re-verified on-chain)
 ```
 
