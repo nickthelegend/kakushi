@@ -16,6 +16,7 @@ export const nav = {
 
 export const hero = {
   eyebrow: "Kakushi bridge",
+  pill: "Payouts proven on Monad",
   headline: ["Bridge in a second.", "Backed by proof."],
   sub: "Pay a Maker directly and it pays you on the other chain. The last four digits of the amount say where it goes. If the Maker doesn't pay, a zero-knowledge proof takes its margin on Monad and gives it to you.",
   primary: "Open the bridge",

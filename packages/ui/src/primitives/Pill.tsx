@@ -142,7 +142,7 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
         // text, and hovering only brightens the hairline (never looking chosen).
         variant === "pill" &&
           (selected
-            ? "border border-transparent bg-ui-lime-button pl-2.5 text-[#121418]"
+            ? "border border-transparent bg-ui-lime-button pl-2.5 text-ui-on-lime"
             : "border border-ui-hairline-strong text-ui-muted hover:border-ui-muted"),
         className,
       )}

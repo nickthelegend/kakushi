@@ -7,7 +7,7 @@ import { CHAINS } from "@kakushi/config";
 import type { PairInfo } from "@kakushi/sdk";
 import { PanelCard, PrimaryButton, cn } from "@kakushi/ui";
 import { Store } from "lucide-react";
-import { Amount, Empty, Loading, Notice, PageHead, Pill, Route, Stat, readError, short } from "@/components/kit";
+import { Amount, Empty, Loading, Notice, PageHead, Pill, Route, Stat, readError, short , ArtBanner } from "@/components/kit";
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
 
@@ -112,6 +112,7 @@ export default function MakersPage() {
   const { data, error, loading } = usePoll(k && cfg ? load : null, 5000, [k, cfg]);
   return (
     <div>
+      <ArtBanner src="/art/vault.webp" position="50% 45%" />
       <PageHead
         title="Makers"
         sub="An open market. Each Maker posts margin on Monad, registers routes and fees in the EBC, and fills from its own inventory."

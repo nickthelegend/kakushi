@@ -24,7 +24,7 @@ export function How() {
                 </div>
                 <div className="flex flex-1 flex-col px-3 pt-5 pb-3">
                   <h3 className="flex items-center gap-2.5 text-[22px] font-medium tracking-[-0.025em]">
-                    <span className={cn("grid size-8 place-items-center rounded-full text-white", card.key === "pay" ? "bg-[#a9c350]" : card.key === "paid" ? "bg-[#4fb3ac]" : "bg-[#9a6ad6]")}>
+                    <span className={cn("grid size-8 place-items-center rounded-full text-white", card.key === "pay" ? "bg-[#2f47f5]" : card.key === "paid" ? "bg-[#c79a52]" : "bg-[#6d86e9]")}>
                       {card.key === "pay" ? <Send size={16} /> : card.key === "paid" ? <Coins size={16} /> : <Gavel size={16} />}
                     </span>
                     {card.title}
@@ -102,7 +102,7 @@ function PaidVisual() {
       </div>
       <motion.div animate={{ opacity: paid ? 1 : 0.35, scale: paid ? 1 : 0.98 }} transition={{ duration: 0.35, ease: EASE_REVEAL }} className="flex items-center justify-between rounded-[18px] bg-ui-canvas px-4 py-3">
         <span className="flex items-center gap-2.5 text-[15px] font-medium">
-          <span className={cn("grid size-7 place-items-center rounded-full", paid ? "bg-ui-lime-button text-[#121418]" : "bg-ui-surface-2 text-ui-muted")}>
+          <span className={cn("grid size-7 place-items-center rounded-full", paid ? "bg-ui-lime-button text-ui-on-lime" : "bg-ui-surface-2 text-ui-muted")}>
             <Check size={15} strokeWidth={2.5} aria-hidden />
           </span>
           {paid ? "Paid to you" : "Filling"}

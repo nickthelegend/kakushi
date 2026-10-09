@@ -1,51 +1,38 @@
 "use client";
 
-import { PrimaryButton, SecondaryButton, StatusPill } from "@kakushi/ui";
-import { ArrowRight, Check, Gavel } from "lucide-react";
+import { Button } from "@kakushi/ui";
+import { Star } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { BlurWords, Rise } from "@/components/motion";
 import { hero } from "./content";
-import { ProductPreview } from "./preview";
 
-/** The hero in ref E's language: the headline over the product itself. */
+const CoinWave = dynamic(() => import("./coin-wave").then((m) => m.CoinWave), { ssr: false });
+
+/** The hero: a blue pill, the serif headline, one white CTA, and the wave of struck coins. */
 export function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="relative isolate pt-4 pb-16 sm:pt-6 lg:pb-24">
-      <div aria-hidden className="glow-lime absolute top-10 left-1/2 -z-10 h-[520px] w-[900px] -translate-x-1/2" />
-      <div className="mx-auto flex max-w-[1280px] flex-col items-center px-4 text-center sm:px-6 lg:px-8">
-        <Rise y={10} blur={6} duration={0.7}>
-          <StatusPill tone="lime" size="md" icon={<span className="block size-2 rounded-full bg-current" />}>
-            {hero.eyebrow} · disputes settle on Monad
-          </StatusPill>
+    <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
+      <div aria-hidden className="absolute inset-x-0 bottom-0 -z-10 h-[70%] bg-[radial-gradient(60%_70%_at_50%_85%,rgb(47_71_245/0.22),transparent_70%)]" />
+      <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 pt-12 text-center sm:px-6 sm:pt-16 lg:pt-20">
+        <Rise y={8} blur={4} duration={0.6}>
+          <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-[#3a5cf0] px-3 text-[13px] font-medium text-white">
+            <Star aria-hidden className="size-3.5 fill-current" strokeWidth={0} />
+            {hero.pill}
+          </span>
         </Rise>
-        <h1 id="hero-title" aria-label={hero.headline.join(" ")} className="mt-6 text-[clamp(44px,5vw,72px)] leading-[0.98] font-medium tracking-[-0.05em] text-balance">
+        <h1 id="hero-title" aria-label={hero.headline.join(" ")} className="mt-5 text-[clamp(46px,7.4vw,108px)] leading-[1.02] text-balance">
           <BlurWords as="span" css text={hero.headline[0]!} className="block" lineClassName="block" delay={0.05} />
-          <BlurWords as="span" css text={hero.headline[1]!} className="block text-ui-lime-active" lineClassName="block" delay={0.3} />
+          <BlurWords as="span" css text={hero.headline[1]!} className="block" lineClassName="block" delay={0.3} />
         </h1>
-        <Rise y={16} blur={8} delay={0.45} duration={0.8}>
-          <p className="mt-5 max-w-[640px] text-[17px] leading-[1.5] text-ui-muted sm:text-[19px]">{hero.sub}</p>
-        </Rise>
-        <Rise y={16} delay={0.6} duration={0.8} className="mt-7 flex flex-wrap justify-center gap-3">
-          <PrimaryButton asChild size="lg" iconRight={<ArrowRight />}>
+        <Rise y={12} delay={0.5} duration={0.7} className="mt-9">
+          <Button asChild variant="white" size="md" className="h-12 px-6 text-[16px] font-medium">
             <Link href="/bridge">{hero.primary}</Link>
-          </PrimaryButton>
-          <SecondaryButton asChild size="lg" icon={<Gavel />}>
-            <Link href="/disputes">{hero.secondary}</Link>
-          </SecondaryButton>
+          </Button>
         </Rise>
       </div>
-      <Rise y={48} blur={10} delay={0.55} duration={1.1} amount={0.04} className="mx-auto mt-9 max-w-[1280px] px-4 sm:px-6 lg:mt-12 lg:px-8">
-        <ProductPreview />
-        <p className="mt-4 text-center text-[13px] text-ui-muted">An illustration of a real transfer, priced with the published fee formula. The live bridge is one click away.</p>
-        <ul className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[14px] text-ui-muted">
-          {hero.trust.map((t) => (
-            <li key={t} className="inline-flex items-center gap-2">
-              <Check aria-hidden size={15} strokeWidth={2.25} className="text-ui-lime-text" />
-              {t}
-            </li>
-          ))}
-        </ul>
-      </Rise>
+      <CoinWave className="relative mt-2 h-[52vh] min-h-[340px] w-full lg:h-[56vh] lg:max-h-[620px]" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(transparent,var(--ui-canvas))]" />
     </section>
   );
 }

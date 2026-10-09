@@ -44,7 +44,7 @@ export const PrimaryButton = forwardRef<HTMLButtonElement, TradeButtonProps>(fun
       variant="lime"
       className={cn(
         HEIGHT[size],
-        "bg-ui-lime-button font-semibold tracking-[-0.005em] text-[#121418] hover:brightness-[1.06] [&_svg]:stroke-[2]",
+        "bg-ui-lime-button font-semibold tracking-[-0.005em] text-ui-on-lime hover:brightness-[1.06] [&_svg]:stroke-[2]",
         className,
       )}
       {...props}

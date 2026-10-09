@@ -15,23 +15,25 @@
     "@kakushi/attest-core": "workspace:*",
     "@kakushi/config": "workspace:*",
     "@kakushi/sdk": "workspace:*",
+    "@kakushi/ui": "workspace:*",
     "@privy-io/react-auth": "^3.40.0",
+    "clsx": "2.1.1",
+    "lenis": "^1.3.26",
     "lucide-react": "1.48.0",
     "motion": "13.4.4",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "viem": "^2.38.0",
-    "@kakushi/ui": "workspace:*",
-    "lenis": "^1.3.26",
-    "clsx": "2.1.1",
-    "tailwind-merge": "3.7.0"
+    "tailwind-merge": "3.7.0",
+    "three": "0.180.0",
+    "viem": "^2.38.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "0.180.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
   }

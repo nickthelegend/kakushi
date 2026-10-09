@@ -13,12 +13,12 @@ export type CoinTone = "lime" | "blue" | "purple" | "teal" | "orange" | "dark";
 
 const COIN: Record<CoinTone, string> = {
   // The reference's "$" coin.
-  lime: "bg-[#a9c350] text-white",
+  lime: "bg-[#2f47f5] text-white",
   // The reference's ETH coin.
   blue: "bg-[#6d86e9] text-white",
   purple: "bg-[#9a6ad6] text-white",
   teal: "bg-[#4fb3ac] text-white",
-  orange: "bg-[#e9903f] text-white",
+  orange: "bg-[#c79a52] text-white",
   dark: "bg-ui-surface-1 text-ui-text",
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Logo, PrimaryButton, TopNav } from "@kakushi/ui";
+import { Button, Logo, PrimaryButton, TopNav } from "@kakushi/ui";
 import { ArrowLeftRight, CircleHelp, CodeXml, FileCheck2, Route, Tag, Users } from "lucide-react";
 import Link from "next/link";
 import { NetworkPill } from "@/components/AppShell";
@@ -34,6 +34,9 @@ export function LandingNav() {
       actions={
         <>
           <NetworkPill className="hidden xl:inline-flex" />
+          <Button asChild variant="outline" size="sm" className="hidden border-white/70 bg-transparent hover:bg-white/10 lg:inline-flex">
+            <Link href="/disputes">Prove a payout</Link>
+          </Button>
           {cta}
         </>
       }

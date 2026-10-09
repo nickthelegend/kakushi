@@ -344,7 +344,7 @@ export function GradientLineChart({
         {/* The white bubble. */}
         {hp && at !== null ? (
           <div
-            className="pointer-events-none absolute z-[1] flex -translate-x-1/2 -translate-y-full items-baseline gap-1.5 rounded-[10px] bg-white px-2.5 py-[7px] leading-none whitespace-nowrap text-[#121418] shadow-[0_8px_24px_-6px_rgb(0_0_0/0.6)]"
+            className="pointer-events-none absolute z-[1] flex -translate-x-1/2 -translate-y-full items-baseline gap-1.5 rounded-[10px] bg-white px-2.5 py-[7px] leading-none whitespace-nowrap text-ui-on-lime shadow-[0_8px_24px_-6px_rgb(0_0_0/0.6)]"
             style={{ left: Math.max(axisWidth + 48, Math.min(W - 48, hp[0])), top: Math.max(4, hp[1] - 28) }}
           >
             <span className="ui-figure text-[14px] font-semibold">{formatValue(values[at]!)}</span>

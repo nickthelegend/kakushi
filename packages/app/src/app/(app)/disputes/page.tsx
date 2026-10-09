@@ -8,7 +8,7 @@ import { DataTable, PanelCard, PrimaryButton, SecondaryButton } from "@kakushi/u
 import { encodeFunctionData, encodeAbiParameters, keccak256, type Hex } from "viem";
 import { CHAIN_LIST, CHAINS, chainById } from "@kakushi/config";
 import { disputeModuleAbi, findSourcePayments, prepareDispute, srcRefOf, type DisputeReadiness, type SourcePayment } from "@kakushi/sdk";
-import { Amount, ChainName, Loading, Notice, PageHead, Pill, Spinner, ago, fieldCls, readError, short } from "@/components/kit";
+import { Amount, ChainName, Loading, Notice, PageHead, Pill, Spinner, ago, fieldCls, readError, short , ArtBanner } from "@/components/kit";
 import { useRouter } from "next/navigation";
 import { useRuntime } from "@/lib/runtime";
 import { useWallet } from "@/lib/wallet";
@@ -156,6 +156,7 @@ export default function DisputesPage() {
   const hub = cfg?.deployments?.hub;
   return (
     <div>
+      <ArtBanner src="/art/seal.webp" position="50% 30%" />
       <PageHead
         title="Disputes"
         sub="When a Maker misses a deadline, anyone can prove it. The Watchtower does it automatically and posts the bond; you can also do it yourself, in your browser."

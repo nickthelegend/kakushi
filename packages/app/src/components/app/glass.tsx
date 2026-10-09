@@ -5,7 +5,7 @@ import { cn } from "@kakushi/ui";
 /**
  * Glass coin and card stills (from the Polaris design kit). Decorative.
  */
-export type GlassArt = "coin-lime" | "coin-purple" | "card-lime";
+export type GlassArt = "coin-blue" | "coin-gold" | "card-blue";
 
 export function Glass({
   art,

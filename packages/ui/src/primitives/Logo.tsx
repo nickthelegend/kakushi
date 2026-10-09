@@ -12,8 +12,8 @@ export function Logo({ height = 30, className, alt = "Kakushi" }: { height?: num
   return (
     <span className={cn("inline-flex shrink-0 select-none items-center", className)} style={{ height, gap: Math.round(height * 0.32) }} aria-label={alt} role="img">
       <KakushiMark title="" width={height} height={height} />
-      <span className="font-satoshi font-bold tracking-[-0.04em] text-ui-text" style={{ fontSize: Math.round(height * 0.78), lineHeight: 1 }}>
-        Kakushi
+      <span className="font-satoshi font-semibold tracking-[-0.035em] text-ui-text" style={{ fontSize: Math.round(height * 0.8), lineHeight: 1 }}>
+        kakushi
       </span>
     </span>
   );

@@ -346,7 +346,7 @@ function SendWidget({ route, setRoute }: { route: Route; setRoute: (id: string) 
             <span className="code-digits">{fixed.slice(-4)}</span> <span className="text-[15px] text-ui-muted">{route.asset}</span>
           </p>
           <label className="mt-3 flex items-center gap-2 text-[13px] text-ui-muted">
-            <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} className="accent-[#b0c956]" />
+            <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} className="accent-[#2f47f5]" />
             Pay to a different address on {CHAINS[route.dst].shortName}
           </label>
           {custom ? (

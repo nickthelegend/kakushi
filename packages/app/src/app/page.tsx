@@ -10,6 +10,7 @@ import { Makers } from "@/components/landing/makers";
 import { LandingNav } from "@/components/landing/nav";
 import { Proof } from "@/components/landing/proof";
 import { Sponsors } from "@/components/landing/sponsors";
+import { Transfer } from "@/components/landing/transfer";
 import { SmoothScroll } from "@/components/motion";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function LandingPage() {
         <main>
           <Hero />
           <Sponsors />
+          <Transfer />
           <How />
           <Proof />
           <Developers />

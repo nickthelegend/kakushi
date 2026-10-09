@@ -4,9 +4,8 @@
 
 /*
   KAKUSHI
-  From 1024px the app is a dark rounded panel floating on a lime canvas; below it the
-  dark panel is full bleed. <html data-theme="ref-e"> sets the tokens (the same design
-  system as Polaris). This file adds only the mono face, the page ground and selection.
+  <html data-theme="ref-e"> sets the library's tokens (the Polaris design system, vendored
+  as @kakushi/ui); the block below re-colours them for Kakushi, full bleed.
 */
 
 @theme {
@@ -15,6 +14,86 @@
 
 :root[data-theme] {
   --font-satoshi: var(--font-satoshi-next), "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/*
+  Kakushi's palette (after the Swyftx hero): navy-black ground, royal blue for
+  action, white pill CTAs, silver and gold only in the coins. The library's
+  "lime" tokens are its accent slot; here they carry the blue.
+*/
+:root[data-theme="ref-e"] {
+  --ui-frame: #04060f;
+  --ui-canvas: #04060f;
+  --ui-surface-1: #0b0f1f;
+  --ui-surface-2: #121831;
+  --ui-surface-3: #1a2142;
+  --ui-hairline: rgb(140 160 255 / 0.1);
+  --ui-hairline-strong: rgb(140 160 255 / 0.17);
+  --ui-text: #ffffff;
+  --ui-muted: #98a1bf;
+  --ui-dim: #5c6585;
+
+  --ui-ink: #0b0f1f;
+  --ui-on-ink: #ffffff;
+  --ui-track: #161c36;
+  --ui-up: #7d95ff;
+  --ui-down: #ff7a85;
+  --ui-warn: #f2c27a;
+  --ui-info: #8ea5ff;
+  --ui-purple-text: #b39cff;
+  --ui-focus: #6f86ff;
+  --ui-scrim: rgb(2 3 10 / 0.72);
+  --ui-glass: rgb(11 15 31 / 0.82);
+
+  --ui-lime: #3b55ff;
+  --ui-lime-bright: #5770ff;
+  --ui-lime-logo: #3b55ff;
+  --ui-on-lime: #ffffff;
+  --ui-lime-button: #2f47f5;
+  --ui-lime-text: #8ea5ff;
+  --ui-lime-active: #c4d0ff;
+  --ui-lime-chip: #121a3d;
+  --ui-lime-chip-strong: #18224d;
+  --ui-axis: #6c7595;
+  --ui-square: #070a17;
+  --ui-swap: #04060f;
+
+  --ui-pill-lime: #16205a;
+  --ui-pill-lime-text: #c4d0ff;
+  --ui-pill-purple: #221a4a;
+  --ui-pill-purple-text: #b9a6ff;
+  --ui-pill-teal: #10284a;
+  --ui-pill-teal-text: #8cc7ff;
+  --ui-pill-amber: #2e2414;
+  --ui-pill-amber-text: #f2c27a;
+  --ui-pill-red: #33161f;
+  --ui-pill-red-text: #ff8e98;
+  --ui-pill-neutral: #141a33;
+  --ui-pill-neutral-text: #aab2cf;
+
+  --ui-chart-top: #c4d0ff;
+  --ui-chart-mid: #6f86ff;
+  --ui-chart-bottom: #2f47f5;
+  --ui-chart-fill: #2f47f5;
+
+  --ui-shadow-pop: 0 24px 60px -16px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(140 160 255 / 0.17);
+  --ui-shadow-frame: none;
+  --ui-candle-panel: #04060f;
+  --ui-candle-chip: #0b0f1f;
+  --ui-candle-up: #5770ff;
+  --ui-candle-down: #f2c27a;
+  --ui-bar-fill: #1f2a6b;
+  --ui-bar-low: #151d4d;
+  --ui-bar-selected: #3b55ff;
+}
+
+/* Headlines are set in a serif, light and large, like the reference. Unlayered,
+   so it wins over the utility classes on the elements. */
+h1,
+.serif {
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 html {
@@ -28,14 +107,8 @@ body {
   min-height: 100dvh;
 }
 
-@media (min-width: 1024px) {
-  html {
-    background-color: var(--ui-frame);
-  }
-}
-
 ::selection {
-  background: rgb(176 201 86 / 0.36);
+  background: rgb(59 85 255 / 0.45);
   color: #fff;
 }
 
@@ -47,13 +120,13 @@ body {
 }
 
 .glow-lime {
-  background: radial-gradient(closest-side, rgb(176 201 86 / 0.18), transparent 70%);
+  background: radial-gradient(closest-side, rgb(59 85 255 / 0.22), transparent 70%);
 }
 
 /* the routing code: the last four digits of an amount */
 .code-digits {
-  color: var(--ui-lime-text, #b0c956);
-  background: rgb(176 201 86 / 0.14);
+  color: #c4d0ff;
+  background: rgb(59 85 255 / 0.22);
   border-radius: 6px;
   padding: 0 0.1em;
 }

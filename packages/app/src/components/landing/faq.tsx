@@ -18,7 +18,7 @@ export function Faq() {
     <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-24 py-20 lg:py-28">
       <Shell className="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
         <div>
-          <BlurWords id="faq-heading" as="h2" text={faq.heading} className="text-[clamp(38px,4.8vw,68px)] leading-[1.02] font-medium tracking-[-0.045em]" />
+          <BlurWords id="faq-heading" as="h2" text={faq.heading} className="serif text-[clamp(38px,4.8vw,68px)] leading-[1.04]" />
           <BlurLines text={faq.sub} delay={0.3} className="mt-5 max-w-[420px] text-[17px] leading-[1.5] text-ui-muted lg:text-[19px]" />
         </div>
         <FaqList />

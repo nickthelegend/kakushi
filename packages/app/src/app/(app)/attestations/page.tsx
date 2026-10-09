@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { DataTable, PanelCard } from "@kakushi/ui";
 import { CHAIN_LIST } from "@kakushi/config";
 import { readWindows, windowCount } from "@kakushi/sdk";
-import { ChainName, Notice, PageHead, Pill, Stat, ago, readError } from "@/components/kit";
+import { ChainName, Notice, PageHead, Pill, Stat, ago, readError , ArtBanner } from "@/components/kit";
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
 
@@ -35,6 +35,7 @@ export default function AttestationsPage() {
   const now = Math.floor(Date.now() / 1000);
   return (
     <div>
+      <ArtBanner src="/art/attest-banner.webp" position="50% 55%" />
       <PageHead
         title="Attestations"
         sub="Chainlink CRE commits every Maker payout and source payment in each block window as a sorted Poseidon2 root on the Monad hub. Payout windows are block-contiguous, so a missing payout can be proven absent."

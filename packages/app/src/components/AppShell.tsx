@@ -74,7 +74,7 @@ export function ConnectButton({ block = false }: { block?: boolean }) {
       width={320}
       triggerClassName={block ? "w-full" : undefined}
       trigger={
-        <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ui-lime-button px-5 text-[15px] font-semibold tracking-[-0.005em] text-[#121418] hover:brightness-[1.06]">
+        <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ui-lime-button px-5 text-[15px] font-semibold tracking-[-0.005em] text-ui-on-lime hover:brightness-[1.06]">
           <Wallet aria-hidden size={18} strokeWidth={2} />
           Connect
         </span>

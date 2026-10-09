@@ -3,7 +3,7 @@
 import { Button, Logo } from "@kakushi/ui";
 import { ArrowRight, Gavel } from "lucide-react";
 import Link from "next/link";
-import { Glass } from "@/components/app/glass";
+import Image from "next/image";
 import { BlurWords, Rise } from "@/components/motion";
 import { closing } from "./content";
 import { Shell } from "./section";
@@ -13,16 +13,17 @@ export function Closing() {
   return (
     <section aria-labelledby="closing-title" className="py-20 lg:py-28">
       <Shell>
-        <div className="relative isolate overflow-hidden rounded-[32px] bg-ui-frame px-6 py-14 text-[#121418] sm:px-12 lg:px-16 lg:py-20">
-          <Glass art="card-lime" size={420} eager className="absolute -right-16 -bottom-24 -z-10 w-[260px] rotate-[-12deg] opacity-95 sm:w-[340px] lg:top-1/2 lg:right-12 lg:bottom-auto lg:w-[400px] lg:-translate-y-1/2" />
-          <BlurWords id="closing-title" as="h2" text={closing.heading} className="max-w-[12ch] text-[clamp(40px,6vw,88px)] leading-[0.98] font-medium tracking-[-0.05em]" />
+        <div className="relative isolate overflow-hidden rounded-[32px] px-6 py-16 ring-1 ring-ui-hairline-strong sm:px-12 lg:px-16 lg:py-24">
+          <Image src="/art/hero.webp" alt="" fill sizes="(min-width: 1280px) 1216px, 100vw" className="-z-20 object-cover object-[60%_40%]" />
+          <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#04060f_0%,rgb(4_6_15/0.86)_38%,rgb(4_6_15/0.2)_75%,transparent)]" />
+          <BlurWords id="closing-title" as="h2" text={closing.heading} className="serif max-w-[12ch] text-[clamp(40px,6vw,88px)] leading-[1.0]" />
           <Rise y={14} delay={0.3}>
-            <p className="mt-5 max-w-[440px] text-[17px] leading-[1.5] text-black/70 lg:text-[19px]">{closing.sub}</p>
+            <p className="mt-5 max-w-[440px] text-[17px] leading-[1.5] text-ui-muted lg:text-[19px]">{closing.sub}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild variant="dark" size="lg" iconRight={<ArrowRight />} className="bg-[#0f1011] text-white">
+              <Button asChild variant="white" size="lg" iconRight={<ArrowRight />}>
                 <Link href="/bridge">Open the bridge</Link>
               </Button>
-              <Button asChild variant="white" size="lg" icon={<Gavel />}>
+              <Button asChild variant="outline" size="lg" icon={<Gavel />} className="border-white/40 bg-transparent hover:bg-white/10">
                 <Link href="/disputes">Prove a missed payout</Link>
               </Button>
             </div>

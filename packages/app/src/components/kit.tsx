@@ -2,6 +2,7 @@
 
 import { CopyButton, EmptyState, Notice as UiNotice, StatusPill, cn, type NoticeTone, type StatusPillTone } from "@kakushi/ui";
 import { ArrowUpRight, Loader2 } from "lucide-react";
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { formatUnits } from "viem";
 import { chainById } from "@kakushi/config";
@@ -136,4 +137,14 @@ export function readError(e: string | null | undefined): string | null {
   if (/not configured/i.test(e)) return "This service isn't configured for this deployment yet.";
   if (/reverted|returned no data|fetch failed|ECONNREFUSED|HTTP request failed|Failed to fetch|unreachable/i.test(e)) return "The Kakushi contracts or services for this network aren't reachable right now.";
   return e.split("\n")[0]!;
+}
+
+/** A wide strip of the generated art under a page title, faded into the page. */
+export function ArtBanner({ src, alt = "", position = "50% 50%", className }: { src: string; alt?: string; position?: string; className?: string }) {
+  return (
+    <div className={cn("relative mb-8 h-[150px] overflow-hidden rounded-[24px] ring-1 ring-ui-hairline-strong sm:h-[190px]", className)}>
+      <Image src={src} alt={alt} fill priority sizes="(min-width: 1480px) 1416px, 100vw" className="object-cover" style={{ objectPosition: position }} />
+      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,rgb(4_6_15/0.75),transparent_55%)]" />
+    </div>
+  );
 }

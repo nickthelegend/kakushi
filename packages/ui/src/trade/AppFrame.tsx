@@ -20,10 +20,8 @@ export type AppFrameProps = HTMLAttributes<HTMLDivElement> & {
 };
 
 /**
- * Ref E's frame: the whole app is a dark rounded panel (#121418, a big soft
- * shadow) floating on the lime canvas. From 1024px it floats in 16px of lime
- * with 24px corners, from 1280px in 32px with 32px corners; below 1024px
- * the dark app is full bleed.
+ * The app's frame: a full-bleed page on the theme canvas (Kakushi drops ref E's
+ * floating panel). `floatFrom="always"` still floats a framed preview.
  *
  * ```tsx
  * <AppFrame>
@@ -37,7 +35,6 @@ export const AppFrame = forwardRef<HTMLDivElement, AppFrameProps>(function AppFr
   ref,
 ) {
   const always = floatFrom === "always";
-  const fromLg = floatFrom === "lg";
   return (
     <div
       ref={ref}
@@ -46,9 +43,7 @@ export const AppFrame = forwardRef<HTMLDivElement, AppFrameProps>(function AppFr
         "min-w-0 font-satoshi text-ui-text",
         always
           ? "bg-ui-frame p-4 sm:p-6 lg:p-8"
-          : fromLg
-            ? "bg-ui-canvas lg:bg-ui-frame lg:p-4 xl:p-8"
-            : "bg-ui-canvas xl:bg-ui-frame xl:p-8",
+          : "bg-ui-canvas",
         fullHeight && "min-h-dvh",
         className,
       )}
@@ -59,15 +54,11 @@ export const AppFrame = forwardRef<HTMLDivElement, AppFrameProps>(function AppFr
           "relative bg-ui-canvas",
           always
             ? "rounded-[24px] shadow-ui-frame lg:rounded-ui-frame"
-            : fromLg
-              ? "lg:rounded-[24px] lg:shadow-ui-frame xl:rounded-ui-frame"
-              : "xl:rounded-ui-frame xl:shadow-ui-frame",
+            : "",
           fullHeight &&
             (always
               ? "min-h-[calc(100dvh-64px)]"
-              : fromLg
-                ? "min-h-dvh lg:min-h-[calc(100dvh-32px)] xl:min-h-[calc(100dvh-64px)]"
-                : "min-h-dvh xl:min-h-[calc(100dvh-64px)]"),
+              : "min-h-dvh"),
           panelClassName,
         )}
       >

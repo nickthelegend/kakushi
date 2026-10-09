@@ -57,7 +57,7 @@ function Flow() {
         <DrawLine play={seen} axis="y" duration={1.2} className="absolute top-3 bottom-3 left-[15px] w-px bg-ui-hairline-strong" />
         {proof.flow.map((step, i) => (
           <Rise key={step.title} as="li" y={12} delay={0.15 + i * 0.14} play={seen} className="relative grid grid-cols-[32px_minmax(0,1fr)_auto] items-start gap-4 py-2.5">
-            <span className={`relative z-10 grid size-8 place-items-center rounded-full text-[13px] font-semibold ${i === 3 ? "bg-ui-lime-button text-[#121418]" : "bg-ui-surface-2 text-ui-text"}`}>{i + 1}</span>
+            <span className={`relative z-10 grid size-8 place-items-center rounded-full text-[13px] font-semibold ${i === 3 ? "bg-ui-lime-button text-ui-on-lime" : "bg-ui-surface-2 text-ui-text"}`}>{i + 1}</span>
             <span className="min-w-0">
               <span className="block text-[16px] font-medium">{step.title}</span>
               <span className="mt-0.5 block text-[14px] leading-snug text-ui-muted">{step.body}</span>

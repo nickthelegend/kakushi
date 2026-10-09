@@ -2,6 +2,7 @@
 
 import { Card, PrimaryButton, StatusPill } from "@kakushi/ui";
 import { Check, Store } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Glass } from "@/components/app/glass";
 import { Rise } from "@/components/motion";
@@ -13,9 +14,13 @@ export function Makers() {
   return (
     <section id="makers" aria-labelledby="makers-title" className="scroll-mt-24 py-20 lg:py-28">
       <Shell className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
-        <Rise y={32} blur={8} className="relative order-2 lg:order-1">
-          <Glass art="coin-purple" size={220} className="absolute -top-10 -left-6 -z-10 w-[150px] rotate-[-12deg] opacity-90" />
-          <Card padding="lg" className="ring-1 ring-white/5">
+        <Rise y={32} blur={8} className="relative order-2 grid lg:order-1">
+          <div className="relative overflow-hidden rounded-[28px] ring-1 ring-ui-hairline-strong">
+            <Image src="/art/vault.webp" alt="" width={1254} height={1254} sizes="(min-width: 1024px) 600px, 100vw" className="h-[200px] w-full object-cover sm:h-[240px]" />
+            <div aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,transparent_40%,#04060f)]" />
+            <Glass art="coin-gold" size={160} className="absolute right-5 bottom-4 w-[92px] rotate-[14deg]" />
+          </div>
+          <Card padding="lg" className="relative z-10 mx-3 -mt-12 ring-1 ring-ui-hairline-strong sm:mx-5">
             <div className="flex items-center justify-between">
               <h3 className="text-[19px] font-medium tracking-[-0.02em]">Maker B</h3>
               <StatusPill tone="lime" size="sm">online</StatusPill>

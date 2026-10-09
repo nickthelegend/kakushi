@@ -15,7 +15,7 @@ import { useTransfer } from "@/lib/useTransfer";
 type StepState = "done" | "active" | "pending" | "bad";
 
 function Step({ state, icon, title, tag, children, last }: { state: StepState; icon?: React.ReactNode; title: React.ReactNode; tag?: React.ReactNode; children?: React.ReactNode; last?: boolean }) {
-  const disc = state === "done" ? "bg-ui-lime-button text-[#121418]" : state === "bad" ? "bg-ui-pill-red text-ui-pill-red-text" : state === "active" ? "bg-ui-pill-teal text-ui-pill-teal-text" : "bg-ui-surface-2 text-ui-muted";
+  const disc = state === "done" ? "bg-ui-lime-button text-ui-on-lime" : state === "bad" ? "bg-ui-pill-red text-ui-pill-red-text" : state === "active" ? "bg-ui-pill-teal text-ui-pill-teal-text" : "bg-ui-surface-2 text-ui-muted";
   return (
     <li className="relative grid grid-cols-[36px_minmax(0,1fr)] gap-4 pb-7 last:pb-0">
       {!last && <span aria-hidden className="absolute top-10 bottom-1 left-[17.5px] w-px bg-ui-hairline-strong" />}

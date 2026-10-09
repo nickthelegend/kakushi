@@ -26,7 +26,7 @@ export function SectionIntro({
   return (
     <div className={cn("flex flex-col", align === "center" ? "items-center text-center" : "items-start", className)}>
       <Rise y={10} blur={4} duration={0.6}>
-        <p className="inline-flex items-center gap-2 text-[14px] font-medium tracking-[0.02em] text-ui-lime uppercase">
+        <p className="inline-flex h-7 items-center gap-2 rounded-full bg-ui-lime-chip px-3 text-[13px] font-medium text-ui-lime-active ring-1 ring-ui-hairline-strong">
           <span aria-hidden className="size-1.5 rounded-full bg-ui-lime" />
           {eyebrow}
         </p>
@@ -35,7 +35,7 @@ export function SectionIntro({
         id={id}
         as="h2"
         text={heading}
-        className="mt-4 text-[clamp(38px,4.8vw,68px)] leading-[1.02] font-medium tracking-[-0.045em] text-balance"
+        className="serif mt-5 text-[clamp(38px,5vw,72px)] leading-[1.04] text-balance"
       />
       {sub ? (
         <BlurLines
