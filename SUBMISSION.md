@@ -37,7 +37,7 @@ can never leak a number.
 
 | Criterion (20% each) | Evidence |
 |---|---|
-| Product quality | Mobile app (Mera passkeys), web pay + payroll console (Privy), activity explorer (Envio); every number encrypted on the user's device |
+| Product quality | Mobile app (Mera passkeys), web pay + payroll console (Privy), activity explorer (Envio); every number encrypted on the user's device; live Monad heartbeat |
 | Technical excellence | Native tfhe-rs engine and parallel coprocessor, k-of-n input attestation and KMS, sealed user decryption, finality-gated reveals; pay links bound to a one-time key (front-run-proof claims), payroll operators, ERC-2612/ERC-3009 gasless onboarding; Solidity, TypeScript and end-to-end tests on real AUSD |
 | Monad integration | `monadNewHeads` commit-state ladder in the product; reveals gated on `finalized`; `eth_sendRawTransactionSync`; gas set on the limit; 100-block log paging; Agora AUSD + faucet and Circle USDC on Monad testnet |
 | Track fit (T2) | Consumer payments: private sends, cross-border pay links, payroll, private balances |
@@ -57,15 +57,28 @@ settlement."
 
 ## Privy ($5k)
 
-"Integrate Privy beyond authentication." Gas-sponsored wraps, payments and claims on Monad testnet;
-a Privy server wallet with a policy (only `runPayrollFrom` on cAUSD) as the payroll operator.
-Status: in progress (`app/`, needs the owner's Privy app credentials to run on testnet).
+"Integrate Privy beyond authentication."
+
+| Privy feature | Fhish Pay use | Where |
+|---|---|---|
+| Embedded wallet (email/passkey) | employer and employee accounts on Monad testnet | `app/src/lib/pay/privy-bridge.tsx` |
+| Native gas sponsorship (`sponsor: true`, EIP-7702) | wraps, payroll, pay links and claims cost the user no MON | `app/src/lib/pay/wallet.tsx` |
+| Server wallet + policy engine | payroll operator that can only call `runPayrollFrom` on cAUSD on chain 10143, time-bounded; scheduled payroll while the employer is offline | `app/scripts/privy-setup.ts`, `app/src/app/api/payroll/run/route.ts`, `app/src/lib/pay/policy.ts` |
+
+Evidence: every flow passes on the fork through the app's own routes (`app/scripts/pay-e2e.ts`, 6/6;
+`app/FHISH-PAY-EVIDENCE.md`), with local dev keys standing in for Privy. The Privy paths are typed
+against the real SDK but need the owner's Privy app to run (`app/PRIVY.md`).
 
 ## Envio ($1k + hosting)
 
 HyperIndex over Fhish Pay, the decryption oracle and the FHE executor. Derived entities: payment
 graph without amounts, pay-link lifecycle and claim times, payroll runs, reveal latency, public TVL,
-FHE ops per opcode. Powers the app's Activity page. Status: in progress (`indexer/`).
+FHE ops per opcode. Powers the app's Activity page (`/activity`).
+
+Evidence: live HyperIndex run on the Monad fork; `indexer/scripts/verify.ts` recomputes all 22
+aggregates from raw logs and they match; 5 handler tests; `indexer/EVIDENCE.md`. Testnet uses HyperSync
+(`https://10143.hypersync.xyz`) once the contracts are deployed; Envio Cloud deploy needs the owner's
+account (`indexer/README.md`).
 
 ## Demo video script (≤ 3 min)
 
