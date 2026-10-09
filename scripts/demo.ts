@@ -154,7 +154,10 @@ async function main() {
   }
 
   // ---------------------------------------------------------------- B
-  try {
+  if (args.has("--no-proof")) {
+    expected -= 1;
+    say("B · skipped (--no-proof: this run generates no ZK proof, for low-memory machines)");
+  } else try {
     say("B · Maker A goes down; its unpaid transfer is slashed back to the sender");
     makerA.kill("SIGTERM");
     await sleep(1000);

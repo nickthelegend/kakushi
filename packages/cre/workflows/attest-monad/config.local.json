@@ -2,8 +2,8 @@
   "schedule": "*/30 * * * * *",
   "hub": {
     "chainSelectorName": "monad-testnet",
-    "oracle": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744",
-    "ebc": "0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d"
+    "oracle": "0x6DcBc91229d812910b54dF91b5c2b592572CD6B0",
+    "ebc": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744"
   },
   "chain": {
     "chainSelectorName": "monad-testnet",
@@ -13,7 +13,7 @@
     "tokens": [
       "0x534b2f3A21130d7a60830c2Df862319e593943A3"
     ],
-    "startBlock": "69506031",
+    "startBlock": "69569720",
     "head": "latest",
     "confirmations": 0,
     "maxBlocks": 100

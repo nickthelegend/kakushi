@@ -1,5 +1,7 @@
 # Kakushi
 
+Kakushi is a fast Maker bridge for Monad, built as a competitor to Orbiter Finance: pay a Maker on one chain, receive on another in about a second, with every transfer backed by Maker margin on Monad and missed payouts provable in your browser. The app has Trade, Explorer, Quests (points from on-chain transfers, quests, leaderboard), Market (routes and Makers), Referral, Claim (disputes) and a Maker console.
+
 Kakushi routes payments through competing Makers, with dispute proofs and Maker margin accounting on Monad. Local code and tests exist; sponsor integration and production readiness remain separate gates. See [PLAN](PLAN.md), [sponsor gaps](docs/SPONSOR-GAP.md), [deployment hold](docs/DEPLOY-LATER.md), and [submission checklist](SUBMISSION.md).
 
 ## Local runbook

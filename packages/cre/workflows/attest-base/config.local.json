@@ -2,8 +2,8 @@
   "schedule": "*/30 * * * * *",
   "hub": {
     "chainSelectorName": "monad-testnet",
-    "oracle": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744",
-    "ebc": "0x021DBfF4A864Aa25c51F0ad2Cd73266Fde66199d"
+    "oracle": "0x6DcBc91229d812910b54dF91b5c2b592572CD6B0",
+    "ebc": "0x2498e8059929e18e2a2cED4e32ef145fa2F4a744"
   },
   "chain": {
     "chainSelectorName": "ethereum-testnet-sepolia-base-1",
@@ -13,7 +13,7 @@
     "tokens": [
       "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
     ],
-    "startBlock": "47885226",
+    "startBlock": "47894942",
     "head": "latest",
     "confirmations": 0,
     "maxBlocks": 100
