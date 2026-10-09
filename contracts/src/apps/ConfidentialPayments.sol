@@ -34,6 +34,9 @@ interface IERC20Authorizations {
 ///   - payroll:    one transaction pays many employees; each salary is a separate ciphertext that
 ///                 only the employer and that employee can read. A payroll operator (e.g. a server
 ///                 wallet with a spending policy) can run it on the employer's behalf.
+///   - requests:   ask a specific payer for an encrypted amount (an invoice). Only the two of them
+///                 can read it; the payer pays with one call. What is still owed is itself a
+///                 ciphertext, so not even "was this invoice paid" is public.
 ///   - gasless onboarding: wrap with an ERC-2612 permit or an ERC-3009 authorization, so a sponsor
 ///                 can submit the transaction.
 /// What the chain learns: who paid whom and when. Never how much, and never anyone's balance.
@@ -55,6 +58,17 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
 
     uint256 public nextLinkId = 1;
     mapping(uint256 => Link) public links;
+
+    struct PayRequest {
+        address payee;
+        address payer;
+        uint64 expiry;
+        bool cancelled;
+        euint64 due;
+    }
+
+    uint256 public nextPayRequestId = 1;
+    mapping(uint256 => PayRequest) public payRequests;
     /// a payroll reference can be paid once per employer (replay guard for operators and retries)
     mapping(address employer => mapping(bytes32 ref => bool)) public payrollRefUsed;
 
@@ -69,6 +83,9 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
     event LinkClaimed(uint256 indexed id, address indexed to);
     event LinkRefunded(uint256 indexed id);
     event PayrollRun(address indexed employer, address indexed operator, uint256 count, bytes32 indexed ref);
+    event PaymentRequested(uint256 indexed id, address indexed payee, address indexed payer, uint64 expiry, bytes32 ref, euint64 due);
+    event RequestPaid(uint256 indexed id, address indexed payer, euint64 sent);
+    event RequestCancelled(uint256 indexed id);
 
     error LengthMismatch();
     error LinkNotOpen(uint256 id);
@@ -79,6 +96,10 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
     error PayrollRefUsed(bytes32 ref);
     error BatchExpired();
     error BadEmployerSignature();
+    error RequestNotOpen(uint256 id);
+    error BadPayer();
+    error NotPayer();
+    error NotPayee();
 
     constructor(IERC20Like underlying_, string memory name_, string memory symbol_)
         ConfidentialERC20Wrapper(underlying_, name_, symbol_)
@@ -169,6 +190,53 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
 
     function linkAmount(uint256 id) external view returns (euint64) {
         return links[id].amount;
+    }
+
+    // ------------------------------------------------------------------ requests (encrypted invoices)
+
+    /// Ask `payer` for an encrypted amount. Only the payee and the payer can decrypt it.
+    function requestPayment(address payer, externalEuint64 encryptedAmount, bytes calldata inputProof, uint64 expiry, bytes32 ref)
+        external
+        returns (uint256 id)
+    {
+        if (payer == address(0) || payer == msg.sender) revert BadPayer();
+        if (expiry <= block.timestamp) revert RequestNotOpen(0);
+        euint64 due = FHE.fromExternal(encryptedAmount, inputProof);
+        id = nextPayRequestId++;
+        payRequests[id] = PayRequest(msg.sender, payer, expiry, false, due);
+        _shareDue(payRequests[id]);
+        emit PaymentRequested(id, msg.sender, payer, expiry, ref, due);
+    }
+
+    /// Pay what is still owed. With too little balance nothing moves and the request stays open
+    /// (the outstanding amount is unchanged), so it can simply be paid again later.
+    function payRequest(uint256 id) external returns (euint64 sent) {
+        PayRequest storage r = payRequests[id];
+        if (r.payee == address(0) || r.cancelled || block.timestamp > r.expiry) revert RequestNotOpen(id);
+        if (msg.sender != r.payer) revert NotPayer();
+        sent = _transfer(r.payer, r.payee, r.due);
+        r.due = FHE.sub(r.due, sent);
+        _shareDue(r);
+        emit RequestPaid(id, msg.sender, sent);
+    }
+
+    function cancelRequest(uint256 id) external {
+        PayRequest storage r = payRequests[id];
+        if (r.payee == address(0) || r.cancelled) revert RequestNotOpen(id);
+        if (msg.sender != r.payee) revert NotPayee();
+        r.cancelled = true;
+        emit RequestCancelled(id);
+    }
+
+    /// The encrypted amount still owed on request `id` (decryptable by its payee and payer).
+    function requestDue(uint256 id) external view returns (euint64) {
+        return payRequests[id].due;
+    }
+
+    function _shareDue(PayRequest storage r) internal {
+        FHE.allowThis(r.due);
+        FHE.allow(r.due, r.payee);
+        FHE.allow(r.due, r.payer);
     }
 
     // ------------------------------------------------------------------ payroll

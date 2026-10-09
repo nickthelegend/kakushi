@@ -446,4 +446,53 @@ contract FhishTest is Test {
             keccak256(abi.encode(keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"), keccak256("Fhish Payroll"), keccak256("1"), block.chainid, address(c)))
         );
     }
+
+    function test_PaymentRequestIsPrivateToPayeeAndPayer() public {
+        (FhishPayToken c,) = _payToken(); // alice holds cAUSD
+        (bytes32 h, bytes memory p) = _input(FhishType.EUINT64, bob, address(c));
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSignature("BadPayer()"));
+        c.requestPayment(bob, externalEuint64.wrap(h), p, uint64(block.timestamp + 1 days), "rent");
+        vm.prank(bob);
+        uint256 id = c.requestPayment(alice, externalEuint64.wrap(h), p, uint64(block.timestamp + 1 days), "rent");
+        bytes32 due = euint64.unwrap(c.requestDue(id));
+        assertTrue(acl.isAllowed(due, bob) && acl.isAllowed(due, alice), "payee and payer can read the request");
+        assertFalse(acl.isAllowed(due, carol), "nobody else can");
+
+        vm.prank(carol);
+        vm.expectRevert(abi.encodeWithSignature("NotPayer()"));
+        c.payRequest(id);
+
+        vm.recordLogs();
+        vm.prank(alice);
+        c.payRequest(id);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bool sawPaid;
+        for (uint256 i; i < logs.length; i++) if (logs[i].topics[0] == keccak256("RequestPaid(uint256,address,bytes32)")) sawPaid = true;
+        assertTrue(sawPaid);
+        bytes32 left = euint64.unwrap(c.requestDue(id));
+        assertTrue(left != due, "what is owed is recomputed homomorphically");
+        assertTrue(acl.isAllowed(left, bob) && acl.isAllowed(left, alice) && !acl.isAllowed(left, carol));
+        // it can be paid again (e.g. after a failed attempt moved 0); nothing about status is public
+        vm.prank(alice);
+        c.payRequest(id);
+
+        // only the payee cancels; a cancelled or expired request cannot be paid
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("NotPayee()"));
+        c.cancelRequest(id);
+        vm.prank(bob);
+        c.cancelRequest(id);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("RequestNotOpen(uint256)", id));
+        c.payRequest(id);
+
+        (bytes32 h2, bytes memory p2) = _input(FhishType.EUINT64, bob, address(c));
+        vm.prank(bob);
+        uint256 id2 = c.requestPayment(alice, externalEuint64.wrap(h2), p2, uint64(block.timestamp + 1 hours), "");
+        vm.warp(block.timestamp + 2 hours);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("RequestNotOpen(uint256)", id2));
+        c.payRequest(id2);
+    }
 }

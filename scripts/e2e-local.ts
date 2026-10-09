@@ -278,6 +278,32 @@ async function main() {
     let peek = false;
     await fhish.userDecrypt([hb], pay.address, wallet("carol") as never).catch(() => (peek = true));
 
+    // payment requests (encrypted invoices): carol asks bob for 75 AUSD; the newcomer is asked for more than it has
+    const rq = async (payer: Hex, amount: bigint, ref: string) => {
+      const e = await fhish.encrypt("euint64", amount, pay.address, addr("carol"));
+      const r = await send("carol", pay.address, pay.abi, "requestPayment", [payer, e.handle, e.proof, BigInt(Math.floor(Date.now() / 1000) + 86400), toHex(ref, { size: 32 })]);
+      return (parseEventLogs({ abi: pay.abi, logs: r.logs, eventName: "PaymentRequested" })[0] as any).args.id as bigint;
+    };
+    const carolBefore = (await fhish.userDecrypt([await bal(addr("carol"))], pay.address, wallet("carol") as never));
+    const rent = await rq(addr("bob"), 75_000_000n, "rent october");
+    const dueH = (await c.read.requestDue([rent])) as Hex;
+    const bobSees = (await fhish.userDecrypt([dueH], pay.address, wallet("bob") as never))[dueH.toLowerCase()];
+    await send("bob", pay.address, pay.abi, "payRequest", [rent]);
+    const leftH = (await c.read.requestDue([rent])) as Hex;
+    const left = (await fhish.userDecrypt([leftH], pay.address, wallet("carol") as never))[leftH.toLowerCase()];
+    const carolAfter = await fhish.userDecrypt([await bal(addr("carol"))], pay.address, wallet("carol") as never);
+    const big = await rq(newcomer.address, 10_000_000_000n, "too much");
+    await rpc("anvil_setBalance", [newcomer.address, "0x16345785D8A0000"]); // 0.1 MON for the newcomer's own tx
+    await createWalletClient({ chain, account: newcomer, transport: http(RPC) }).writeContract({ chain, account: newcomer, address: pay.address, abi: pay.abi, functionName: "payRequest", args: [big], gas: 1_500_000n }).then((h) => pub.waitForTransactionReceipt({ hash: h }));
+    const bigLeftH = (await c.read.requestDue([big])) as Hex;
+    const bigLeft = (await fhish.userDecrypt([bigLeftH], pay.address, nw as never))[bigLeftH.toLowerCase()];
+    const okRequests =
+      bobSees === 75_000_000n &&
+      left === 0n &&
+      Object.values(carolAfter)[0]! - Object.values(carolBefore)[0]! === 75_000_000n &&
+      bigLeft === 10_000_000_000n;
+    console.log(`  request #${rent}: bob saw 75 AUSD, paid it, carol +75, now owed ${left}; request #${big} for 10,000 to an account holding 250: nothing moved, still owed ${Number(bigLeft) / 1e6}`);
+
     // bob cashes out 1,000 AUSD (only that amount is ever revealed)
     const out = await fhish.encrypt("euint64", 1_000_000_000n, pay.address, addr("bob"));
     const before = (await pub.readContract({ address: AUSD, abi: ausd, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
@@ -292,8 +318,8 @@ async function main() {
       n[hn.toLowerCase()] === 250_000_000n;
     results.push({
       name: "Fhish Pay on real AUSD",
-      pass: okBalances && peek && after - before === 1_000_000_000n,
-      detail: `salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; carol refused bob's balance; bob cashed out 1,000 real AUSD`,
+      pass: okBalances && okRequests && peek && after - before === 1_000_000_000n,
+      detail: `salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD`,
     });
   } catch (e) {
     results.push({ name: "Fhish Pay on real AUSD", pass: false, detail: (e as Error).message.split("\n")[0]! });
