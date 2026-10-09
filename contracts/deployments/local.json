@@ -2,7 +2,7 @@
   "acl": "0x3101757936bCf57C1034d2fedEe60dE409c613CF",
   "chainId": 10143,
   "creForwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
-  "deployBlock": 69510698,
+  "deployBlock": 69513067,
   "executor": "0x4488f514D57837771D4b700AB22d4c58Cd66Cd53",
   "inputVerifier": "0x0B2CEdB1BcEeC421cF43f20ece044fC40dd444D3",
   "oracle": "0x6A70da54762fF8637B00bbe35d2FE396fBf1cF97",

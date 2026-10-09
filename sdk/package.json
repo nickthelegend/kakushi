@@ -3,10 +3,25 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "Fhish SDK for Monad: encrypt inputs, attach proofs, user-decrypt (EIP-712, sealed), await public decryptions. Encryptors: native engine (Node) and Zama tfhe WASM (browser).",
-  "exports": { ".": "./src/index.ts", "./node": "./src/node.ts", "./browser": "./src/browser.ts" },
-  "scripts": { "typecheck": "tsc --noEmit", "test": "node --test test/*.test.ts" },
-  "dependencies": { "viem": "^2.38.0" },
-  "optionalDependencies": { "tfhe": "1.8.1" },
-  "devDependencies": { "typescript": "^5.9.3", "@types/node": "^22.20.1" }
+  "description": "Fhish SDK for Monad: encrypt inputs, attach proofs, user-decrypt (EIP-712, sealed), await public decryptions. Encryptors: Zama node-tfhe (Node, pure JS/WASM), native engine CLI, and Zama tfhe WASM (browser).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts",
+    "./browser": "./src/browser.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "viem": "^2.38.0"
+  },
+  "optionalDependencies": {
+    "tfhe": "1.8.1",
+    "node-tfhe": "1.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.20.1"
+  }
 }

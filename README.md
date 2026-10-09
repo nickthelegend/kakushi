@@ -73,7 +73,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | fhish-engine | `engine/` | Rust + axum over tfhe-rs 1.8.1: keygen, input validation, every op, select, random, decrypt. |
 | coprocessor | `coprocessor/` | Follows the executor's events and schedules the op graph in parallel, respecting handle dependencies. Gateway (inputs, sealed user decryption), KMS, metrics. |
 | CRE workflow | `cre/` | `fhish-decrypt-relay`: log trigger per request + cron sweep, HTTP fetch with DON consensus, `writeReport` to the oracle. |
-| SDK | `sdk/` | `FhishClient.encrypt / userDecrypt / waitForDecryption`, native (Node) and WASM (browser) encryptors. |
+| SDK | `sdk/` | `FhishClient.encrypt / userDecrypt / waitForDecryption`. Encryptors: Zama `node-tfhe` (Node, pure JS, ~40 ms), the engine CLI, and `tfhe` WASM with a thread pool (browser). |
 | Skills | `skills/` | Agent skills: write confidential contracts, use the SDK, operate the network. |
 | App | `app/` | Landing page, live playground (real in-browser encryption), developer docs, live metrics. |
 
@@ -89,6 +89,20 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
    tab holds (ECDH → HKDF-SHA256 → AES-256-GCM). Nothing touches the chain.
 3. **Chainlink CRE delivery**: the same signed result, delivered by a DON instead of a relayer key.
    The oracle re-verifies the KMS signatures, so CRE adds liveness without adding trust.
+
+### Built for Monad
+
+- **Speculative compute, final reveals.** The coprocessor materializes ciphertexts the moment ops
+  appear at `latest`, while the KMS signs a public decryption only once the request's block is
+  `finalized` (Monad: ~2-3 blocks behind). The FHE work overlaps finality, so the gate usually costs
+  nothing, and a reorged request can never leak a plaintext.
+- **Gas is charged on the limit.** Ops are event-only on-chain; every Fhish transaction (relayer,
+  CRE runner, SDK examples) sets an explicit limit of estimate + 30%.
+- **One round trip.** Fulfilment uses `eth_sendRawTransactionSync` (EIP-7966), falling back to
+  send + poll where unsupported.
+- **`eth_getLogs` ≤ 100 blocks.** All followers page in 100-block windows.
+- **Parallel by dependency.** Monad executes independent transactions in parallel; the op graph does
+  the same with ciphertexts, so different users' ops never queue behind each other.
 
 ---
 
@@ -135,7 +149,9 @@ PASS  Chainlink CRE delivery           4/4 callbacks delivered by CRE reports th
 | `select` | 297 | 365 |
 | KMS public decryption (request seen → signed) | 655 | 656 |
 | sealed user decryption | 8 | 74 |
-| request → callback on-chain (CRE path, includes 1 s fork blocks) | ~0.8–5 s | |
+| request seen → callback on-chain (relayer, `eth_sendRawTransactionSync`, includes the finality gate) | 1,171 | 2,172 |
+| finality gate (wait until the request block is `finalized`) | 3–1,085 | 1,086 |
+| request → callback through Chainlink CRE (local runner, 1 s fork blocks) | 0.8–3.3 s | |
 
 Standalone engine benchmarks (`fhish-engine`, tfhe-rs 1.8.1): keygen 1.9 s, encrypt ~6 ms,
 add 174 ms, gt 103 ms, select 158 ms, max 275 ms when the machine is otherwise idle.
@@ -154,8 +170,8 @@ explicit limit):
 | `bid` (sealed auction) | ~293k |
 | confidential ERC-20 `wrap` / `unwrap` | 212k / 337k |
 
-Tests: 12 Solidity tests (`forge test`), CRE core unit tests (`pnpm --filter @fhish/cre test`),
-SDK and coprocessor typecheck, and the e2e above.
+Tests: 12 Solidity tests (`forge test`), 14 TypeScript tests (`pnpm -r test`: CRE core, coprocessor
+op graph + sealing, SDK client), typecheck of every package, and the e2e above in both delivery modes.
 
 ---
 

@@ -113,6 +113,9 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
     optionalDependencies:
+      node-tfhe:
+        specifier: 1.8.1
+        version: 1.8.1
       tfhe:
         specifier: 1.8.1
         version: 1.8.1
@@ -909,6 +912,9 @@ packages:
       sass:
         optional: true
 
+  node-tfhe@1.8.1:
+    resolution: {integrity: sha512-Utw0kkI6GFKpNjhzdLrOIVjs/RptO18g26FXxuQQBm/YV+DfMiaRQ0+zam1Ij2ic3v1++ih2kN2gvx3WbxeVZQ==}
+
   ox@0.14.54:
     resolution: {integrity: sha512-52PGH6ldJmWY9+iy/TBSJUsCSy5NmLvkVBYTINmO8srsjRrCmCdO575kGizmZ1jpNQ1gnlpVwiciIpU37fcULA==}
     peerDependencies:
@@ -1627,6 +1633,9 @@ snapshots:
       - '@babel/core'
       - '@types/node'
       - babel-plugin-macros
+
+  node-tfhe@1.8.1:
+    optional: true
 
   ox@0.14.54(typescript@5.9.3)(zod@3.25.76):
     dependencies:

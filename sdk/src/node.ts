@@ -24,3 +24,28 @@ export function nativeEncryptor(engineBin = process.env.FHISH_ENGINE_BIN ?? "fhi
     },
   };
 }
+
+/**
+ * Pure-JS Node encryptor: Zama's node-tfhe 1.8.1 (the same tfhe-rs version as the engine, so the
+ * lists are compatible). No binary needed; single-threaded, which is fine for one input at a time.
+ */
+export function nodeTfheEncryptor(): Encryptor {
+  let t: any = null;
+  let pk: any = null;
+  let pkFor: Uint8Array | null = null;
+  const LIMIT = BigInt(1) << BigInt(31);
+  return {
+    async encrypt(publicKey, type, value) {
+      t ??= await import("node-tfhe" as string);
+      if (!pk || pkFor !== publicKey) {
+        pk = t.TfheCompactPublicKey.safe_deserialize(publicKey, LIMIT);
+        pkFor = publicKey;
+      }
+      const b = t.CompactCiphertextList.builder(pk);
+      if (type === 0) b.push_boolean(Boolean(value));
+      else if (type === 3) b.push_u32(Number(value));
+      else b.push_u64(BigInt(value as bigint));
+      return b.build().safe_serialize(LIMIT) as Uint8Array;
+    },
+  };
+}

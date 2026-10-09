@@ -73,7 +73,8 @@ async function send(k: keyof typeof KEYS, address: Hex, abi: any, functionName: 
 async function main() {
   const t0 = Date.now();
   say("1 · local Monad-testnet fork, engine, deploy, coprocessor");
-  start("anvil", "anvil", ["--port", String(PORT), "--fork-url", process.env.MONAD_FORK_URL ?? "https://rpc-testnet.monadinfra.com", "--block-time", "1", "--prune-history", "300", "--silent"]);
+  // --slots-in-an-epoch 1: the fork's `finalized` tag trails latest by 2 blocks, like Monad (~2-3)
+  start("anvil", "anvil", ["--port", String(PORT), "--fork-url", process.env.MONAD_FORK_URL ?? "https://rpc-testnet.monadinfra.com", "--block-time", "1", "--slots-in-an-epoch", "1", "--prune-history", "300", "--silent"]);
   await until("anvil", async () => (await pub.getChainId()) === 10143);
   const secrets = JSON.parse(readFileSync(`${ROOT}.secrets/signers.json`, "utf8"));
   const reg = JSON.parse(readFileSync(`${ROOT}contracts/registry-address.json`, "utf8"));

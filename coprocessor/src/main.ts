@@ -2,6 +2,7 @@
 //   FHISH_NETWORK=local|testnet  RPC_URL  ENGINE_URL (default http://127.0.0.1:8899)
 //   GATEWAY_PORT (default 8890)  FHISH_DEPLOYMENT (path to contracts/deployments/<network>.json)
 //   FHISH_SECRETS (path to signers json; default ../.secrets/signers.json)  DELIVER=direct|cre|both
+//   DECRYPT_AT=finalized|latest (KMS signs only once the request block is finalized; default finalized)
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { createPublicClient, createWalletClient, defineChain, http, parseEventLogs, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -36,6 +37,7 @@ const kms = new Kms({
   graph,
   metrics,
   deliver: (process.env.DELIVER as "direct" | "cre" | "both") ?? "direct",
+  decryptAt: (process.env.DECRYPT_AT as "finalized" | "latest") ?? "finalized",
   log,
 });
 
@@ -90,7 +92,7 @@ async function poll() {
         const e = toEvent(l);
         if (e) graph.submit(e);
       } else if (l.eventName === "DecryptionRequested") {
-        void kms.handleRequest(l.args.requestId, l.args.handles, seenAt);
+        void kms.handleRequest(l.args.requestId, l.args.handles, seenAt, l.blockNumber);
       }
     }
     if (logs.length) log(`blocks ${cursor}-${to}: ${logs.length} events`);
