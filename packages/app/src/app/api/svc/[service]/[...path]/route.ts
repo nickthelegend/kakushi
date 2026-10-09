@@ -11,6 +11,7 @@ async function forward(req: Request, ctx: { params: Promise<{ service: string; p
   if (service === "watchtower") base = cfg.services.watchtower;
   else if (service === "indexer") base = cfg.services.indexer;
   else if (service === "attester") base = cfg.services.attester;
+  else if (service === "relayer") base = cfg.services.relayer;
   else if (service.startsWith("maker-")) base = cfg.makers[Number(service.slice(6))]?.url ?? null;
   if (!base) return NextResponse.json({ error: `${service} is not configured` }, { status: 503 });
   const url = `${base.replace(/\/$/, "")}/${path.join("/")}${new URL(req.url).search}`;

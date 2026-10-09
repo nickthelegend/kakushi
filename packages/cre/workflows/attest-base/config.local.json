@@ -8,12 +8,12 @@
   "chain": {
     "chainSelectorName": "ethereum-testnet-sepolia-base-1",
     "chainId": 84532,
-    "payoutRouter": "0xCBb4D00b37cAdD0E4Ac4dF6FBd9d18C3E715C684",
-    "sourceRouter": "0xA59B5bFa8e8932B41CBD9Cc7009d3DCC39eF2F59",
+    "payoutRouter": "0x19789e052D1F8779cd2369b96F80116a061D8B50",
+    "sourceRouter": "0xD1853d687AC767F4A827a02AC2d19584BB17761E",
     "tokens": [
       "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
     ],
-    "startBlock": "47894942",
+    "startBlock": "47898890",
     "head": "latest",
     "confirmations": 0,
     "maxBlocks": 100

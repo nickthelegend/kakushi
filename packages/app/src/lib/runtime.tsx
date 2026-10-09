@@ -14,7 +14,7 @@ export interface RuntimeConfig {
   network: "local" | "testnet";
   deployments: any;
   makers: MakerEntry[];
-  services: { attester: string | null; watchtower: string | null; indexer: string | null };
+  services: { attester: string | null; watchtower: string | null; indexer: string | null; relayer: string | null };
   privyAppId: string | null;
   envioStatsEnabled: boolean;
   localDevKeys: { label: string; key: `0x${string}` }[];

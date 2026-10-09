@@ -6,7 +6,7 @@ export interface BrowserProof {
   ms: number;
 }
 
-export function proveInBrowser(circuit: "payment_compliance" | "payout_inclusion", inputs: unknown, onStage?: (s: string) => void): Promise<BrowserProof> {
+export function proveInBrowser(circuit: "payment_compliance" | "payout_inclusion" | "shielded_withdraw", inputs: unknown, onStage?: (s: string) => void): Promise<BrowserProof> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("./prove.worker.ts", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {

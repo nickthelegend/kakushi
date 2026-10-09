@@ -15,7 +15,7 @@ export interface RuntimeConfig {
   network: Network;
   deployments: unknown | null;
   makers: MakerEntry[];
-  services: { attester: string | null; watchtower: string | null; indexer: string | null };
+  services: { attester: string | null; watchtower: string | null; indexer: string | null; relayer: string | null };
   privyAppId: string | null;
   envioStatsEnabled: boolean;
   /** LOCAL ANVIL ONLY: public dev keys for the local-fork demo wallet. Never set on testnet. */
@@ -47,6 +47,7 @@ export function runtimeConfig(): RuntimeConfig {
       attester: process.env.KAKUSHI_ATTESTER_URL ?? (n === "local" ? "http://127.0.0.1:3714" : null),
       watchtower: process.env.KAKUSHI_WATCHTOWER_URL ?? (n === "local" ? "http://127.0.0.1:3713" : null),
       indexer: process.env.KAKUSHI_INDEXER_URL ?? process.env.NEXT_PUBLIC_INDEXER_URL ?? (n === "local" ? "http://127.0.0.1:4201" : null),
+      relayer: process.env.KAKUSHI_RELAYER_URL ?? (n === "local" ? "http://127.0.0.1:3715" : null),
     },
     privyAppId: process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? null,
     envioStatsEnabled: Boolean(process.env.KAKUSHI_ENVIO_GRAPHQL_URL),
@@ -73,6 +74,7 @@ export function publicRuntimeConfig(): RuntimeConfig {
       attester: cfg.services.attester ? "/api/svc/attester" : null,
       watchtower: cfg.services.watchtower ? "/api/svc/watchtower" : null,
       indexer: cfg.services.indexer ? "/api/svc/indexer" : null,
+      relayer: cfg.services.relayer ? "/api/svc/relayer" : null,
     },
   };
 }

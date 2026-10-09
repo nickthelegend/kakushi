@@ -4,10 +4,11 @@
 import { proveWith } from "@kakushi/attest-core/prover";
 import paymentCompliance from "../../../attest-core/circuits/payment_compliance.json";
 import payoutInclusion from "../../../attest-core/circuits/payout_inclusion.json";
+import shieldedWithdraw from "../../../attest-core/circuits/shielded_withdraw.json";
 
-self.onmessage = async (e: MessageEvent<{ circuit: "payment_compliance" | "payout_inclusion"; inputs: Record<string, unknown> }>) => {
+self.onmessage = async (e: MessageEvent<{ circuit: "payment_compliance" | "payout_inclusion" | "shielded_withdraw"; inputs: Record<string, unknown> }>) => {
   try {
-    const circuit = (e.data.circuit === "payment_compliance" ? paymentCompliance : payoutInclusion) as never;
+    const circuit = (e.data.circuit === "payment_compliance" ? paymentCompliance : e.data.circuit === "shielded_withdraw" ? shieldedWithdraw : payoutInclusion) as never;
     const threads = Math.min(4, (self.navigator?.hardwareConcurrency ?? 2) - 1 || 1);
     const r = await proveWith(circuit, e.data.inputs as never, { threads, onStage: (stage) => self.postMessage({ stage }) });
     self.postMessage({ result: r });
