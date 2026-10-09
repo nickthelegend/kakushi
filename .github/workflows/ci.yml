@@ -25,6 +25,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r typecheck
       - run: pnpm -r test
+        env: { FHISH_OFFLINE: "1" }   # live Monad testnet checks run locally, not in CI
 
   cre-wasm:
     runs-on: ubuntu-latest

@@ -2,84 +2,88 @@
 
 | | |
 |---|---|
-| Project | **Fhish**: plug-and-play FHE for any Solidity contract on Monad |
-| Track | **T1 Onchain Finance & Trading** |
-| Bounties | **Chainlink: Best workflow with CRE** ($3k, all tracks) · **MetaMask: Best Agent Wallet Plugin** ($2.5k, T1) |
-| Team | solo, from a spare account (see USER_ACTION_REQUIRED in the hand-off) |
+| Project | **Fhish Pay**, on **Fhish**: confidential payments infrastructure for Monad |
+| Track | **T2 Consumer Products & Payments** |
+| Bounties | **Agora**: Best Cross-Border Payments App ($10k, T2) · **Privy** ($5k, all) · **Envio** ($1k + hosting, all) |
+| Not targeted (built, kept in repo) | Chainlink CRE delivery workflow; MetaMask Agent Wallet plugin (T1-only bounty) |
+| Team | solo, from a spare account |
 | Repo | to be pushed public, MIT (DEPLOY-LATER.md §5) |
-| Live app | held until testnet go (DEPLOY-LATER.md §4) |
+| Live app | held until testnet go (DEPLOY-LATER.md) |
 | Deadline | Tue 2026-10-13 23:59 ET |
 
 ## Pitch (≤ 2 min)
 
-On-chain finance leaks everything: every bid, balance, limit price and liquidation level is public,
-so it gets front-run and copied. Fully homomorphic encryption fixes that by letting a contract compute
-on numbers it cannot read. Today it is either Zama on Ethereum (heavy: gateway rollup, client-relayed
-two-transaction reveals) or testnets.
+Stablecoin payments on a public chain publish your salary, your rent and your savings to everyone,
+forever. That is why payroll, remittances and business payments still don't run on-chain.
 
-**Fhish brings FHE to Monad as a two-line integration.** Inherit `FhishConfig`, call `FHE.add`,
-`FHE.gt`, `FHE.select`. The API is Zama-compatible, so existing confidential contracts port. Under the
-hood, real Zama tfhe-rs ciphertexts are computed by a parallel coprocessor that follows Monad's
-300 ms blocks. Reveals come back **automatically as a callback**, delivered by **Chainlink CRE**,
-with the KMS signatures checked on-chain. Zama and Fhenix both removed that callback.
+**Fhish Pay makes the amount private and keeps everything else on-chain.** You hold real Agora AUSD
+(or Circle USDC). Wrap it once and your balance becomes a ciphertext. Payments, payroll and pay links
+are computed on encrypted numbers by Fhish, a fully homomorphic encryption network built for Monad.
+The chain sees *who* paid *whom* and *when*, never *how much*. You, and only you, can reveal your own
+balance.
 
-What we show: a sealed-bid auction where losing bids are never decrypted, confidential USDC that
-wraps real Monad testnet USDC, and a dark OTC desk where a missed order reveals nothing at all.
+It is built on Monad's speed. A payment is proposed, voted and **final in under a second**, and the
+app shows each step live from Monad's own commit-state stream. Reveals wait for finality, so a reorg
+can never leak a number.
+
+- **Send across borders by link.** The amount is escrowed encrypted. The recipient opens the link,
+  creates an account with a passkey (Mera) and claims it, without needing gas.
+- **Payroll.** An employer pays the whole team in one transaction. Each salary is a separate
+  ciphertext that only the employer and that employee can read. A policy-limited server wallet
+  (Privy) can run it on schedule.
+- **Cash out** to real AUSD at any time; only the amount you take out is revealed.
 
 ## Main-track scoring map
 
 | Criterion (20% each) | Evidence |
 |---|---|
-| Product quality | Landing + playground with real in-browser encryption (WASM, multi-threaded); every playground flow verified in Chrome |
-| Technical excellence | Native tfhe-rs engine, dependency-aware parallel op graph, transient ACL (EIP-1153), k-of-n input and KMS signatures, sealed user decryption (P-256 ECDH + AES-GCM), CREATE3 same-address registry; 12 Solidity tests, CRE unit tests, e2e |
-| Monad integration | Designed for gas-on-limit (event-only ops, tight explicit limits), `eth_getLogs` ≤ 100 blocks, 300 ms blocks; wraps Circle USDC on Monad testnet; CRE forwarder on Monad testnet |
-| Track fit (T1) | Confidential trading primitives: sealed auctions, confidential stablecoin, dark OTC with encrypted limits |
-| Innovation | Automatic FHE decryption callbacks via CRE, published end-to-end latency, one-line pluggability |
+| Product quality | Mobile app (Mera passkeys), web pay + payroll console (Privy), activity explorer (Envio); every number encrypted on the user's device |
+| Technical excellence | Native tfhe-rs engine and parallel coprocessor, k-of-n input attestation and KMS, sealed user decryption, finality-gated reveals; pay links bound to a one-time key (front-run-proof claims), payroll operators, ERC-2612/ERC-3009 gasless onboarding; Solidity, TypeScript and end-to-end tests on real AUSD |
+| Monad integration | `monadNewHeads` commit-state ladder in the product; reveals gated on `finalized`; `eth_sendRawTransactionSync`; gas set on the limit; 100-block log paging; Agora AUSD + faucet and Circle USDC on Monad testnet |
+| Track fit (T2) | Consumer payments: private sends, cross-border pay links, payroll, private balances |
+| Innovation | First FHE payments stack on Monad; encrypted amounts with sub-second, visible finality |
 
-## Chainlink CRE bounty
+## Agora: Best Cross-Border Payments App (T2)
 
-**Requirement:** "Build, simulate, or deploy a CRE workflow used as an orchestration layer within
-your project." CLI simulation accepted; the receiver must be implemented correctly.
+"Build a mobile app letting users send AUSD across borders using Mera passkey onboarding and instant
+settlement."
 
-| Requirement | Where |
-|---|---|
-| CRE workflow (TS → WASM) | `cre/src/workflow.ts`, `cre/workflows/decrypt-relay/` (`cre workflow build` compiles it: done) |
-| Orchestration role | It is Fhish's decryption delivery layer: log trigger per `DecryptionRequested` + cron sweep → HTTP fetch of the KMS-signed result with DON consensus (identical aggregation) → EVM reads (`requests`, `handlesOf`) → `writeReport` |
-| Receiver | `FhishDecryptionOracle.onReport` (`contracts/src/oracle/`): only the forwarder, ERC-165 `IReceiver`, re-verifies k-of-n KMS EIP-712 signatures, then calls the app back |
-| Evidence so far | Local fork: 4/4 callbacks delivered through Chainlink's MockKeystoneForwarder (`0xB9F7…D192`, cloned from Monad testnet) by the local runner that executes the same core logic (`cre/local/runner.ts`, labelled NOT a DON) |
-| Still needed (owner) | `cre login`, then `cre workflow simulate … --broadcast -T staging-settings` on Monad testnet for a real simulation tx (DEPLOY-LATER.md §3) |
+| Requirement | Where | Status |
+|---|---|---|
+| Mobile app | `mobile/` (Expo) | in progress |
+| Mera passkey onboarding | `mobile/` | in progress |
+| Send AUSD across borders | cAUSD over real AUSD; pay links (`createLink`/`claimLink`) for recipients without accounts | contracts + e2e done |
+| Instant settlement | Monad commit-state ladder per payment (`sdk/src/monad.ts`, live tests against testnet) | SDK done |
 
-## MetaMask Agent Wallet plugin bounty (T1)
+## Privy ($5k)
 
-**Requirement:** "Build a plugin that gives the MetaMask Agent Wallet a new trading superpower via its
-plugin architecture."
+"Integrate Privy beyond authentication." Gas-sponsored wraps, payments and claims on Monad testnet;
+a Privy server wallet with a policy (only `runPayrollFrom` on cAUSD) as the payroll operator.
+Status: in progress (`app/`, needs the owner's Privy app credentials to run on testnet).
 
-| Requirement | Where |
-|---|---|
-| `mm` plugin (oclif, `PluginCommand`, manifest capabilities, `walletExecutor`) | `plugins/mm-fhish/` |
-| New trading superpower | Confidential trading on Monad: dark OTC with encrypted limits, sealed bids, confidential USDC, owner-only balance reveal |
-| Uses the wallet's own submit/sign path | Transactions and EIP-712 through `ctx.walletExecutor` (Guard Mode, Blockaid, 2FA apply) |
-| `targetChains` | Monad testnet 10143 (mainnet 143 after deployment) |
-| Evidence | Typechecks against `@metamask/agent-wallet` 7.1.0; installs into the real `mm` host; core flows pass on the Monad fork (`pnpm --filter mm-fhish test`) |
-| Still needed (owner) | `mm login`, then `mm fhish …` against the testnet deployment for the demo |
+## Envio ($1k + hosting)
+
+HyperIndex over Fhish Pay, the decryption oracle and the FHE executor. Derived entities: payment
+graph without amounts, pay-link lifecycle and claim times, payroll runs, reveal latency, public TVL,
+FHE ops per opcode. Powers the app's Activity page. Status: in progress (`indexer/`).
 
 ## Demo video script (≤ 3 min)
 
 | Time | Shot |
 |---|---|
-| 0:00 | Landing: type a number, watch it become 16 KB of ciphertext in the browser |
-| 0:20 | The two-line integration on the Developers page |
-| 0:35 | Playground, Alice: place a sealed bid. Show the chain holds a handle, not the number |
-| 0:55 | "Decrypt my bid": sealed to this tab only |
-| 1:10 | Bob and Carol bid; close: winner and price arrive by callback; losing bids stay encrypted |
-| 1:40 | Confidential USDC: wrap real USDC, send privately, reveal my balance, unwrap through the oracle |
-| 2:10 | Dark OTC: a miss reveals nothing, a cross reveals only the maker's price |
-| 2:30 | Live metrics: p50/p95 per FHE op, KMS decrypt, request → callback; CRE runner status |
-| 2:45 | Terminal: `pnpm e2e --deliver cre` → 4 × PASS |
+| 0:00 | Phone: create an account with a passkey (Mera). Get AUSD, make it private with one signature |
+| 0:25 | Send 250 AUSD to a friend abroad by link; settlement ladder: proposed, voted, final < 1 s |
+| 0:50 | Friend opens the link on another phone: passkey account, claims, taps Reveal: 250 (amber) |
+| 1:15 | Web: employer signs in with Privy; payroll for 3 people; salaries encrypted in the browser; gas sponsored |
+| 1:45 | Employee view: sees only their own salary; a colleague's is refused |
+| 2:05 | Activity (Envio): payments, links, reveal latency, TVL; amounts shown as ciphertext |
+| 2:30 | Cash out to real AUSD; only that amount is revealed |
+| 2:45 | Terminal: e2e on real AUSD passes; Monad heartbeat |
 
-## Limitations to state in the submission
+## Limitations to state
 
 - Local fork only until the owner funds the deployer and says go; no public tx hashes yet.
-- The local CRE runner is not a DON; the real `cre workflow simulate` needs `cre login`.
-- One engine holds the FHE secret key; KMS keys run in one process locally (see README, Trust model).
-- tfhe-rs commercial use needs Zama's patent license (README, License).
+- Passkeys on device need the owner's domain (Associated Domains) and Apple team.
+- Privy flows need the owner's Privy app (ID, secret, sponsorship enabled).
+- One engine holds the FHE secret key; KMS keys run in one process locally (README, Trust model).
+- tfhe-rs commercial use needs Zama's patent license.

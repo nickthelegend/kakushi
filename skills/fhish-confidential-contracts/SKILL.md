@@ -84,3 +84,19 @@ Foundry: deploy `FhishInputVerifier`, `FhishExecutor` (deploys the ACL), `FhishD
 put `FhishRegistry` at the registry address with `deployCodeTo`, sign input attestations and
 decryption results with `vm.sign` (see `contracts/test/Fhish.t.sol`). Real ciphertexts: run the local
 e2e (`node scripts/e2e-local.ts`).
+
+## Payments (Fhish Pay)
+
+`contracts/src/apps/ConfidentialPayments.sol` turns any ERC-20 (Agora AUSD, Circle USDC) into a private
+payments token; deploy `FhishPayToken(underlying, name, symbol)` from `src/examples/Examples.sol`.
+
+| Need | Call |
+|---|---|
+| Onboard without gas | user signs ERC-3009 `ReceiveWithAuthorization` (to = token); anyone submits `wrapWithAuthorization(...)`; or `wrapWithPermit` |
+| Pay with an invoice/memo reference | `pay(to, encAmount, proof, ref)` → `Paid(from, to, handle, ref)` |
+| Pay someone without an account | `createLink(encAmount, proof, claimKey, expiry)`; recipient signs nothing, the link's one-time key signs `claimDigest(id, to)`; anyone submits `claimLink(id, to, sig)`; sender `refundLink` after expiry |
+| Payroll | `runPayroll(to[], amounts[], proofs[], ref)`; or authorize an operator with `setOperator(op, until)` and let it call `runPayrollFrom(employer, …)` (the operator encrypts the salaries, so the inputs are bound to it) |
+| Cash out | `unwrap(encAmount, proof)`; the oracle callback releases the underlying |
+
+A transfer of more than the balance silently moves 0 (`FHE.select`), so failed payments leak nothing.
+Show settlement with `sdk/src/monad.ts` (`MonadHeads`, `trackByTags`).
