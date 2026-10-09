@@ -495,4 +495,17 @@ contract FhishTest is Test {
         vm.expectRevert(abi.encodeWithSignature("RequestNotOpen(uint256)", id2));
         c.payRequest(id2);
     }
+
+    function test_WrapperSupplyNeverExceeds64Bits() public {
+        (FhishPayToken c, TestToken usd) = _payToken(); // already holds 500e6
+        uint256 room = uint256(type(uint64).max) - usd.balanceOf(address(c));
+        usd.mint(bob, room + 1);
+        vm.startPrank(bob);
+        usd.approve(address(c), type(uint256).max);
+        vm.expectRevert(abi.encodeWithSignature("AmountTooLarge()"));
+        c.wrap(room + 1); // one base unit over the 64-bit ceiling of the whole pool
+        c.wrap(room); // exactly up to it is fine
+        vm.stopPrank();
+        assertEq(usd.balanceOf(address(c)), type(uint64).max);
+    }
 }

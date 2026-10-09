@@ -9,6 +9,7 @@ interface IERC20Like {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function transfer(address to, uint256 amount) external returns (bool);
     function decimals() external view returns (uint8);
+    function balanceOf(address account) external view returns (uint256);
     function symbol() external view returns (string memory);
 }
 
@@ -44,8 +45,15 @@ abstract contract ConfidentialERC20Wrapper is ConfidentialToken {
     function wrap(uint256 amount) external {
         if (amount > type(uint64).max) revert AmountTooLarge();
         if (!underlying.transferFrom(msg.sender, address(this), amount)) revert TransferFailed();
+        _checkSupplyBound();
         _mint(msg.sender, FHE.asEuint64(uint64(amount)));
         emit Wrapped(msg.sender, amount);
+    }
+
+    /// Encrypted balances are 64-bit and FHE arithmetic wraps on overflow, so the wrapper never holds
+    /// more than 2^64-1 base units: then no balance, transfer or total can overflow.
+    function _checkSupplyBound() internal view {
+        if (underlying.balanceOf(address(this)) > type(uint64).max) revert AmountTooLarge();
     }
 
     function unwrap(externalEuint64 encryptedAmount, bytes calldata inputProof) external returns (uint256 requestId) {

@@ -128,6 +128,7 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
     ) external {
         if (amount > type(uint64).max) revert AmountTooLarge();
         IERC20Authorizations(address(underlying)).receiveWithAuthorization(from, address(this), amount, validAfter, validBefore, nonce, v, r, s);
+        _checkSupplyBound();
         _mint(from, FHE.asEuint64(uint64(amount)));
         emit Wrapped(from, amount);
     }
@@ -135,6 +136,7 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
     function _wrapFrom(address payer, address to, uint256 amount) internal {
         if (amount > type(uint64).max) revert AmountTooLarge();
         if (!underlying.transferFrom(payer, address(this), amount)) revert TransferFailed();
+        _checkSupplyBound();
         _mint(to, FHE.asEuint64(uint64(amount)));
         emit Wrapped(to, amount);
     }
