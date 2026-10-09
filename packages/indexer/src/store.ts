@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 
 export interface ObservedEvent { chainId: number; blockNumber: number; blockHash: string; timestamp: number; txHash: string; logIndex: number; name: string; args: Record<string, unknown> }
 export interface Transfer { srcRef: string; source: ObservedEvent | null; payout: ObservedEvent | null; dispute: ObservedEvent | null; status: 'pending' | 'filled' | 'refunded' | 'disputed' | 'slashed' | 'maker-proven' | 'expired' | 'source-unobserved'; latencyMs: number | null }
+export interface ReferralBinding { referee: string; referrer: string; signature: string; boundAt: number }
 export const json = (value: unknown): string => JSON.stringify(value, (_, v: unknown) => typeof v === 'bigint' ? v.toString() : v);
 export class Store {
   readonly db: DatabaseSync;
@@ -12,6 +13,18 @@ export class Store {
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS events(chain INTEGER, block INTEGER, hash TEXT, tx TEXT, idx INTEGER, name TEXT, data TEXT NOT NULL, PRIMARY KEY(chain,tx,idx,name));');
     this.db.exec('CREATE TABLE IF NOT EXISTS cursors(chain INTEGER PRIMARY KEY, block INTEGER NOT NULL, hash TEXT NOT NULL); CREATE TABLE IF NOT EXISTS heads(chain INTEGER PRIMARY KEY, block INTEGER NOT NULL, timestamp INTEGER NOT NULL, observedAt INTEGER NOT NULL)');
+    // Signed referral bindings (not chain data, but replay-safe: scanning never touches this table and the referee key makes the first binding immutable).
+    this.db.exec('CREATE TABLE IF NOT EXISTS referrals(referee TEXT PRIMARY KEY, referrer TEXT NOT NULL, signature TEXT NOT NULL, boundAt INTEGER NOT NULL)');
+  }
+  referral(referee: string): ReferralBinding | undefined {
+    return this.db.prepare('SELECT referee,referrer,signature,boundAt FROM referrals WHERE referee=?').get(referee.toLowerCase()) as ReferralBinding | undefined;
+  }
+  referrals(): ReferralBinding[] {
+    return this.db.prepare('SELECT referee,referrer,signature,boundAt FROM referrals ORDER BY boundAt, referee').all() as unknown as ReferralBinding[];
+  }
+  /** Inserts a binding unless the referee already has one; returns whether this call bound it. */
+  bindReferral(binding: ReferralBinding): boolean {
+    return Number(this.db.prepare('INSERT OR IGNORE INTO referrals VALUES(?,?,?,?)').run(binding.referee.toLowerCase(),binding.referrer.toLowerCase(),binding.signature,binding.boundAt).changes)===1;
   }
   cursor(chain: number): { block: number; hash: string } | undefined {
     return this.db.prepare('SELECT block,hash FROM cursors WHERE chain=?').get(chain) as { block: number; hash: string } | undefined;
