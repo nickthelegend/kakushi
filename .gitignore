@@ -19,3 +19,4 @@ dist/
 contracts/deployments/local/
 .secrets/
 engine/bin/
+*.tsbuildinfo

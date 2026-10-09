@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/*
+ * Fhish tokens: the deep sea. Encrypted data lives in the dark and is only ever lit on purpose.
+ *   abyss   the background (deep teal, not black)
+ *   trench  raised surfaces
+ *   biolum  ciphertext, live things, primary actions (brand cyan)
+ *   lantern the ONLY place a value is revealed (decryption), anglerfish amber
+ *   foam    text
+ */
+:root {
+  --abyss: #021a20;
+  --trench: #06262e;
+  --trench-2: #0a313a;
+  --kelp: rgba(150, 236, 255, 0.1);
+  --kelp-strong: rgba(150, 236, 255, 0.2);
+  --foam: #e4fbff;
+  --tide: #8fb6bf;
+  --silt: #557a83;
+  --biolum: #34e3ff;
+  --biolum-soft: rgba(52, 227, 255, 0.12);
+  --lantern: #ffb648;
+  --lantern-soft: rgba(255, 182, 72, 0.14);
+  --reef: #ff6f61;
+  --sea-green: #6ee7b7;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-abyss: var(--abyss);
+  --color-trench: var(--trench);
+  --color-trench-2: var(--trench-2);
+  --color-kelp: var(--kelp);
+  --color-kelp-strong: var(--kelp-strong);
+  --color-foam: var(--foam);
+  --color-tide: var(--tide);
+  --color-silt: var(--silt);
+  --color-biolum: var(--biolum);
+  --color-biolum-soft: var(--biolum-soft);
+  --color-lantern: var(--lantern);
+  --color-lantern-soft: var(--lantern-soft);
+  --color-reef: var(--reef);
+  --color-sea-green: var(--sea-green);
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-unbounded), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--abyss);
+  color: var(--foam);
+}
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+/* depth: light falls off as you scroll down */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 70% at 50% -10%, rgba(52, 227, 255, 0.1), transparent 60%);
+  z-index: 0;
+}
+.font-display {
+  font-family: var(--font-display);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+:focus-visible {
+  outline: 2px solid var(--biolum);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+::selection {
+  background: var(--biolum-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

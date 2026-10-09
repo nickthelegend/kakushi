@@ -180,6 +180,16 @@ async function main() {
     results.push({ name: "Dark OTC", pass: false, detail: (e as Error).message });
   }
 
+  if (keep) {
+    say("5 · deploying long-lived demo apps for the playground");
+    const auction = await deployApp("Examples.sol", "FhishAuction", ["Genesis hanko #2", 3600n], "alice");
+    const cusdc = await deployApp("Examples.sol", "ConfidentialWrappedToken", [USDC, "Confidential USDC", "cUSDC"], "alice");
+    const otc = await deployApp("Examples.sol", "FhishDarkOTC", [], "alice");
+    for (const k of Object.values(KEYS)) await rpc("anvil_dealERC20", [privateKeyToAccount(k).address, USDC, "0x" + (1_000_000_000n).toString(16)]);
+    const apps = { auction: auction.address, cusdc: cusdc.address, otc: otc.address, usdc: USDC };
+    (await import("node:fs")).writeFileSync(`${ROOT}contracts/deployments/local-apps.json`, JSON.stringify(apps, null, 2));
+    console.log("  playground apps:", JSON.stringify(apps));
+  }
   const m = (await fhish.metrics()) as any;
   say(`Fhish on Monad e2e (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.name.padEnd(32)} ${r.detail}`);
