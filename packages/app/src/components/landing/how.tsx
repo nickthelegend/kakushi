@@ -1,7 +1,7 @@
 "use client";
 
 import { StatusPill, cn } from "@kakushi/ui";
-import { Check, EyeOff, Repeat, Shield } from "lucide-react";
+import { Check, EyeOff, Repeat, Shield, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Rise, useReduced, useReveal } from "@/components/motion";
@@ -15,17 +15,17 @@ export function How() {
     <section id="how" aria-labelledby="how-title" className="scroll-mt-24 py-20 lg:py-28">
       <Shell>
         <SectionIntro id="how-title" eyebrow={how.eyebrow} heading={how.heading} sub={how.sub} />
-        <div className="mt-12 grid gap-4 md:grid-cols-3 lg:mt-16">
+        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:mt-16 xl:grid-cols-4">
           {how.cards.map((card, i) => (
             <Rise key={card.key} delay={0.12 * i} className="h-full">
               <article className="flex h-full flex-col rounded-[30px] border border-ui-hairline-strong p-3">
                 <div className="h-[236px] overflow-hidden rounded-[24px] bg-ui-surface-1">
-                  {card.key === "pay" ? <PayVisual /> : card.key === "paid" ? <PaidVisual /> : <ProofVisual />}
+                  {card.key === "pay" ? <PayVisual /> : card.key === "token" ? <PaidVisual /> : card.key === "call" ? <CallVisual /> : <ProofVisual />}
                 </div>
                 <div className="flex flex-1 flex-col px-3 pt-5 pb-3">
                   <h3 className="flex items-center gap-2.5 text-[22px] font-medium tracking-[-0.025em]">
-                    <span className={cn("grid size-8 place-items-center rounded-full text-white", card.key === "pay" ? "bg-[#2f47f5]" : card.key === "paid" ? "bg-[#c79a52]" : "bg-[#6d86e9]")}>
-                      {card.key === "pay" ? <EyeOff size={16} /> : card.key === "paid" ? <Shield size={16} /> : <Repeat size={16} />}
+                    <span className={cn("grid size-8 place-items-center rounded-full text-white", card.key === "pay" ? "bg-[#2f47f5]" : card.key === "token" ? "bg-[#c79a52]" : card.key === "call" ? "bg-[#7a5af0]" : "bg-[#6d86e9]")}>
+                      {card.key === "pay" ? <EyeOff size={16} /> : card.key === "token" ? <Shield size={16} /> : card.key === "call" ? <Zap size={16} /> : <Repeat size={16} />}
                     </span>
                     {card.title}
                   </h3>
@@ -139,6 +139,38 @@ function ProofVisual() {
           {r}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Shielded funds go straight into an existing contract call; the wallet never appears. */
+function CallVisual() {
+  const [ref, seen] = useReveal<HTMLDivElement>(0.5);
+  const reduced = useReduced();
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (!seen) return;
+    if (reduced) return setStep(2);
+    const t1 = setTimeout(() => setStep(1), 500);
+    const t2 = setTimeout(() => setStep(2), 1300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [seen, reduced]);
+  return (
+    <div ref={ref} className="flex h-full flex-col justify-center gap-3 px-5">
+      <div className="flex items-center justify-between rounded-[16px] bg-ui-canvas px-4 py-3 text-[14px]">
+        <span className="text-ui-muted">From</span>
+        <span className="font-medium">Private pool</span>
+      </div>
+      <motion.div animate={{ opacity: step >= 1 ? 1 : 0.3 }} className="rounded-[16px] bg-[#16123a] px-4 py-3 font-mono text-[13px] text-[#c9b8ff] ring-1 ring-[#7a5af0]/40">
+        nft.mint(1)
+      </motion.div>
+      <motion.div animate={{ opacity: step >= 2 ? 1 : 0.35 }} transition={{ duration: 0.35, ease: EASE_REVEAL }} className="flex items-center justify-between rounded-[16px] bg-ui-canvas px-4 py-3 text-[14px]">
+        <span className="text-ui-muted">Your wallet</span>
+        <StatusPill tone={step >= 2 ? "lime" : "neutral"} size="sm">{step >= 2 ? "Never seen" : "…"}</StatusPill>
+      </motion.div>
     </div>
   );
 }

@@ -17,7 +17,7 @@ const serif = IBM_Plex_Serif({ subsets: ["latin"], weight: ["300", "400", "500"]
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3710"),
-  title: { default: "Kakushi: privacy for any app", template: "%s · Kakushi" },
+  title: { default: "Kakushi: the privacy plugin for Monad", template: "%s · Kakushi" },
   description: "Stealth addresses, a zero-knowledge pool and a private bridge for any app, on Monad and every chain it talks to.",
   applicationName: "Kakushi",
   openGraph: { images: ["/art/og.jpg"] },

@@ -5,21 +5,21 @@
 
 export const nav = {
   links: [
-    { label: "How it works", href: "#how" },
+    { label: "Converters", href: "#how" },
+    { label: "Plugin", href: "#developers" },
     { label: "Chains", href: "#chains" },
     { label: "Compare", href: "#compare" },
-    { label: "Developers", href: "#developers" },
     { label: "FAQ", href: "#faq" },
   ],
 };
 
 export const hero = {
   eyebrow: "Kakushi",
-  pill: "Privacy for any app",
-  headline: ["Make any app", "private."],
-  sub: "Stealth addresses hide who gets paid. A zero-knowledge pool hides where the money came from. One SDK call, on Monad and every chain it talks to.",
-  primary: "Launch app",
-  secondary: "Read the SDK",
+  pill: "The privacy plugin for Monad",
+  headline: ["Make anything", "private."],
+  sub: "Kakushi plugs into any token, any contract and any app on Monad and turns it private: stealth payments, a zero-knowledge pool and private calls, in one SDK.",
+  primary: "Add privacy",
+  secondary: "Open the app",
   trust: ["Proofs made in your browser", "No custodian, no mixer operator", "Monad first, every chain next"],
 };
 
@@ -29,13 +29,14 @@ export const sponsors = {
 } as const;
 
 export const how = {
-  eyebrow: "How it works",
-  heading: ["Three ways to go private.", "Use one, or all three."],
-  sub: "Each is a contract plus a proof. Your app calls the SDK; your users keep their keys.",
+  eyebrow: "Converters",
+  heading: ["Four converters.", "Everything goes private."],
+  sub: "Plug one in, or all four. Your users keep their keys; proofs run in their browser.",
   cards: [
-    { key: "pay", title: "Receive privately", body: "Every payment lands on a fresh one-time address only you can find.", foot: "Stealth addresses" },
-    { key: "paid", title: "Shield, then withdraw", body: "Deposit into the pool, withdraw anywhere with a proof. No link between the two.", foot: "Zero-knowledge pool" },
-    { key: "proof", title: "Cross chains, unlinked", body: "Makers deliver to a stealth address on the other chain in about a second.", foot: "Private bridge" },
+    { key: "token", title: "Any token", body: "Anyone opens a private pool for any token. No listing.", foot: "Pool factory" },
+    { key: "call", title: "Any contract call", body: "Pay, mint or swap from the pool. No wallet link.", foot: "Private calls" },
+    { key: "pay", title: "Any payment", body: "Every payment lands on a one-time address.", foot: "Stealth + widget" },
+    { key: "chain", title: "Any chain", body: "Cross to Monad and land on a stealth address.", foot: "Private bridge" },
   ],
 } as const;
 
@@ -68,9 +69,9 @@ export const proof = {
 
 export const developers = {
   eyebrow: "Developers",
-  heading: ["Privacy in", "one call."],
-  sub: "Turn any payment in your app into a private one. Proofs run in the user's browser; a relayer pays the gas.",
-  bullets: ["Stealth send and scan", "Shield and withdraw with Noir proofs", "Drop-in React widget"],
+  heading: ["One plugin.", "Any app, private."],
+  sub: "Drop in the widget, or call the SDK. A relayer pays the gas so nothing links back to your users' wallets.",
+  bullets: ["<KakushiPay/> for checkouts", "Private calls into any contract", "A private pool for any token"],
   note: "@kakushi/sdk",
   samples: [
     {
@@ -157,8 +158,8 @@ export const faq = {
 };
 
 export const closing = {
-  heading: "Make your app private.",
-  sub: "Stealth payments, a ZK pool and a private bridge, in one SDK.",
+  heading: "Plug in privacy.",
+  sub: "Any token, any call, any payment, any chain: private on Monad.",
 };
 
 export const chains = {

@@ -14,7 +14,7 @@ import { Sponsors } from "@/components/landing/sponsors";
 import { SmoothScroll } from "@/components/motion";
 
 export const metadata: Metadata = {
-  title: { absolute: "Kakushi: privacy for any app" },
+  title: { absolute: "Kakushi: the privacy plugin for Monad" },
   description: "Stealth addresses, a zero-knowledge pool and a private bridge for any app, on Monad and every chain it talks to.",
 };
 
@@ -27,9 +27,9 @@ export default function LandingPage() {
           <Hero />
           <Sponsors />
           <How />
+          <Developers />
           <Chains />
           <Compare />
-          <Developers />
           <Makers />
           <Fees />
           <Faq />

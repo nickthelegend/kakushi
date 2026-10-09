@@ -21,10 +21,10 @@ export function Closing() {
             <p className="mt-5 max-w-[440px] text-[17px] leading-[1.5] text-ui-muted lg:text-[19px]">{closing.sub}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="white" size="lg" iconRight={<ArrowRight />}>
-                <Link href="/bridge">Open the bridge</Link>
+                <Link href="/developers">Add privacy</Link>
               </Button>
               <Button asChild variant="outline" size="lg" icon={<Gavel />} className="border-white/40 bg-transparent hover:bg-white/10">
-                <Link href="/disputes">Prove a missed payout</Link>
+                <Link href="/send">Open the app</Link>
               </Button>
             </div>
           </Rise>

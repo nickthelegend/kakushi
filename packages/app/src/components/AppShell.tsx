@@ -15,7 +15,7 @@ export const NAV = [
   { key: "receive", label: "Receive", href: "/receive", icon: <Inbox /> },
   { key: "shield", label: "Shield", href: "/shield", icon: <Shield /> },
   { key: "bridge", label: "Bridge", href: "/bridge", icon: <ArrowLeftRight /> },
-  { key: "developers", label: "Developers", href: "/developers", icon: <CodeXml /> },
+  { key: "developers", label: "Plugin", href: "/developers", icon: <CodeXml /> },
 ];
 
 export const MORE = [

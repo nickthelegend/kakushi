@@ -1,13 +1,14 @@
 "use client";
 
 import { Menu, PrimaryButton, StatusPill, cn } from "@kakushi/ui";
-import { ArrowDown, ArrowRight, ChevronDown, Gavel, Info, Settings2, ShieldCheck, Timer, Users } from "lucide-react";
+import { ArrowDown, ArrowRight, ChevronDown, EyeOff, Gavel, Info, Settings2, ShieldCheck, Timer, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, isAddress, parseUnits, zeroAddress, type Hex } from "viem";
 import { CHAINS, chainById, chainByIdentCode, type ChainKey } from "@kakushi/config";
-import { buildTransferTx, erc20Abi, type MakerQuote } from "@kakushi/sdk";
+import { buildTransferTx, encodeStealthMetadata, erc20Abi, erc5564AnnouncerAbi, generateStealthAddress, readStealthMetaAddress, type MakerQuote } from "@kakushi/sdk";
+import { usePrivacyChains } from "@/lib/privacy";
 import { AssetCoin, ChainCoin } from "@/components/coins";
 import { readError } from "@/components/kit";
 import { ConnectButton } from "@/components/AppShell";
@@ -115,6 +116,12 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
   const [amountStr, setAmountStr] = useState("25");
   const [custom, setCustom] = useState(false);
   const [recipient, setRecipient] = useState("");
+  const [priv, setPriv] = useState(false);
+  const [privTo, setPrivTo] = useState("");
+  const [privMeta, setPrivMeta] = useState<string | { error: string } | null>(null);
+  const { chains: privacyChains } = usePrivacyChains();
+  const srcPrivacy = privacyChains.find((c) => c.chain.key === route.src)?.privacy;
+  const lookupPrivacy = privacyChains.find((c) => c.chain.key === route.dst) ?? privacyChains[0];
   const [quotes, setQuotes] = useState<MakerQuote[] | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [loadingQ, setLoadingQ] = useState(false);
@@ -151,7 +158,31 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
 
   const q = quotes?.find((x) => x.maker === chosen) ?? null;
   const gross = q ? BigInt(q.gross) : null;
-  const recipientOk = !custom || isAddress(recipient);
+  // Private delivery: resolve the recipient's meta-address (as given, or from the ERC-6538 registry).
+  useEffect(() => {
+    const v = privTo.trim();
+    setPrivMeta(null);
+    if (!priv || !v) return;
+    if (v.startsWith("st:")) return setPrivMeta(v);
+    if (!isAddress(v) || !k || !lookupPrivacy) return setPrivMeta({ error: "Paste a meta-address (st:eth:0x…) or a wallet" });
+    let live = true;
+    // The destination chain's registry first, then the Monad hub's.
+    const registries = [lookupPrivacy, ...privacyChains.filter((c) => c.chain.key === "monadTestnet" && c !== lookupPrivacy)];
+    (async () => {
+      for (const r of registries) {
+        const m = await readStealthMetaAddress(k.client(r.chain.key), r.privacy.stealthRegistry, v as Hex);
+        if (m) return m;
+      }
+      return null;
+    })()
+      .then((m) => live && setPrivMeta(m ?? { error: "This wallet hasn't turned on private receiving" }))
+      .catch(() => live && setPrivMeta({ error: "Lookup failed" }));
+    return () => {
+      live = false;
+    };
+  }, [priv, privTo, k, lookupPrivacy, privacyChains]);
+  const privReady = typeof privMeta === "string";
+  const recipientOk = priv ? privReady && Boolean(srcPrivacy) : !custom || isAddress(recipient);
   const insufficient = gross !== null && balance !== null && balance < gross;
   const fixed = gross !== null ? (() => { const s = gross.toString().padStart(src.decimals + 1, "0"); return `${s.slice(0, -src.decimals)}.${s.slice(-src.decimals)}`; })() : "";
   const reverse = routes.find((r) => r.src === route.dst && r.dst === route.src && r.asset === route.asset);
@@ -165,7 +196,8 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
     setSendErr(null);
     setSending("Preparing…");
     try {
-      const tx = buildTransferTx(k, { srcChainId: CHAINS[route.src].chainId, token: src.address, maker: q.maker, gross, sender: w.address, recipient: custom ? (recipient as Hex) : undefined });
+      const stealth = priv && typeof privMeta === "string" ? generateStealthAddress(privMeta) : null;
+      const tx = buildTransferTx(k, { srcChainId: CHAINS[route.src].chainId, token: src.address, maker: q.maker, gross, sender: w.address, recipient: stealth ? stealth.stealthAddress : custom ? (recipient as Hex) : undefined });
       const wc = await w.walletClient(route.src);
       const pc = k.client(route.src);
       if (tx.approve) {
@@ -177,6 +209,13 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
       const hash = await wc.sendTransaction({ chain: wc.chain, account: wc.account!, to: tx.to, data: tx.data, value: tx.value ?? 0n });
       setSending("Waiting for the source chain…");
       requireSuccessfulReceipt(await pc.waitForTransactionReceipt({ hash }), "Payment");
+      if (stealth && srcPrivacy) {
+        // Announce on the source chain: only the recipient's viewing key finds it; metadata says where the funds land.
+        setSending("Announcing to the recipient…");
+        const metadata = encodeStealthMetadata({ viewTag: stealth.viewTag, token: route.asset === "ETH" ? "native" : tokenOf(route, "dst").address, amount: BigInt(q.net), dstChainId: CHAINS[route.dst].chainId });
+        const ah = await wc.writeContract({ chain: wc.chain, account: wc.account!, address: srcPrivacy.stealthAnnouncer, abi: erc5564AnnouncerAbi, functionName: "announce", args: [1n, stealth.stealthAddress, stealth.ephemeralPublicKey, metadata] });
+        requireSuccessfulReceipt(await pc.waitForTransactionReceipt({ hash: ah }), "Announcement");
+      }
       router.push(`/tx/${CHAINS[route.src].chainId}/${hash}`);
     } catch (e) {
       setSendErr((e as { shortMessage?: string }).shortMessage ?? (e as Error).message.split("\n")[0]!);
@@ -204,7 +243,10 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
             </span>
           }
         >
-          <Menu.Item onSelect={() => setCustom((c) => !c)} description="Deliver to another address on the destination chain.">
+          <Menu.Item onSelect={() => { setPriv((p) => !p); setCustom(false); }} description="The Maker pays a one-time stealth address only the recipient can find.">
+            {priv ? "✓ " : ""}Deliver privately
+          </Menu.Item>
+          <Menu.Item onSelect={() => { setCustom((c) => !c); setPriv(false); }} description="Deliver to another address on the destination chain.">
             {custom ? "✓ " : ""}Send to a different address
           </Menu.Item>
         </Menu>
@@ -276,6 +318,17 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
         </div>
       </div>
 
+      {priv ? (
+        <div className="mt-2 rounded-[18px] bg-[#101a4a]/70 px-4 py-3 ring-1 ring-[#3b55ff]/40">
+          <div className="flex items-center justify-between text-[12px] text-[#c4d0ff]">
+            <span className="inline-flex items-center gap-1.5"><EyeOff size={13} /> Private delivery</span>
+            {privReady ? <span>Private address found</span> : null}
+          </div>
+          <input aria-label="Recipient private address or wallet" value={privTo} onChange={(e) => setPrivTo(e.target.value.trim())} placeholder="st:eth:0x… or 0x wallet" className="mt-1.5 w-full bg-transparent font-mono text-[13px] outline-none placeholder:text-ui-dim" />
+          {privMeta && typeof privMeta !== "string" ? <p className="mt-1 text-[12px] text-ui-warn">{privMeta.error}</p> : null}
+          {!srcPrivacy ? <p className="mt-1 text-[12px] text-ui-warn">Private delivery isn&rsquo;t live on {CHAINS[route.src].shortName} yet</p> : null}
+        </div>
+      ) : null}
       {custom ? (
         <input
           aria-label="Recipient address"

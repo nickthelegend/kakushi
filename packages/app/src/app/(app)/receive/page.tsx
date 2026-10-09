@@ -5,7 +5,7 @@ import { ArrowUpRight, Inbox, KeyRound, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatUnits, isAddress, type Hex } from "viem";
 import { chainById } from "@kakushi/config";
-import { buildRegisterKeysCalldata, readStealthMetaAddress, scanAnnouncements, type StealthMatch } from "@kakushi/sdk";
+import { buildRegisterKeysCalldata, readStealthMetaAddress, scanAnnouncements, stealthBalance, type StealthMatch } from "@kakushi/sdk";
 import { ConnectButton } from "@/components/AppShell";
 import { ChainCoin } from "@/components/coins";
 import { readError, short } from "@/components/kit";
@@ -125,7 +125,17 @@ export default function ReceivePage() {
         const client = k.client(pc.chain.key);
         const latest = await client.getBlockNumber();
         const matches = await scanAnnouncements(client, pc.privacy.stealthAnnouncer, BigInt(pc.privacy.deployBlock), latest, { viewingKey: keys.viewingKey, spendingPublicKey: keys.spendingPublicKey, spendingKey: keys.spendingKey }, { withBalances: true });
-        all.push(...matches.map((m) => ({ ...m, chainId: pc.chain.chainId })));
+        for (const m of matches) {
+          // A private bridge payment is announced on the source chain; its funds sit on dstChainId.
+          const dst = m.dstChainId ? Number(m.dstChainId) : pc.chain.chainId;
+          if (dst === pc.chain.chainId || !chains.some((c) => c.chain.chainId === dst)) {
+            all.push({ ...m, chainId: pc.chain.chainId });
+            continue;
+          }
+          const dc = k.client(chainById(dst).key);
+          const balance = m.kind === "erc20" && m.token ? await stealthBalance(dc, m.stealthAddress, m.token) : await dc.getBalance({ address: m.stealthAddress });
+          all.push({ ...m, chainId: dst, balance });
+        }
       }
       setScan({ busy: false, found: all.sort((a, b) => Number(b.blockNumber - a.blockNumber)), err: null });
     } catch (e) {
