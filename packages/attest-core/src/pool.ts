@@ -43,7 +43,8 @@ export const nullifierHashOf = (nullifier: bigint): bigint => poseidon2([nullifi
 export function randomNote(): Note {
   const rand = (): bigint => {
     const b = new Uint8Array(31);
-    crypto.getRandomValues(b);
+    // Web Crypto (browsers, Node 19+); typed locally so lib-less targets (the CRE WASM build) still compile
+    (globalThis as unknown as { crypto: { getRandomValues(a: Uint8Array): Uint8Array } }).crypto.getRandomValues(b);
     return BigInt(`0x${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}`);
   };
   return { nullifier: rand(), secret: rand() };
