@@ -65,8 +65,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - name: install CRE CLI
-        run: curl -sSL https://app.chain.link/cre/install.sh | bash
+      - name: install CRE CLI (pinned; retried, the installer queries the GitHub API)
+        run: |
+          for i in 1 2 3 4; do curl -sSL https://app.chain.link/cre/install.sh | bash -s -- v1.36.0 && break; echo "CRE install attempt $i failed; retrying"; sleep 30; done
+          test -x "$HOME/.cre/bin/cre"
       - name: cre workflow build (no login needed)
         working-directory: packages/cre
         run: |
