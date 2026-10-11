@@ -52,10 +52,14 @@ test("the limiter caps concurrent engine calls", async () => {
   const g = new OpGraph(engine, new Metrics(), 2);
   for (let i = 0; i < 6; i++) g.submit({ kind: "trivial", result: `0x${i}`, value: 0n, type: 4 });
   for (let i = 0; i < 6; i++) await g.waitFor(`0x${i}`);
-  for (const l of log) {
-    const overlapping = log.filter((o) => o.start < l.end && o.end > l.start).length;
-    assert.ok(overlapping <= 2, `at most 2 at once, saw ${overlapping}`);
-  }
+  // Peak concurrency by a sweep over start/end events (an end at the same instant as a start
+  // frees its slot first). Counting every interval that overlaps a given one is not the same:
+  // a call stretched by timer jitter can overlap a predecessor and a successor that never ran together.
+  const events = log.flatMap((o) => [{ t: o.start, d: 1 }, { t: o.end, d: -1 }]).sort((x, y) => x.t - y.t || x.d - y.d);
+  let running = 0;
+  let peak = 0;
+  for (const e of events) peak = Math.max(peak, (running += e.d));
+  assert.ok(peak <= 2, `at most 2 at once, saw ${peak}`);
 });
 
 test("duplicate results are computed once (deterministic handles)", async () => {
