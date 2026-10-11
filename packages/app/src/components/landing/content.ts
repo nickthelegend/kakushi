@@ -5,6 +5,7 @@
 
 export const nav = {
   links: [
+    { label: "Engines", href: "#engines" },
     { label: "Converters", href: "#how" },
     { label: "Plugin", href: "#developers" },
     { label: "Chains", href: "#chains" },
@@ -15,9 +16,9 @@ export const nav = {
 
 export const hero = {
   eyebrow: "Kakushi",
-  pill: "The privacy plugin for Monad",
+  pill: "The privacy provider for Monad",
   headline: ["Make anything", "private."],
-  sub: "Kakushi plugs into any token, any contract and any app on Monad and turns it private: stealth payments, a zero-knowledge pool and private calls, in one SDK.",
+  sub: "Zero-knowledge proofs hide who. Fully homomorphic encryption hides how much. Kakushi plugs both into any token, contract or app on Monad.",
   primary: "Add privacy",
   secondary: "Open the app",
   trust: ["Proofs made in your browser", "No custodian, no mixer operator", "Monad first, every chain next"],
@@ -167,3 +168,14 @@ export const chains = {
   heading: ["Monad first.", "Every chain next."],
   sub: "The same contracts at the same address on every chain. Private transfers between them run through Makers to stealth addresses.",
 };
+
+export const engines = {
+  eyebrow: "Two engines",
+  heading: ["ZK hides who.", "FHE hides how much."],
+  sub: "Use either one, or both in the same transaction.",
+  cards: [
+    { key: "zk", engine: "Zero knowledge · Noir", title: "Hide who", items: ["One-time stealth addresses", "A shielded pool for any token", "Private calls into any contract", "A private bridge across chains"] },
+    { key: "fhe", engine: "Fully homomorphic · tfhe-rs", title: "Hide how much", items: ["Encrypted balances and payments", "Contracts compute on ciphertexts", "Encrypted payroll, requests, pay links", "Reveal only to whoever you allow"] },
+    { key: "both", engine: "ZK + FHE", title: "Hide everything", items: ["An encrypted amount to a stealth address", "Nobody sees the parties or the amount", "The recipient reveals it with one key", "Settles on Monad in under a second"] },
+  ],
+} as const;

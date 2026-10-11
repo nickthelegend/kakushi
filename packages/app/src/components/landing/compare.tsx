@@ -9,6 +9,8 @@ type Mark = "yes" | "part" | "no";
 const ROWS: { k: string; umbra: [Mark, string]; pool: [Mark, string]; kakushi: [Mark, string] }[] = [
   { k: "Hides who gets paid", umbra: ["yes", "Stealth addresses"], pool: ["part", "Fresh withdrawal address"], kakushi: ["yes", "Stealth addresses"] },
   { k: "Hides where funds came from", umbra: ["no", "Sender is public"], pool: ["yes", "ZK withdrawal"], kakushi: ["yes", "ZK pool"] },
+  { k: "Hides how much", umbra: ["no", "Amounts public"], pool: ["part", "Fixed sizes only"], kakushi: ["yes", "FHE-encrypted amounts"] },
+  { k: "Compute on private data", umbra: ["no", "No"], pool: ["no", "No"], kakushi: ["yes", "FHE.sol in any contract"] },
   { k: "Across chains", umbra: ["no", "Per chain"], pool: ["no", "One chain"], kakushi: ["yes", "Private bridge to stealth"] },
   { k: "Gasless for the receiver", umbra: ["yes", "Relayer"], pool: ["yes", "Relayer"], kakushi: ["yes", "Relayer"] },
   { k: "For other apps", umbra: ["part", "JS library"], pool: ["no", "Own app"], kakushi: ["yes", "SDK + React widget"] },
@@ -29,7 +31,7 @@ export function Compare() {
   return (
     <section id="compare" aria-labelledby="compare-title" className="scroll-mt-24 py-16 lg:py-24">
       <Shell>
-        <SectionIntro id="compare-title" align="center" eyebrow="Compare" heading={["Stealth and shielded,", "in one protocol."]} className="mx-auto max-w-[760px]" />
+        <SectionIntro id="compare-title" align="center" eyebrow="Compare" heading={["Who and how much,", "both private."]} className="mx-auto max-w-[760px]" />
         <Rise y={24} className="mx-auto mt-12 max-w-[1040px] overflow-x-auto rounded-[28px] ring-1 ring-ui-hairline-strong">
           <table className="w-full min-w-[640px] border-collapse text-left text-[15px]">
             <caption className="sr-only">Kakushi compared with Umbra and single-chain mixer pools</caption>

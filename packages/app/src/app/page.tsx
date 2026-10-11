@@ -3,6 +3,7 @@ import { Chains } from "@/components/landing/chains";
 import { Compare } from "@/components/landing/compare";
 import { Closing, Footer } from "@/components/landing/closing";
 import { Developers } from "@/components/landing/developers";
+import { Engines } from "@/components/landing/engines";
 import { Faq } from "@/components/landing/faq";
 import { Fees } from "@/components/landing/fees";
 import { LandingFrame } from "@/components/landing/frame";
@@ -14,7 +15,7 @@ import { Sponsors } from "@/components/landing/sponsors";
 import { SmoothScroll } from "@/components/motion";
 
 export const metadata: Metadata = {
-  title: { absolute: "Kakushi: the privacy plugin for Monad" },
+  title: { absolute: "Kakushi: the privacy provider for Monad" },
   description: "Stealth addresses, a zero-knowledge pool and a private bridge for any app, on Monad and every chain it talks to.",
 };
 
@@ -26,6 +27,7 @@ export default function LandingPage() {
         <main>
           <Hero />
           <Sponsors />
+          <Engines />
           <How />
           <Developers />
           <Chains />
