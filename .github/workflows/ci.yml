@@ -74,3 +74,97 @@ jobs:
         run: |
           export PATH="$HOME/.cre/bin:$PWD/node_modules/.bin:$PATH"
           for w in attest-monad attest-sepolia attest-base attest-arbitrum attest-op source-native; do cre workflow build ./workflows/$w; done
+
+  # ---------------------------------------------------------------- FHE (fhe/, Kakushi Confidential)
+  # fhe/ is its own pnpm workspace (fhe/pnpm-workspace.yaml + lockfile); the indexer and the mobile
+  # app inside it are standalone installs of their own.
+
+  fhe-contracts:
+    name: fhe · foundry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build --sizes
+        working-directory: fhe/contracts
+      - run: forge test -vv
+        working-directory: fhe/contracts
+
+  fhe-ts:
+    name: fhe · typecheck + unit tests (sdk, coprocessor, cre, app, mm plugin)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: fhe } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: fhe/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+        env: { KAKUSHI_FHE_OFFLINE: "1" }   # live Monad testnet checks run locally, not in CI
+
+  fhe-cre-wasm:
+    name: fhe · CRE decrypt relay compiles to WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: fhe/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+        working-directory: fhe
+      - name: install CRE CLI (pinned like the cre job; retried, the installer queries the GitHub API)
+        run: |
+          for i in 1 2 3 4; do curl -sSL https://app.chain.link/cre/install.sh | bash -s -- v1.36.0 && break; echo "CRE install attempt $i failed; retrying"; sleep 30; done
+          test -x "$HOME/.cre/bin/cre"
+      - name: compile kakushi-fhe-decrypt-relay to WASM
+        working-directory: fhe/cre
+        run: |
+          export PATH="$HOME/.cre/bin:$PWD/node_modules/.bin:$PATH"
+          node scripts/configure.ts
+          cre workflow build ./workflows/decrypt-relay
+
+  fhe-engine:
+    name: fhe · tfhe-rs engine build + smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: fhe/engine }
+      - run: cargo build --release
+        working-directory: fhe/engine
+      - name: keygen + encrypt smoke test (real tfhe-rs)
+        working-directory: fhe/engine
+        run: |
+          ./target/release/kakushi-fhe-engine keygen --dir /tmp/kakushi-fhe
+          ./target/release/kakushi-fhe-engine encrypt --pk /tmp/kakushi-fhe/keys/public_key.bin --type 4 --value 1337 | head -c 64
+
+  fhe-indexer:
+    name: fhe · Envio indexer codegen + handler tests
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: fhe/indexer } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: pnpm install --frozen-lockfile   # standalone workspace (fhe/indexer/pnpm-workspace.yaml)
+      - run: pnpm configure                    # config.yaml from fhe/contracts/deployments/local*.json
+      - run: pnpm codegen
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  fhe-mobile:
+    name: fhe · Expo mobile typecheck
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: fhe/mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: npm ci
+      - run: npm run build:tfhe                # inlines node-tfhe into src/fhe/encryptorHtml.generated.ts (gitignored)
+      - run: npm run typecheck
