@@ -22,7 +22,11 @@
     "stack:status": "bash scripts/stack.sh status",
     "deploy:local": "node scripts/deploy-local.ts",
     "demo": "node scripts/demo.ts",
-    "dev": "pnpm --filter @kakushi/app dev"
+    "dev": "pnpm --filter @kakushi/app dev",
+    "fhe:up": "node scripts/fhe-local.ts up",
+    "fhe:down": "node scripts/fhe-local.ts down",
+    "fhe:status": "node scripts/fhe-local.ts status",
+    "fhe:e2e": "node scripts/fhe-stealth-e2e.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
@@ -33,6 +37,7 @@
   "dependencies": {
     "@kakushi/attest-core": "workspace:*",
     "@kakushi/config": "workspace:*",
+    "@kakushi/fhe-sdk": "link:fhe/sdk",
     "@kakushi/sdk": "workspace:*",
     "viem": "^2.38.0"
   }

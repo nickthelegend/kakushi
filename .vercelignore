@@ -15,4 +15,7 @@ packages/cre/workflows/*/binary.wasm
 .env
 .env.*
 config/generated/*.local.json
-fhe/
+# fhe/ stays out, except the SDK the app links (@kakushi/fhe-sdk: TypeScript source)
+fhe/*
+!fhe/sdk/
+fhe/sdk/test/

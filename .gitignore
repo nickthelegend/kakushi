@@ -31,3 +31,4 @@ packages/cre/workflows/*/binary.wasm
 docs/video/raw/
 *.tsbuildinfo
 .vercel
+packages/app/public/vendor/

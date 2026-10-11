@@ -49,3 +49,22 @@ it("uses the public provider when an optional testnet override is blank", () => 
   vi.stubEnv("MONAD_TESTNET_RPC_URL", "");
   expect(rpcFor(10143)).toBe("https://testnet-rpc.monad.xyz");
 });
+it("exposes Kakushi Confidential through the gateway proxy, and nothing when it is not deployed", async () => {
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const d = mkdtempSync(join(tmpdir(), "kakushi-cfg-"));
+  vi.stubEnv("KAKUSHI_CONFIG_DIR", d);
+  vi.stubEnv("KAKUSHI_NETWORK", "testnet");
+  expect(publicRuntimeConfig().fhe).toBeNull();
+  expect(publicRuntimeConfig().services.fheGateway).toBeNull();
+  vi.stubEnv("KAKUSHI_NETWORK", "local");
+  const core = { registry: "0x01", acl: "0x02", executor: "0x03", inputVerifier: "0x04", oracle: "0x05" };
+  writeFileSync(join(d, "fhe.local.json"), JSON.stringify({ chainId: 10143, deployBlock: 7, core, tokens: [{ key: "cUSDC", address: "0x06" }], stealthPay: "0x07", stealthAnnouncer: "0x08", gateway: "http://127.0.0.1:8890" }));
+  expect(runtimeConfig().fhe?.gateway).toBe("http://127.0.0.1:8890");
+  const cfg = publicRuntimeConfig();
+  expect(cfg.services.fheGateway).toBe("/api/svc/fhe-gateway");
+  expect(cfg.fhe?.gateway).toBe("/api/svc/fhe-gateway");
+  expect(cfg.fhe?.tokens[0]?.key).toBe("cUSDC");
+  expect(JSON.stringify(cfg)).not.toContain("8890");
+});

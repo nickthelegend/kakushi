@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { CHAINS, type ChainKey } from "@kakushi/config";
 import { Kakushi } from "@kakushi/sdk";
+import type { FhePublicConfig } from "./confidential";
 
 export interface MakerEntry {
   name: string;
@@ -14,7 +15,9 @@ export interface RuntimeConfig {
   network: "local" | "testnet";
   deployments: any;
   makers: MakerEntry[];
-  services: { attester: string | null; watchtower: string | null; indexer: string | null; relayer: string | null };
+  services: { attester: string | null; watchtower: string | null; indexer: string | null; relayer: string | null; fheGateway: string | null };
+  /** Kakushi Confidential (FHE); null when it is not live on this network */
+  fhe: FhePublicConfig | null;
   privyAppId: string | null;
   envioStatsEnabled: boolean;
   localDevKeys: { label: string; key: `0x${string}` }[];

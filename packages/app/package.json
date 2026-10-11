@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Kakushi web app: bridge, transfer receipts, disputes, Maker market and console, CRE attestation explorer.",
   "scripts": {
-    "dev": "next dev -p 3710",
-    "build": "next build",
+    "dev": "node scripts/vendor-tfhe.mjs && next dev -p 3710",
+    "build": "node scripts/vendor-tfhe.mjs && next build",
     "start": "next start -p 3710",
     "typecheck": "tsc --noEmit",
     "test": "vitest run test --maxWorkers=1"
@@ -14,6 +14,7 @@
   "dependencies": {
     "@kakushi/attest-core": "workspace:*",
     "@kakushi/config": "workspace:*",
+    "@kakushi/fhe-sdk": "link:../../fhe/sdk",
     "@kakushi/sdk": "workspace:*",
     "@kakushi/ui": "workspace:*",
     "@kakushi/widget": "workspace:*",
@@ -26,6 +27,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tailwind-merge": "3.7.0",
+    "tfhe": "1.8.1",
     "viem": "^2.38.0"
   },
   "devDependencies": {

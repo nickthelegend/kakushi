@@ -1,10 +1,10 @@
 "use client";
 
 import { AppFrame, IconSquareButton, KakushiMark, Logo, Menu, SecondaryButton, StatusPill, TopNav } from "@kakushi/ui";
-import { ArrowLeftRight, BarChart3, BookOpen, CodeXml, Compass, Gavel, GitBranch, Globe, Inbox, LogOut, Send, Shield, ShieldCheck, Star, Users, Wallet } from "lucide-react";
+import { ArrowLeftRight, BarChart3, BookOpen, CodeXml, Compass, Gavel, GitBranch, Globe, Inbox, Lock, LogOut, Send, Shield, ShieldCheck, Star, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { forwardRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useRuntime } from "@/lib/runtime";
 import { useIndexer, type PointsView } from "@/lib/engage";
 import { useStoredReferrer } from "@/lib/referral";
@@ -14,6 +14,7 @@ export const NAV = [
   { key: "send", label: "Send", href: "/send", icon: <Send /> },
   { key: "receive", label: "Receive", href: "/receive", icon: <Inbox /> },
   { key: "shield", label: "Shield", href: "/shield", icon: <Shield /> },
+  { key: "confidential", label: "Confidential", href: "/confidential", icon: <Lock /> },
   { key: "bridge", label: "Bridge", href: "/bridge", icon: <ArrowLeftRight /> },
   { key: "developers", label: "Plugin", href: "/developers", icon: <CodeXml /> },
 ];
@@ -26,6 +27,21 @@ export const MORE = [
   { key: "docs", label: "Docs", href: "https://github.com/nickthelegend/kakushi#readme", icon: <BookOpen />, description: "How Kakushi works" },
   { key: "github", label: "GitHub", href: "https://github.com/nickthelegend/kakushi", icon: <GitBranch />, description: "Open source, MIT" },
 ];
+
+/** Routes served with COOP/COEP (next.config.ts) so tfhe's WASM gets a thread pool. */
+const ISOLATED_ROUTES = ["/confidential"];
+
+/**
+ * Next's Link, except that entering or leaving a cross-origin-isolated route is a full document
+ * load: isolation comes from the response headers, so a client-side hop would not gain it (entering)
+ * or would keep it on pages that never asked for it (leaving).
+ */
+const ShellLink = forwardRef<HTMLAnchorElement, ComponentProps<typeof Link>>(function ShellLink({ href, prefetch, replace, scroll, shallow, ...rest }, ref) {
+  const h = typeof href === "string" ? href : (href.pathname ?? "/");
+  const isolatedNow = typeof window !== "undefined" && Boolean((window as { crossOriginIsolated?: boolean }).crossOriginIsolated);
+  if (isolatedNow || ISOLATED_ROUTES.some((r) => h === r || h.startsWith(`${r}/`))) return <a ref={ref} href={h} {...rest} />;
+  return <Link ref={ref} href={href} prefetch={prefetch} replace={replace} scroll={scroll} shallow={shallow} {...rest} />;
+});
 
 function activeKey(pathname: string): string {
   const hit = [...NAV, ...MORE].find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));
@@ -155,7 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         items={NAV}
         more={{ label: "More", items: MORE }}
         value={activeKey(pathname)}
-        linkAs={Link}
+        linkAs={ShellLink}
         actions={
           <>
             <NetworkPill className="hidden 2xl:inline-flex" />

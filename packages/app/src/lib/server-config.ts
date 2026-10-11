@@ -11,11 +11,25 @@ export interface MakerEntry {
   url: string;
 }
 
+/** Kakushi Confidential (FHE) on this network: written by scripts/fhe-local.ts (config/generated/fhe.<network>.json). */
+export interface FheRuntime {
+  chainId: number;
+  deployBlock: number;
+  core: { registry: `0x${string}`; acl: `0x${string}`; executor: `0x${string}`; inputVerifier: `0x${string}`; oracle: `0x${string}` };
+  tokens: { key: string; name: string; symbol: string; address: `0x${string}`; underlying: `0x${string}`; underlyingSymbol: string; decimals: number }[];
+  stealthPay: `0x${string}`;
+  stealthAnnouncer: `0x${string}`;
+  /** the gateway (inputs, sealed user decryption): an internal URL on the server, /api/svc/fhe-gateway in the browser */
+  gateway: string;
+}
+
 export interface RuntimeConfig {
   network: Network;
   deployments: unknown | null;
   makers: MakerEntry[];
-  services: { attester: string | null; watchtower: string | null; indexer: string | null; relayer: string | null };
+  services: { attester: string | null; watchtower: string | null; indexer: string | null; relayer: string | null; fheGateway: string | null };
+  /** null: Kakushi Confidential is not deployed on this network (the UI says "not live") */
+  fhe: FheRuntime | null;
   privyAppId: string | null;
   envioStatsEnabled: boolean;
   /** LOCAL ANVIL ONLY: public dev keys for the local-fork demo wallet. Never set on testnet. */
@@ -33,8 +47,24 @@ export function network(): Network {
   return value;
 }
 
+/** The FHE deployment for `n`, or null. The gateway URL may be overridden (KAKUSHI_FHE_GATEWAY_URL). */
+function fheConfig(n: Network): FheRuntime | null {
+  const p = resolve(dir(), `fhe.${n}.json`);
+  if (!existsSync(p)) return null;
+  try {
+    const f = JSON.parse(readFileSync(p, "utf8"));
+    if (!f?.core?.executor || !Array.isArray(f.tokens) || !f.tokens.length) return null;
+    const gateway = process.env.KAKUSHI_FHE_GATEWAY_URL || f.gateway || null;
+    if (!gateway) return null;
+    return { chainId: Number(f.chainId), deployBlock: Number(f.deployBlock), core: f.core, tokens: f.tokens, stealthPay: f.stealthPay, stealthAnnouncer: f.stealthAnnouncer, gateway };
+  } catch {
+    return null;
+  }
+}
+
 export function runtimeConfig(): RuntimeConfig {
   const n = network();
+  const fhe = fheConfig(n);
   const depPath = resolve(dir(), `deployments.${n}.json`);
   const makersPath = resolve(dir(), `makers.${n}.json`);
   const deployments = existsSync(depPath) ? JSON.parse(readFileSync(depPath, "utf8")) : null;
@@ -48,7 +78,9 @@ export function runtimeConfig(): RuntimeConfig {
       watchtower: process.env.KAKUSHI_WATCHTOWER_URL ?? (n === "local" ? "http://127.0.0.1:3713" : null),
       indexer: process.env.KAKUSHI_INDEXER_URL ?? process.env.NEXT_PUBLIC_INDEXER_URL ?? (n === "local" ? "http://127.0.0.1:4201" : null),
       relayer: process.env.KAKUSHI_RELAYER_URL ?? (n === "local" ? "http://127.0.0.1:3715" : null),
+      fheGateway: fhe?.gateway ?? null,
     },
+    fhe,
     privyAppId: process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? null,
     envioStatsEnabled: Boolean(process.env.KAKUSHI_ENVIO_GRAPHQL_URL),
     localDevKeys:
@@ -75,7 +107,9 @@ export function publicRuntimeConfig(): RuntimeConfig {
       watchtower: cfg.services.watchtower ? "/api/svc/watchtower" : null,
       indexer: cfg.services.indexer ? "/api/svc/indexer" : null,
       relayer: cfg.services.relayer ? "/api/svc/relayer" : null,
+      fheGateway: cfg.services.fheGateway ? "/api/svc/fhe-gateway" : null,
     },
+    fhe: cfg.fhe ? { ...cfg.fhe, gateway: "/api/svc/fhe-gateway" } : null,
   };
 }
 

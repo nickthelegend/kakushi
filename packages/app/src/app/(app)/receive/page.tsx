@@ -1,7 +1,7 @@
 "use client";
 
 import { CopyButton, PrimaryButton, SecondaryButton, StatusPill, cn } from "@kakushi/ui";
-import { ArrowUpRight, Inbox, KeyRound, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Eye, Inbox, KeyRound, Lock, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatUnits, isAddress, type Hex } from "viem";
 import { chainById } from "@kakushi/config";
@@ -15,8 +15,81 @@ import { useRuntime } from "@/lib/runtime";
 import { useStealthKeys } from "@/lib/stealth-keys";
 import { useWallet } from "@/lib/wallet";
 import { requireSuccessfulReceipt } from "@/lib/bridge-state";
+import { balanceHandle, confidentialMatch, moveFromStealth, reveal, walletSigner } from "@/lib/confidential";
+import { useConfidential } from "@/lib/fhe-browser";
 
 type Found = StealthMatch & { chainId: number };
+
+const fmtUnits = (v: bigint, d: number) => Number(formatUnits(v, d)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+/**
+ * A Kakushi Confidential payment to one of our stealth addresses: the amount is a ciphertext.
+ * Reveal = EIP-712 user decryption signed by the STEALTH private key (the token lets the stealth
+ * address read it). Move = the stealth address hands its encrypted balance to the main wallet
+ * (paid from the gas the sender forwarded); the amount is never decrypted on the way.
+ */
+function ConfidentialPayment({ m, onDone }: { m: NonNullable<ReturnType<typeof confidentialMatch>> & { chainId: number }; onDone: (hash: Hex) => void }) {
+  const { rpc } = useRuntime();
+  const w = useWallet();
+  const { env } = useConfidential();
+  const [state, setState] = useState<{ amount: bigint; left: bigint } | null>(null);
+  const [busy, setBusy] = useState<"reveal" | "move" | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const key = chainById(m.chainId).key;
+  const t = m.ctoken;
+  const stealth = () => walletSigner(stealthWallet(m.stealthPrivateKey!, m.chainId, rpc[key]));
+
+  async function doReveal() {
+    if (!env || !m.stealthPrivateKey || busy) return;
+    setBusy("reveal");
+    setErr(null);
+    try {
+      const s = stealth();
+      const bal = await balanceHandle(env, t, s.address);
+      const v = await reveal(env, s, t, [m.encryptedAmount, bal]);
+      setState({ amount: v[m.encryptedAmount.toLowerCase()] ?? 0n, left: v[bal.toLowerCase()] ?? 0n });
+    } catch (e) {
+      setErr(readError((e as Error).message) ?? "Reveal failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function move() {
+    if (!env || !m.stealthPrivateKey || !w.address || busy) return;
+    setBusy("move");
+    setErr(null);
+    try {
+      const rc = await moveFromStealth(env, stealth(), t, w.address as Hex);
+      setState((s) => (s ? { ...s, left: 0n } : s));
+      onDone(rc.transactionHash);
+    } catch (e) {
+      setErr((e as { shortMessage?: string }).shortMessage ?? (e as Error).message.split("\n")[0]!);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <li className="rounded-[20px] bg-[#04060f]/80 p-4 ring-1 ring-white/[0.04]">
+      <div className="flex items-center gap-3">
+        <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#1a2a8a] ring-1 ring-[#3b55ff]/40"><Lock size={16} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="ui-figure text-[20px] font-medium">{state ? `${fmtUnits(state.amount, t.decimals)} ${t.symbol}` : `Encrypted ${t.symbol}`}</div>
+          <div className="text-[12px] text-ui-muted">{state ? (state.left === 0n ? "Moved to your private balance" : "Only you can see this") : "Amount hidden on-chain"} · {short(m.stealthAddress)}</div>
+        </div>
+        {!state ? (
+          <SecondaryButton size="sm" icon={<Eye />} loading={busy === "reveal"} onClick={doReveal}>Reveal</SecondaryButton>
+        ) : state.left > 0n ? (
+          <SecondaryButton size="sm" loading={busy === "move"} onClick={move}>Move to my private balance</SecondaryButton>
+        ) : (
+          <StatusPill tone="neutral" size="sm">Moved</StatusPill>
+        )}
+      </div>
+      {err ? <p className="mt-2 text-[13px] text-ui-down">{err}</p> : null}
+    </li>
+  );
+}
 
 function Payment({ m, onDone }: { m: Found; onDone: (hash: Hex) => void }) {
   const { rpc, k } = useRuntime();
@@ -108,36 +181,43 @@ function Register({ pc, meta }: { pc: PrivacyChain; meta: string }) {
 }
 
 export default function ReceivePage() {
-  const { k } = useRuntime();
+  const { k, cfg } = useRuntime();
   const w = useWallet();
   const { keys, unlock } = useStealthKeys();
   const { chains, ready } = usePrivacyChains();
   const [unlocking, setUnlocking] = useState(false);
   const [scan, setScan] = useState<{ busy: boolean; found: Found[] | null; err: string | null }>({ busy: false, found: null, err: null });
-  const [moved, setMoved] = useState<Hex | null>(null);
+  const [moved, setMoved] = useState<{ hash: Hex; confidential: boolean } | null>(null);
 
   async function runScan() {
     if (!keys || !k) return;
     setScan({ busy: true, found: null, err: null });
     try {
       const all: Found[] = [];
+      const down: string[] = [];
+      // one unreachable chain must not hide the others' payments
       for (const pc of chains) {
-        const client = k.client(pc.chain.key);
-        const latest = await client.getBlockNumber();
-        const matches = await scanAnnouncements(client, pc.privacy.stealthAnnouncer, BigInt(pc.privacy.deployBlock), latest, { viewingKey: keys.viewingKey, spendingPublicKey: keys.spendingPublicKey, spendingKey: keys.spendingKey }, { withBalances: true });
-        for (const m of matches) {
-          // A private bridge payment is announced on the source chain; its funds sit on dstChainId.
-          const dst = m.dstChainId ? Number(m.dstChainId) : pc.chain.chainId;
-          if (dst === pc.chain.chainId || !chains.some((c) => c.chain.chainId === dst)) {
-            all.push({ ...m, chainId: pc.chain.chainId });
-            continue;
+        try {
+          const client = k.client(pc.chain.key);
+          const latest = await client.getBlockNumber();
+          const matches = await scanAnnouncements(client, pc.privacy.stealthAnnouncer, BigInt(pc.privacy.deployBlock), latest, { viewingKey: keys.viewingKey, spendingPublicKey: keys.spendingPublicKey, spendingKey: keys.spendingKey }, { withBalances: true });
+          for (const m of matches) {
+            // A private bridge payment is announced on the source chain; its funds sit on dstChainId.
+            const dst = m.dstChainId ? Number(m.dstChainId) : pc.chain.chainId;
+            if (dst === pc.chain.chainId || !chains.some((c) => c.chain.chainId === dst)) {
+              all.push({ ...m, chainId: pc.chain.chainId });
+              continue;
+            }
+            const dc = k.client(chainById(dst).key);
+            const balance = m.kind === "erc20" && m.token ? await stealthBalance(dc, m.stealthAddress, m.token) : await dc.getBalance({ address: m.stealthAddress });
+            all.push({ ...m, chainId: dst, balance });
           }
-          const dc = k.client(chainById(dst).key);
-          const balance = m.kind === "erc20" && m.token ? await stealthBalance(dc, m.stealthAddress, m.token) : await dc.getBalance({ address: m.stealthAddress });
-          all.push({ ...m, chainId: dst, balance });
+        } catch {
+          down.push(pc.chain.shortName);
         }
       }
-      setScan({ busy: false, found: all.sort((a, b) => Number(b.blockNumber - a.blockNumber)), err: null });
+      if (down.length === chains.length) throw new Error("no chain reachable");
+      setScan({ busy: false, found: all.sort((a, b) => Number(b.blockNumber - a.blockNumber)), err: down.length ? `Couldn't reach ${down.join(", ")}; showing the rest` : null });
     } catch (e) {
       setScan({ busy: false, found: null, err: readError((e as Error).message) });
     }
@@ -177,11 +257,17 @@ export default function ReceivePage() {
             </div>
             {scan.err ? <p className="px-2 pb-2 text-[13px] text-ui-warn">{scan.err}</p> : null}
             {scan.found?.length === 0 ? <p className="px-2 pb-3 text-[14px] text-ui-muted">Nothing yet</p> : null}
-            <ul className="grid gap-2 pb-1">{scan.found?.map((m) => <Payment key={`${m.chainId}-${m.txHash}-${m.logIndex}`} m={m} onDone={(h) => { setMoved(h); void runScan(); }} />)}</ul>
+            <ul className="grid gap-2 pb-1">
+              {scan.found?.map((m) => {
+                const c = confidentialMatch(m, cfg?.fhe ?? null);
+                const rowKey = `${m.chainId}-${m.txHash}-${m.logIndex}`;
+                return c ? <ConfidentialPayment key={rowKey} m={{ ...c, chainId: m.chainId }} onDone={(h) => setMoved({ hash: h, confidential: true })} /> : <Payment key={rowKey} m={m} onDone={(h) => { setMoved({ hash: h, confidential: false }); void runScan(); }} />;
+              })}
+            </ul>
           </div>
         ) : null}
       </GlassCard>
-      {moved ? <Done headline="Moved to your wallet" details={<span>Tx {short(moved, 6)}</span>} /> : null}
+      {moved ? <Done headline={moved.confidential ? "Moved to your private balance" : "Moved to your wallet"} sub={moved.confidential ? "The amount stayed encrypted the whole way" : undefined} details={<span>Tx {short(moved.hash, 6)}</span>} /> : null}
     </div>
   );
 }
