@@ -59,8 +59,8 @@ function Root() {
   }, []);
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
 
-  // pay links: fhishpay://claim?...#k=... and https://<host>/claim?...#k=... (never logged)
-  // request links: fhishpay://request?net=...&id=...  and https://<host>/request?... (no secret)
+  // pay links: kakushipay://claim?...#k=... and https://<host>/claim?...#k=... (never logged)
+  // request links: kakushipay://request?net=...&id=...  and https://<host>/request?... (no secret)
   useEffect(() => {
     const handle = (url: string | null) => {
       const r = url ? parseRequestLink(url) : null;

@@ -1,4 +1,4 @@
-// Create the Fhish payroll operator on Privy: a policy-fenced server wallet.
+// Create the Kakushi payroll operator on Privy: a policy-fenced server wallet.
 //
 //   PRIVY_APP_ID=... PRIVY_APP_SECRET=... node scripts/privy-setup.ts [--network testnet|local]
 //        [--days 30] [--employer 0x...]... [--owner-public-key <base64 P-256 SPKI>] [--dry-run]
@@ -25,9 +25,9 @@ const opt = (n: string) => {
 };
 const many = (n: string) => argv.flatMap((a, i) => (a === `--${n}` && argv[i + 1] ? [argv[i + 1]!] : []));
 
-const network = (opt("network") ?? process.env.FHISH_NETWORK ?? "testnet") === "local" ? "local" : "testnet";
+const network = (opt("network") ?? process.env.KAKUSHI_FHE_NETWORK ?? "testnet") === "local" ? "local" : "testnet";
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-let token = process.env.FHISH_PAY_TOKEN as Hex | undefined;
+let token = process.env.KAKUSHI_FHE_PAY_TOKEN as Hex | undefined;
 if (!token) {
   try {
     token = JSON.parse(readFileSync(`${ROOT}contracts/deployments/${network}-apps.json`, "utf8")).causd;
@@ -36,7 +36,7 @@ if (!token) {
   }
 }
 if (!token) {
-  console.error(`No cAUSD address: deploy Fhish Pay to ${network} first (contracts/deployments/${network}-apps.json) or set FHISH_PAY_TOKEN.`);
+  console.error(`No cAUSD address: deploy Kakushi Pay to ${network} first (contracts/deployments/${network}-apps.json) or set KAKUSHI_FHE_PAY_TOKEN.`);
   process.exit(1);
 }
 const days = Number(opt("days") ?? 30);
@@ -44,7 +44,7 @@ const notAfter = Math.floor(Date.now() / 1000) + Math.round(days * 86400);
 const employers = many("employer") as Hex[];
 const policy = payrollPolicy({ token, notAfter, employers, allowSend: true });
 
-console.log(`Fhish payroll operator for cAUSD ${token} (${network}), valid until ${new Date(notAfter * 1000).toISOString()}`);
+console.log(`Kakushi payroll operator for cAUSD ${token} (${network}), valid until ${new Date(notAfter * 1000).toISOString()}`);
 if (flag("dry-run")) {
   console.log("\n--dry-run: the policy that would be created:\n");
   console.log(JSON.stringify(policy, null, 2));
@@ -69,7 +69,7 @@ const ownerKey = opt("owner-public-key") ?? process.env.PRIVY_AUTHORIZATION_PUBL
 const wallet = await privy.wallets().create({
   chain_type: "ethereum",
   policy_ids: [created.id],
-  display_name: "Fhish payroll operator",
+  display_name: "Kakushi payroll operator",
   ...(ownerKey ? { owner: { public_key: ownerKey } } : {}),
 });
 console.log(`server wallet ${wallet.id} at ${wallet.address}`);

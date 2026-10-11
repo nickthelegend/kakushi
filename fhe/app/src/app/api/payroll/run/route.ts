@@ -32,8 +32,8 @@ type Job = { id: string; employer: Hex; count: number; runAt: number; status: "s
 
 // In-process scheduler (dev server / single instance). In production a cron (e.g. Vercel Cron) would
 // POST due batches from durable storage; the signed batch is self-contained, so either works.
-const g = globalThis as unknown as { __fhishPayroll?: { jobs: Map<string, Job>; used: Set<string> } };
-const state = (g.__fhishPayroll ??= { jobs: new Map(), used: new Set() });
+const g = globalThis as unknown as { __kakushiPayroll?: { jobs: Map<string, Job>; used: Set<string> } };
+const state = (g.__kakushiPayroll ??= { jobs: new Map(), used: new Set() });
 
 const MAX_ROWS = 50;
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });

@@ -1,7 +1,7 @@
-// Fhish coprocessor for Monad. Env:
-//   FHISH_NETWORK=local|testnet  RPC_URL  ENGINE_URL (default http://127.0.0.1:8899)
-//   GATEWAY_PORT (default 8890)  FHISH_DEPLOYMENT (path to contracts/deployments/<network>.json)
-//   FHISH_SECRETS (path to signers json; default ../.secrets/signers.json)  DELIVER=direct|cre|both
+// Kakushi coprocessor for Monad. Env:
+//   KAKUSHI_FHE_NETWORK=local|testnet  RPC_URL  ENGINE_URL (default http://127.0.0.1:8899)
+//   GATEWAY_PORT (default 8890)  KAKUSHI_FHE_DEPLOYMENT (path to contracts/deployments/<network>.json)
+//   KAKUSHI_FHE_SECRETS (path to signers json; default ../.secrets/signers.json)  DELIVER=direct|cre|both
 //   MONAD_WS_URL (monadLogs speculative source; default on testnet)  DECRYPT_AT=finalized|latest (KMS signs only once the request block is finalized; default finalized)
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { createPublicClient, createWalletClient, defineChain, http, parseEventLogs, type Hex, type PublicClient } from "viem";
@@ -14,10 +14,10 @@ import { Metrics } from "./metrics.ts";
 import { startGateway } from "./gateway.ts";
 import { subscribeMonadLogs } from "./monadlogs.ts";
 
-const network = process.env.FHISH_NETWORK ?? "local";
+const network = process.env.KAKUSHI_FHE_NETWORK ?? "local";
 const rpc = process.env.RPC_URL ?? (network === "local" ? "http://127.0.0.1:18810" : "https://testnet-rpc.monad.xyz");
-const dep = JSON.parse(readFileSync(process.env.FHISH_DEPLOYMENT ?? new URL(`../../contracts/deployments/${network}.json`, import.meta.url), "utf8"));
-const secrets = JSON.parse(readFileSync(process.env.FHISH_SECRETS ?? new URL("../../.secrets/signers.json", import.meta.url), "utf8"));
+const dep = JSON.parse(readFileSync(process.env.KAKUSHI_FHE_DEPLOYMENT ?? new URL(`../../contracts/deployments/${network}.json`, import.meta.url), "utf8"));
+const secrets = JSON.parse(readFileSync(process.env.KAKUSHI_FHE_SECRETS ?? new URL("../../.secrets/signers.json", import.meta.url), "utf8"));
 const log = (m: string) => console.log(`[coprocessor] ${m}`);
 
 const chain = defineChain({ id: Number(dep.chainId), name: "Monad", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [rpc] } } });
@@ -26,7 +26,7 @@ const relayerAccount = privateKeyToAccount(secrets.relayer.privateKey);
 const relayer = createWalletClient({ chain, account: relayerAccount, transport: http(rpc) });
 const engine = new Engine(process.env.ENGINE_URL ?? "http://127.0.0.1:8899");
 const metrics = new Metrics();
-const graph = new OpGraph(engine, metrics, Number(process.env.FHISH_CONCURRENCY ?? 4), log);
+const graph = new OpGraph(engine, metrics, Number(process.env.KAKUSHI_FHE_CONCURRENCY ?? 4), log);
 const kms = new Kms({
   client,
   relayer,
@@ -75,8 +75,8 @@ function toEvent(l: any): ExecEvent | null {
   }
 }
 
-const cursorFile = new URL(`../../.fhish/cursor-${network}.json`, import.meta.url);
-mkdirSync(new URL("../../.fhish/", import.meta.url), { recursive: true });
+const cursorFile = new URL(`../../.kakushi-fhe/cursor-${network}.json`, import.meta.url);
+mkdirSync(new URL("../../.kakushi-fhe/", import.meta.url), { recursive: true });
 let cursor = existsSync(cursorFile) ? BigInt(JSON.parse(readFileSync(cursorFile, "utf8")).next) : BigInt(dep.deployBlock);
 
 /** Feed parsed executor/oracle logs to the op graph and the KMS (both dedupe, so sources may overlap). */
@@ -108,7 +108,7 @@ async function poll() {
 }
 
 const h = await engine.health().catch(() => null);
-if (!h) throw new Error("fhish-engine is not running (fhish-engine serve --dir .fhish)");
+if (!h) throw new Error("kakushi-fhe-engine is not running (kakushi-fhe-engine serve --dir .kakushi-fhe)");
 log(`network ${network} chain ${dep.chainId}, engine tfhe ${h.tfhe} on ${h.threads} threads, executor ${dep.executor}`);
 // Monad: start FHE work from Proposed/Voted logs (MONAD_WS_URL, e.g. wss://testnet-rpc.monad.xyz)
 const wsUrl = process.env.MONAD_WS_URL ?? (network === "testnet" ? "wss://testnet-rpc.monad.xyz" : "");

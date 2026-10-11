@@ -1,6 +1,6 @@
-// Opens values the Fhish gateway sealed to this device (coprocessor/src/seal.ts), without WebCrypto
+// Opens values the Kakushi gateway sealed to this device (coprocessor/src/seal.ts), without WebCrypto
 // (React Native has no crypto.subtle). Same scheme, byte for byte:
-//   ECDH P-256 (shared secret = x coordinate) -> HKDF-SHA256(salt = empty, info = "fhish-seal-v1", 32 B)
+//   ECDH P-256 (shared secret = x coordinate) -> HKDF-SHA256(salt = empty, info = "kakushi-fhe-seal-v1", 32 B)
 //   -> AES-256-GCM (12-byte iv, ciphertext || 16-byte tag) -> decimal string.
 import { p256 } from "@noble/curves/nist.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
@@ -15,7 +15,7 @@ export interface SealedValue {
   ct: string;
 }
 
-const INFO = new TextEncoder().encode("fhish-seal-v1");
+const INFO = new TextEncoder().encode("kakushi-fhe-seal-v1");
 
 /** A one-shot P-256 key pair for one reveal. The secret never leaves this function's caller. */
 export function ephemeralKey(): { secret: Uint8Array; publicKeyHex: `0x${string}` } {

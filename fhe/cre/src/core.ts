@@ -1,6 +1,6 @@
 // Pure logic shared by the CRE workflow (compiled to WASM) and the local runner (Node):
 // parse the gateway's KMS-signed decryption result, make a canonical form the DON can agree
-// on byte-for-byte, and encode the report FhishDecryptionOracle.onReport expects.
+// on byte-for-byte, and encode the report KakushiDecryptionOracle.onReport expects.
 import { encodeAbiParameters, type Hex, keccak256, toHex } from "viem";
 
 export const DECRYPTION_REQUESTED = keccak256(toHex("DecryptionRequested(uint256,address,bytes32[],bytes4)"));

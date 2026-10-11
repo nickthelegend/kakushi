@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { parseEventLogs, parseAbi, parseUnits, formatUnits, isAddress, type Hex } from "viem";
-import { waitForDecryption } from "@fhish/sdk";
+import { waitForDecryption } from "@kakushi/fhe-sdk";
 import { useRt } from "@/lib/runtime";
 import { auctionAbi, cusdcAbi, otcAbi } from "@/lib/abi";
 import { Btn, Cipher, Field, Log, Panel, Revealed } from "@/components/ui";
@@ -63,7 +63,7 @@ function Auction({ addr }: { addr: Hex }) {
           <div className="flex flex-wrap gap-2">
             <Btn busy={t.busy} disabled={!rt.account} onClick={() => t.run(async () => {
               t.note("encrypting in your browser…");
-              const enc = await rt.fhish!.encrypt("euint64", BigInt(amount || "0"), addr, rt.account!);
+              const enc = await rt.fhe!.encrypt("euint64", BigInt(amount || "0"), addr, rt.account!);
               t.note(`ciphertext ${enc.handle.slice(0, 12)}… encrypted in ${enc.ms.encrypt} ms, attested in ${enc.ms.attest} ms`);
               await t.write(addr, auctionAbi, "bid", [enc.handle, enc.proof]);
               t.note("bid placed: the chain holds a handle, not your number");
@@ -72,7 +72,7 @@ function Auction({ addr }: { addr: Hex }) {
             <Btn tone="ghost" busy={t.busy} disabled={!rt.account} onClick={() => t.run(async () => {
               const h = (await rt.client!.readContract({ address: addr, abi: auctionAbi, functionName: "myBid", account: rt.account! })) as Hex;
               if (/^0x0+$/.test(h)) return t.note("you have not bid yet");
-              const v = await rt.fhish!.userDecrypt([h], addr, rt.wallet as never);
+              const v = await rt.fhe!.userDecrypt([h], addr, rt.wallet as never);
               setMine(v[h.toLowerCase()]!);
               t.note("decrypted with your signature, sealed to a key only this tab holds");
             })}>Decrypt my bid</Btn>
@@ -132,7 +132,7 @@ function ConfidentialUsdc({ addr, usdc }: { addr: Hex; usdc: Hex }) {
             await refresh();
           })}>Wrap</Btn>
           <Btn tone="ghost" busy={t.busy} disabled={!rt.account || !handle || /^0x0+$/.test(handle)} onClick={() => t.run(async () => {
-            const v = await rt.fhish!.userDecrypt([handle!], addr, rt.wallet as never);
+            const v = await rt.fhe!.userDecrypt([handle!], addr, rt.wallet as never);
             setMine(v[handle!.toLowerCase()]!);
             t.note("balance decrypted for you alone");
           })}>Reveal my balance</Btn>
@@ -142,13 +142,13 @@ function ConfidentialUsdc({ addr, usdc }: { addr: Hex; usdc: Hex }) {
       </div>
       <div className="flex flex-wrap gap-2">
         <Btn busy={t.busy} disabled={!rt.account || !isAddress(to)} onClick={() => t.run(async () => {
-          const enc = await rt.fhish!.encrypt("euint64", parseUnits(sendAmt || "0", 6), addr, rt.account!);
+          const enc = await rt.fhe!.encrypt("euint64", parseUnits(sendAmt || "0", 6), addr, rt.account!);
           await t.write(addr, cusdcAbi, "confidentialTransfer", [to, enc.handle, enc.proof]);
           t.note(`sent an encrypted amount to ${to.slice(0, 8)}…: observers see a transfer, not how much`);
           await refresh();
         })}>Send privately</Btn>
         <Btn tone="lantern" busy={t.busy} disabled={!rt.account} onClick={() => t.run(async () => {
-          const enc = await rt.fhish!.encrypt("euint64", parseUnits(sendAmt || "0", 6), addr, rt.account!);
+          const enc = await rt.fhe!.encrypt("euint64", parseUnits(sendAmt || "0", 6), addr, rt.account!);
           const rc = await t.write(addr, cusdcAbi, "unwrap", [enc.handle, enc.proof]);
           const id = parseEventLogs({ abi: reqAbi, logs: rc.logs })[0]!.args.requestId;
           await waitForDecryption(rt.client!, rt.cfg!.deployment!.oracle, id);
@@ -181,13 +181,13 @@ function DarkOtc({ addr }: { addr: Hex }) {
       </div>
       <div className="flex flex-wrap gap-2">
         <Btn busy={t.busy} disabled={!rt.account} onClick={() => t.run(async () => {
-          const enc = await rt.fhish!.encrypt("euint64", BigInt(ask || "0"), addr, rt.account!);
+          const enc = await rt.fhe!.encrypt("euint64", BigInt(ask || "0"), addr, rt.account!);
           await t.write(addr, otcAbi, "post", ["WMON/USDC", 1000n, enc.handle, enc.proof]);
           t.note("order posted with a hidden limit");
           await refresh();
         })}>Post hidden ask</Btn>
         <Btn tone="lantern" busy={t.busy} disabled={!rt.account} onClick={() => t.run(async () => {
-          const enc = await rt.fhish!.encrypt("euint64", BigInt(bid || "0"), addr, rt.account!);
+          const enc = await rt.fhe!.encrypt("euint64", BigInt(bid || "0"), addr, rt.account!);
           const rc = await t.write(addr, otcAbi, "take", [BigInt(orderId || "0"), enc.handle, enc.proof]);
           const id = parseEventLogs({ abi: reqAbi, logs: rc.logs })[0]!.args.requestId;
           await waitForDecryption(rt.client!, rt.cfg!.deployment!.oracle, id);
@@ -206,9 +206,9 @@ export default function Playground() {
   return (
     <div className="mx-auto max-w-6xl px-5 pt-10">
       <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Playground</h1>
-      <p className="mt-3 max-w-2xl text-tide">Every number below is encrypted in your browser and computed on as ciphertext by the Fhish coprocessor. The amber ones are the only values that were ever decrypted.</p>
+      <p className="mt-3 max-w-2xl text-tide">Every number below is encrypted in your browser and computed on as ciphertext by the Kakushi coprocessor. The amber ones are the only values that were ever decrypted.</p>
       {!rt.cfg?.deployment || !apps ? (
-        <p className="mt-10 rounded-2xl border border-kelp p-6 text-tide">The Fhish stack is not running. Start it with <code className="font-mono text-biolum">node scripts/e2e-local.ts --keep</code>.</p>
+        <p className="mt-10 rounded-2xl border border-kelp p-6 text-tide">The Kakushi stack is not running. Start it with <code className="font-mono text-biolum">node scripts/e2e-local.ts --keep</code>.</p>
       ) : (
         <div className="mt-10 grid gap-6 lg:grid-cols-2">
           <Auction addr={apps.auction} />

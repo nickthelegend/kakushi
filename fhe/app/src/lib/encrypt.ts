@@ -1,5 +1,5 @@
 "use client";
-// In-browser encryption with Zama's tfhe 1.8.1 WASM under the Fhish network public key.
+// In-browser encryption with Zama's tfhe 1.8.1 WASM under the Kakushi network public key.
 // The value never leaves this tab in plaintext. Threads are used when the page is cross-origin
 // isolated (this app sets COOP/COEP).
 let mod: Promise<any> | null = null;
@@ -46,7 +46,7 @@ export async function encryptInBrowser(type: 0 | 3 | 4, value: bigint | boolean)
   return { bytes, ms: Math.round(performance.now() - t0), threads: Boolean((globalThis as any).crossOriginIsolated) };
 }
 
-/** An Encryptor for @fhish/sdk backed by the same WASM. */
+/** An Encryptor for @kakushi/fhe-sdk backed by the same WASM. */
 export const browserEncryptor = {
   async encrypt(_publicKey: Uint8Array, type: number, value: bigint | boolean) {
     return (await encryptInBrowser(type as 0 | 3 | 4, value)).bytes;

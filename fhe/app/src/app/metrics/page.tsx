@@ -37,7 +37,7 @@ export default function MetricsPage() {
   return (
     <div className="mx-auto max-w-4xl px-5 pt-10">
       <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Live metrics</h1>
-      <p className="mt-3 max-w-2xl text-tide">Straight from the running Fhish coprocessor (real tfhe-rs). Refreshes every 3 seconds.</p>
+      <p className="mt-3 max-w-2xl text-tide">Straight from the running Kakushi coprocessor (real tfhe-rs). Refreshes every 3 seconds.</p>
       {err && <p className="mt-8 text-reef">{err}</p>}
       {m && (
         <table className="mt-10 w-full text-left">

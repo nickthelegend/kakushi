@@ -1,4 +1,4 @@
-// Node encryptor: the native fhish-engine CLI encrypts locally (the value never leaves this machine).
+// Node encryptor: the native kakushi-fhe-engine CLI encrypts locally (the value never leaves this machine).
 import { execFile } from "node:child_process";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,13 +8,13 @@ import type { Encryptor } from "./index.ts";
 
 const run = promisify(execFile);
 
-export function nativeEncryptor(engineBin = process.env.FHISH_ENGINE_BIN ?? "fhish-engine"): Encryptor {
+export function nativeEncryptor(engineBin = process.env.KAKUSHI_FHE_ENGINE_BIN ?? "kakushi-fhe-engine"): Encryptor {
   let pkPath: string | null = null;
   let pkFor: Uint8Array | null = null;
   return {
     async encrypt(publicKey, type, value) {
       if (!pkPath || pkFor !== publicKey) {
-        pkPath = join(await mkdtemp(join(tmpdir(), "fhish-")), "public_key.bin");
+        pkPath = join(await mkdtemp(join(tmpdir(), "fhe-")), "public_key.bin");
         await writeFile(pkPath, publicKey);
         pkFor = publicKey;
       }

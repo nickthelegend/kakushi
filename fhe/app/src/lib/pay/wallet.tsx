@@ -1,5 +1,5 @@
 "use client";
-// Fhish Pay wallet layer. One interface, two backends:
+// Kakushi Pay wallet layer. One interface, two backends:
 //   - Privy (NEXT_PUBLIC_PRIVY_APP_ID set): email/passkey login, an embedded wallet on Monad testnet,
 //     transactions sent with Privy native gas sponsorship (EIP-7702 + paymaster), EIP-712 signing.
 //   - Local fork (no Privy credentials): Foundry dev accounts or a fresh in-browser guest key,
@@ -7,7 +7,7 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Hex, PublicClient, TransactionReceipt } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { sendRawSync } from "@fhish/sdk/monad";
+import { sendRawSync } from "@kakushi/fhe-sdk/monad";
 import { useRt } from "@/lib/runtime";
 import { MONAD_TESTNET_ID, type TypedDataLike } from "./core";
 
@@ -119,8 +119,8 @@ function localWallet(client: PublicClient, key: Hex, label: string, guest: boole
 
 // The literal env check lets the bundler drop the Privy chunk entirely when no app ID is set.
 const PrivyBridge = process.env.NEXT_PUBLIC_PRIVY_APP_ID ? lazy(() => import("./privy-bridge")) : null;
-const STORE = "fhish-pay-local";
-const GUEST = "fhish-pay-guest";
+const STORE = "kakushi-pay-local";
+const GUEST = "kakushi-pay-guest";
 const store = {
   get: (k: string) => {
     try {

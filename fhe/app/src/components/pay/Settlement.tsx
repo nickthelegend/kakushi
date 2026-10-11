@@ -3,7 +3,7 @@
 // Against Monad testnet it follows the block through monadNewHeads (Proposed -> Voted -> Finalized ->
 // Verified). Against the local fork it uses the equivalent block tags (latest / safe / finalized).
 import { useEffect, useState } from "react";
-import { COMMIT_STATES, trackByTags, type CommitState } from "@fhish/sdk/monad";
+import { COMMIT_STATES, trackByTags, type CommitState } from "@kakushi/fhe-sdk/monad";
 import type { PublicClient } from "viem";
 import { acquireHeads, releaseHeads } from "@/lib/pay/heads";
 import type { SentTx } from "@/lib/pay/wallet";

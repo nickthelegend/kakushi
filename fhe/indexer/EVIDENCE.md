@@ -1,9 +1,9 @@
-# Evidence: Fhish Pay indexer, end to end on a live Monad-testnet fork
+# Evidence: Kakushi Pay indexer, end to end on a live Monad-testnet fork
 
 Captured 2026-10-09 (IST) with Envio HyperIndex **3.14.0** (`envio start`), indexing the local anvil fork of
-Monad testnet (chain 10143, RPC source `http://127.0.0.1:18810`, start block 69518347 = Fhish deploy block).
+Monad testnet (chain 10143, RPC source `http://127.0.0.1:18810`, start block 69518347 = Kakushi deploy block).
 Everything below is real output, not mocked: the events were produced by `scripts/activity.ts` (and, at the
-same time, by people using the Fhish Pay app on the same fork, which is why the totals are higher than what
+same time, by people using the Kakushi Pay app on the same fork, which is why the totals are higher than what
 the script alone sends).
 
 How the stack ran on this machine: Postgres 16 (Homebrew, port 5442) + Hasura `hasura/graphql-engine:v2.43.0`

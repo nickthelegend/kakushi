@@ -1,4 +1,4 @@
-// Networks. `local` is the Monad-testnet fork the Fhish stack runs on (anvil :18810, gateway :8890);
+// Networks. `local` is the Monad-testnet fork the Kakushi stack runs on (anvil :18810, gateway :8890);
 // `testnet` is Monad testnet (contracts not deployed there yet: DEPLOYMENTS.testnet is null).
 import { DEPLOYMENTS, type Deployment } from "./deployments.ts";
 import type { Hex } from "./bytes.ts";
@@ -68,7 +68,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
 };
 
 /** Public HTTPS host for pay links (https://<host>/claim#...). Same host as the passkey domain. */
-export const LINK_HOST = process.env.EXPO_PUBLIC_LINK_HOST ?? "pay.fhish.example";
+export const LINK_HOST = process.env.EXPO_PUBLIC_LINK_HOST ?? "pay.kakushi.example";
 
 /** How long an unlocked signing session lives before the key is zeroed and the passkey is asked again. */
 export const SESSION_MINUTES = Number(process.env.EXPO_PUBLIC_SESSION_MINUTES ?? 5);

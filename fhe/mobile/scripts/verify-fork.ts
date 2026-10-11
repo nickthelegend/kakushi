@@ -43,7 +43,7 @@ const softAuthenticator: WebAuthnClient = {
     return { credentialId: Buffer.from(id, "hex"), prfOutput: hmac(sha256, secret, req.prfSalt) };
   },
 };
-const env = { rpId: "pay.fhish.example", rpName: "Fhish Pay", webAuthnClient: softAuthenticator };
+const env = { rpId: "pay.kakushi.example", rpName: "Kakushi Pay", webAuthnClient: softAuthenticator };
 const created = await createPasskeyWallet(env, "verify");
 const createdAddr = created.address;
 created.end();
@@ -57,7 +57,7 @@ check("Mera: session.end() zeroes the key", ended, "signing after end() throws S
 pinned.end();
 const newcomer = restored; // the link claimant: a brand-new passkey account that never held gas
 
-// ---------------------------------------------------------------- Fhish Pay on the fork
+// ---------------------------------------------------------------- Kakushi Pay on the fork
 const net = NETWORKS.local;
 const alice = devWallet("alice");
 const bob = devWallet("bob");
@@ -65,8 +65,8 @@ const sponsor = devWallet("carol");
 const ctx = P.makeContext(net, encryptor, sponsor.account);
 console.log(`\nfork ${net.rpcUrl} · gateway ${net.gatewayUrl} · cAUSD ${ctx.causd}`);
 
-const pk = await ctx.fhish.publicKey();
-const enc = await ctx.fhish.encrypt("euint64", 1n, ctx.causd, alice.address);
+const pk = await ctx.fhe.publicKey();
+const enc = await ctx.fhe.encrypt("euint64", 1n, ctx.causd, alice.address);
 check("encrypt on device + gateway attestation", /^0x[0-9a-f]{64}$/i.test(enc.handle), `pk ${pk.length} B · tfhe ${encryptor.lastEncryptMs} ms · attest ${enc.ms.attest} ms · handle ${P.shortHex(enc.handle)}`);
 
 const bal0 = await P.balances(ctx, alice.address);

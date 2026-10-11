@@ -1,4 +1,4 @@
-# Fhish Pay indexer: confidential payments on Monad.
+# Kakushi Pay indexer: confidential payments on Monad.
 #
 # PRIVACY RULE: no decrypted amount is ever stored here. Payment amounts are FHE ciphertext handles
 # (euint64), which nobody but the payer, the payee and the KMS can open. The only plaintext amounts
@@ -30,14 +30,14 @@ enum RevealStatus {
 
 "How a decryption result reached the requesting contract"
 enum RevealPath {
-  "fulfill() sent directly by the Fhish relayer"
+  "fulfill() sent directly by the Kakushi relayer"
   RELAYER
   "a Chainlink CRE report through the KeystoneForwarder (oracle.onReport)"
   CRE
 }
 
 """
-A Fhish Pay token (a confidential wrapper over a public stablecoin, e.g. cAUSD over Agora AUSD).
+A Kakushi Pay token (a confidential wrapper over a public stablecoin, e.g. cAUSD over Agora AUSD).
 """
 type Token {
   "chainId-address"
@@ -226,7 +226,7 @@ type OperatorGrant {
 }
 
 """
-A public-decryption request to the Fhish oracle and its delivery. Only metadata and latency;
+A public-decryption request to the Kakushi oracle and its delivery. Only metadata and latency;
 the cleartexts of DecryptionFulfilled are deliberately not indexed.
 """
 type Reveal {
@@ -236,7 +236,7 @@ type Reveal {
   requestId: BigInt!
   "the contract that asked for the reveal"
   requester: String!
-  "token symbol when the requester is an indexed Fhish Pay token, else 'app'"
+  "token symbol when the requester is an indexed Kakushi Pay token, else 'app'"
   app: String!
   handlesCount: Int!
   callback: String!
@@ -256,7 +256,7 @@ type Reveal {
 }
 
 """
-The activity feed wallets render: one row per Fhish Pay event per account it involves (a payment is a
+The activity feed wallets render: one row per Kakushi Pay event per account it involves (a payment is a
 "sent" row for the payer and a "received" row for the payee). Amounts are ciphertext handles; only
 wraps and settled cash-outs carry a public amount.
 """
@@ -336,7 +336,7 @@ type PayPair {
 }
 
 """
-Per-opcode counters for the symbolic FHE executor (every Fhish app on the chain).
+Per-opcode counters for the symbolic FHE executor (every Kakushi app on the chain).
 """
 type FheOpStat {
   "chainId-name"
@@ -359,7 +359,7 @@ type FheCallerStat {
   id: ID!
   chainId: Int!
   caller: String!
-  "token symbol when the caller is an indexed Fhish Pay token, else 'app'"
+  "token symbol when the caller is an indexed Kakushi Pay token, else 'app'"
   label: String!
   ops: Int!
   selects: Int!
@@ -430,7 +430,7 @@ type GlobalStats {
   unwrapsSettled: Int!
   publicWrapped: BigInt!
   publicUnwrapped: BigInt!
-  "underlying held by all Fhish Pay wrappers: wrapped - unwrapped"
+  "underlying held by all Kakushi Pay wrappers: wrapped - unwrapped"
   publicTvl: BigInt!
   reveals: Int!
   revealsFulfilled: Int!

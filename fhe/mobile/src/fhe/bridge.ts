@@ -2,7 +2,7 @@
 // The host (WebView on native, iframe on web, a vm context in scripts/verify-fork.ts) calls
 // `attach(send)` and forwards every message from the page to `receive`.
 import { fromB64, toB64 } from "../lib/bytes.ts";
-import type { Encryptor } from "../lib/fhish.ts";
+import type { Encryptor } from "../lib/fhe.ts";
 
 type Pending = { resolve: (m: any) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> };
 

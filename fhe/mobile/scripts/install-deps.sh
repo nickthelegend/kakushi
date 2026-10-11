@@ -1,9 +1,9 @@
 #!/bin/sh
 # Installs node_modules OUTSIDE this directory (the project SSD is nearly full) and symlinks it here.
-# Override the location with FHISH_MOBILE_DEPS=/some/dir.
+# Override the location with KAKUSHI_FHE_MOBILE_DEPS=/some/dir.
 set -e
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-DEPS="${FHISH_MOBILE_DEPS:-$HOME/.fhish-pay-mobile}"
+DEPS="${KAKUSHI_FHE_MOBILE_DEPS:-$HOME/.kakushi-pay-mobile}"
 mkdir -p "$DEPS"
 cp "$HERE/package.json" "$DEPS/package.json"
 [ -f "$HERE/package-lock.json" ] && cp "$HERE/package-lock.json" "$DEPS/package-lock.json"

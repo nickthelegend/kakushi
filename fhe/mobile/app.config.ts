@@ -2,19 +2,19 @@ import type { ExpoConfig } from "expo/config";
 
 // The passkey domain (WebAuthn relying party ID). Passkeys only work once this host serves
 // /.well-known/apple-app-site-association (iOS) and /.well-known/assetlinks.json (Android) naming
-// this app; see README.md "Passkey domain". Set FHISH_PASSKEY_DOMAIN before `expo prebuild`.
-const rpId = process.env.FHISH_PASSKEY_DOMAIN ?? "pay.fhish.example";
+// this app; see README.md "Passkey domain". Set KAKUSHI_FHE_PASSKEY_DOMAIN before `expo prebuild`.
+const rpId = process.env.KAKUSHI_FHE_PASSKEY_DOMAIN ?? "pay.kakushi.example";
 // Apple bundle id / Android package. Must match the AASA (TEAM_ID.<bundleId>) and assetlinks.json.
-const appId = process.env.FHISH_APP_ID ?? "xyz.fhish.pay";
+const appId = process.env.KAKUSHI_FHE_APP_ID ?? "xyz.kakushi.pay";
 
 const config: ExpoConfig = {
-  name: "Fhish Pay",
-  slug: "fhish-pay",
+  name: "Kakushi Pay",
+  slug: "kakushi-pay",
   version: "0.1.0",
-  scheme: "fhishpay",
+  scheme: "kakushipay",
   orientation: "portrait",
   userInterfaceStyle: "dark",
-  icon: "./assets/fhish-fin.png",
+  icon: "./assets/kakushi-fin.png",
   backgroundColor: "#021a20",
   ios: {
     bundleIdentifier: appId,
@@ -38,8 +38,8 @@ const config: ExpoConfig = {
     ],
   },
   web: { bundler: "metro", output: "single" },
-  plugins: [["expo-secure-store", { faceIDPermission: "Allow Fhish Pay to keep your account address on this device." }]],
-  extra: { rpId, rpName: "Fhish Pay" },
+  plugins: [["expo-secure-store", { faceIDPermission: "Allow Kakushi Pay to keep your account address on this device." }]],
+  extra: { rpId, rpName: "Kakushi Pay" },
 };
 
 export default config;

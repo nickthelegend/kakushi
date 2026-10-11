@@ -1,4 +1,4 @@
-// Monad-native settlement, adapted from sdk/src/monad.ts (@fhish/sdk) for React Native.
+// Monad-native settlement, adapted from sdk/src/monad.ts (@kakushi/fhe-sdk) for React Native.
 //
 // Monad blocks move through commit states: Proposed -> Voted (~300 ms) -> Finalized (~600 ms) ->
 // Verified (state root, a few blocks later). `monadNewHeads` (WebSocket) announces each transition;

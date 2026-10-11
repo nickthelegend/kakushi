@@ -1,7 +1,7 @@
 // DEV helper (local fork only): DEV bob requests an encrypted amount from DEV alice with the app's own
 // code and prints the request link, e.g. to open it as alice in the Expo web build or the simulator.
 //   node scripts/make-request.ts 42.50 ["rent october"] [base-url]
-// base-url defaults to http://localhost:8081 (Expo web); the fhishpay:// form is printed too.
+// base-url defaults to http://localhost:8081 (Expo web); the kakushipay:// form is printed too.
 import { NETWORKS } from "../src/lib/config.ts";
 import { devWallet } from "../src/lib/wallet.ts";
 import { requestUrls } from "../src/lib/links.ts";

@@ -97,7 +97,7 @@ export function Request() {
   const share = async () => {
     if (!urls || !made) return;
     await Share.share({
-      message: `I sent you a payment request${made.memo ? ` for "${made.memo}"` : ""} with Fhish Pay. The amount is encrypted: only you can see it once you open the request.\n${urls.web}\n\nIn the app: ${urls.app}`,
+      message: `I sent you a payment request${made.memo ? ` for "${made.memo}"` : ""} with Kakushi Pay. The amount is encrypted: only you can see it once you open the request.\n${urls.web}\n\nIn the app: ${urls.app}`,
     });
   };
 
@@ -376,7 +376,7 @@ export function RequestDetail({ link }: { link: ParsedRequestLink }) {
         ) : infoErr ? (
           <Notice tone="error">{infoErr}</Notice>
         ) : !ctx ? (
-          <Notice tone="warn">{`Fhish Pay is not deployed on ${NETWORKS[link.net].label} yet.`}</Notice>
+          <Notice tone="warn">{`Kakushi Pay is not deployed on ${NETWORKS[link.net].label} yet.`}</Notice>
         ) : (
           <T kind="small">checking the request…</T>
         )}

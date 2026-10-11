@@ -15,7 +15,7 @@ export function EncryptorHost() {
   }, []);
   return React.createElement("iframe", {
     ref,
-    title: "fhish-encryptor",
+    title: "kakushi-fhe-encryptor",
     sandbox: "allow-scripts",
     srcDoc: ENCRYPTOR_HTML,
     style: { position: "absolute", width: 1, height: 1, opacity: 0, border: 0, left: -10, top: -10 },

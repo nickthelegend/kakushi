@@ -1,9 +1,9 @@
 {
-  "name": "@fhish/cre",
+  "name": "@kakushi/fhe-cre",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "fhish-decrypt-relay: a Chainlink CRE workflow that delivers KMS-signed FHE decryption results to FhishDecryptionOracle.onReport (log trigger per request + cron sweep), plus a local runner that executes the same logic through Chainlink's MockKeystoneForwarder on a Monad fork.",
+  "description": "kakushi-fhe-decrypt-relay: a Chainlink CRE workflow that delivers KMS-signed FHE decryption results to KakushiDecryptionOracle.onReport (log trigger per request + cron sweep), plus a local runner that executes the same logic through Chainlink's MockKeystoneForwarder on a Monad fork.",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node --test test/*.test.ts",

@@ -10,11 +10,11 @@ PASS  AUSD faucet (sponsored)  ·  +10,000.00 AUSD · tx 0x8dbe…ee0c · sync=t
 PASS  make private: ERC-3009 wrap submitted by sponsor  ·  cAUSD +100.00 · gas limit 266880 (est x1.3) · sync=true · Proposed 815 ms → Voted 1943 ms → Finalized 2872 ms
 PASS  pay: encrypted send alice -> bob  ·  bob +12.50 (revealed by bob only) · amount absent from calldata · Proposed 366 ms → Voted 1495 ms → Finalized 2500 ms
 PASS  privacy: alice cannot reveal bob's balance  ·  gateway: not allowed to decrypt 0x88dfe73f8a98b32c5d8dfc448a603fb99a94bfe511f4476dafe0a4018b0fe504
-PASS  pay link: create + URL round trip  ·  link #8 · fhishpay://claim?net=local&id=8#k=<one-time key>
+PASS  pay link: create + URL round trip  ·  link #8 · kakushipay://claim?net=local&id=8#k=<one-time key>
 PASS  pay link: claimed by the Mera account (sponsored, 0 MON)  ·  newcomer 0x9Df6…055d revealed 7.25 cAUSD via Mera signTypedData (link amount from the claim receipt: 7.25) · Proposed 859 ms → Voted 1985 ms → Finalized 2931 ms
 PASS  pay link: second claim refused  ·  Link #8 was already claimed.
 PASS  cash out: unwrap + oracle callback  ·  request #11 · callback after 3335 ms · bob AUSD +2.00 · stages encrypted>requested>decrypting>paid
-PASS  request: alice asks bob (encrypted) + link round trip  ·  request #18 · fhishpay://request?net=local&id=18&b=69541745#m=rent%20october · memo hash matches on-chain ref · amount absent from calldata · Proposed 512 ms → Voted 1639 ms → Finalized 2569 ms
+PASS  request: alice asks bob (encrypted) + link round trip  ·  request #18 · kakushipay://request?net=local&id=18&b=69541745#m=rent%20october · memo hash matches on-chain ref · amount absent from calldata · Proposed 512 ms → Voted 1639 ms → Finalized 2569 ms
 PASS  request: payer reveals the requested amount  ·  bob (payer) revealed 9.75, alice (payee) 9.75
 PASS  request: bob pays -> alice reveals owed 0, balance +amount  ·  owed 0.00 · alice +9.75 · bob -9.75 · Proposed 748 ms → Voted 1871 ms → Finalized 2880 ms
 PASS  request: unaffordable request stays owed  ·  request #19 for 10,258.00 (bob holds 9,258.00): paid tx ok, nothing moved, still owed 10,258.00, still open

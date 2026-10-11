@@ -1,15 +1,15 @@
 // Cross-checks the indexer against the chain: recomputes every aggregate from raw eth_getLogs and
 // compares it with what the GraphQL API (Hasura) serves. Exit code 1 on any mismatch.
 //
-//   node scripts/verify.ts      env: FHISH_INDEXER_URL (default http://localhost:8892/v1/graphql), FHISH_RPC_URL
+//   node scripts/verify.ts      env: KAKUSHI_FHE_INDEXER_URL (default http://localhost:8892/v1/graphql), KAKUSHI_FHE_RPC_URL
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, http, parseAbi, type Hex, type Log } from "viem";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const network = process.env.FHISH_NETWORK === "testnet" ? "testnet" : "local";
-const RPC = process.env.FHISH_RPC_URL ?? (network === "local" ? "http://127.0.0.1:18810" : "https://testnet-rpc.monad.xyz");
-const GQL = process.env.FHISH_INDEXER_URL ?? "http://localhost:8892/v1/graphql";
+const network = process.env.KAKUSHI_FHE_NETWORK === "testnet" ? "testnet" : "local";
+const RPC = process.env.KAKUSHI_FHE_RPC_URL ?? (network === "local" ? "http://127.0.0.1:18810" : "https://testnet-rpc.monad.xyz");
+const GQL = process.env.KAKUSHI_FHE_INDEXER_URL ?? "http://localhost:8892/v1/graphql";
 const dep = JSON.parse(readFileSync(`${ROOT}contracts/deployments/${network}.json`, "utf8"));
 const { TOKENS } = await import("../src/network.generated.ts");
 const tokens = Object.keys(TOKENS) as Hex[];

@@ -1,12 +1,12 @@
-// Server-side proxy to the Fhish Pay indexer (Envio HyperIndex, Hasura GraphQL).
+// Server-side proxy to the Kakushi Pay indexer (Envio HyperIndex, Hasura GraphQL).
 //   GET  /api/indexer           -> the activity dashboard snapshot (stats + live feed)
 //   POST /api/indexer {query}   -> any read-only GraphQL query, forwarded as-is
-// FHISH_INDEXER_URL: the indexer's GraphQL endpoint (Envio Cloud URL in production).
+// KAKUSHI_FHE_INDEXER_URL: the indexer's GraphQL endpoint (Envio Cloud URL in production).
 // No admin secret is ever sent: the indexer's public role is read-only.
 import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
-const indexerUrl = () => process.env.FHISH_INDEXER_URL ?? "http://localhost:8892/v1/graphql";
+const indexerUrl = () => process.env.KAKUSHI_FHE_INDEXER_URL ?? "http://localhost:8892/v1/graphql";
 
 const DASHBOARD = `query Dashboard {
   chain_metadata { chain_id block_height latest_processed_block num_events_processed is_hyper_sync timestamp_caught_up_to_head_or_endblock }
@@ -43,7 +43,7 @@ async function forward(body: string) {
     return new NextResponse(await r.text(), { status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "application/json" } });
   } catch (e) {
     return NextResponse.json(
-      { error: `Fhish Pay indexer unreachable at ${indexerUrl()} (${(e as Error).message}). Start it with: cd indexer && pnpm start (see indexer/README.md).` },
+      { error: `Kakushi Pay indexer unreachable at ${indexerUrl()} (${(e as Error).message}). Start it with: cd indexer && pnpm start (see indexer/README.md).` },
       { status: 502 },
     );
   }

@@ -1,12 +1,12 @@
 // Local CRE runner. LABEL: this is NOT a Chainlink DON.
 //
 // `cre workflow simulate` needs `cre login` (a browser login only the user can do). Until then
-// this runner executes the SAME relay logic as fhish-decrypt-relay (src/core.ts: identical
+// this runner executes the SAME relay logic as kakushi-fhe-decrypt-relay (src/core.ts: identical
 // parsing, canonical form, handle check and report encoding) and delivers each report through
 // Chainlink's MockKeystoneForwarder, which the Monad fork carries from Monad testnet
 // (0xB9F7...D192): the same contract path `cre workflow simulate --broadcast` uses. The oracle
 // verifies the k-of-n KMS signatures either way. Once logged in, run
-// `pnpm --filter @fhish/cre simulate local-settings` instead.
+// `pnpm --filter @kakushi/fhe-cre simulate local-settings` instead.
 //
 //   RPC_URL=http://127.0.0.1:18810 GATEWAY_URL=http://127.0.0.1:8890 node local/runner.ts
 //   GET http://127.0.0.1:8891/status
@@ -18,8 +18,8 @@ import { privateKeyToAccount } from "viem/accounts";
 import { canonical, DECRYPTION_REQUESTED, encodeReport, parseResult, requestIdFromTopics } from "../src/core.ts";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const network = process.env.FHISH_NETWORK ?? "local";
-const dep = JSON.parse(readFileSync(process.env.FHISH_DEPLOYMENT ?? `${ROOT}contracts/deployments/${network}.json`, "utf8"));
+const network = process.env.KAKUSHI_FHE_NETWORK ?? "local";
+const dep = JSON.parse(readFileSync(process.env.KAKUSHI_FHE_DEPLOYMENT ?? `${ROOT}contracts/deployments/${network}.json`, "utf8"));
 const RPC = process.env.RPC_URL ?? "http://127.0.0.1:18810";
 const GATEWAY = (process.env.GATEWAY_URL ?? "http://127.0.0.1:8890").replace(/\/$/, "");
 const PORT = Number(process.env.CRE_RUNNER_PORT ?? 8891);
@@ -52,8 +52,8 @@ function rawReport(body: Hex, label: string): Hex {
     h(Math.floor(Date.now() / 1000).toString(16), 4) +
     h("1", 4) + // DON id
     h("1", 4) + // DON config version
-    h(keccak256(toHex("fhish-local:fhish-decrypt-relay")), 32) + // workflow id
-    h(keccak256(toHex("fhish-decrypt-relay")).slice(2, 22), 10) + // workflow name
+    h(keccak256(toHex("kakushi-fhe-local:kakushi-fhe-decrypt-relay")), 32) + // workflow id
+    h(keccak256(toHex("kakushi-fhe-decrypt-relay")).slice(2, 22), 10) + // workflow name
     h(account.address, 20) + // workflow owner
     "0001"; // report id
   return `0x${header}${body.replace(/^0x/, "")}` as Hex;

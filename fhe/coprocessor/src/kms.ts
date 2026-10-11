@@ -104,7 +104,7 @@ export class Kms {
       const clear = await Promise.all(handles.map((h) => o.engine.decrypt(h)));
       const handlesHash = keccak256(encodePacked(["bytes32[]"], [handles]));
       const cleartextsHash = keccak256(encodePacked(["uint256[]"], [clear]));
-      const domain = { name: "FhishDecryptionOracle", version: "1", chainId: o.chainId, verifyingContract: o.oracle } as const;
+      const domain = { name: "KakushiDecryptionOracle", version: "1", chainId: o.chainId, verifyingContract: o.oracle } as const;
       const types = { DecryptionResult: [{ name: "requestId", type: "uint256" }, { name: "handlesHash", type: "bytes32" }, { name: "cleartextsHash", type: "bytes32" }] } as const;
       const signatures = await Promise.all(
         o.signers.slice(0, o.threshold).map((s) => s.signTypedData({ domain, types, primaryType: "DecryptionResult", message: { requestId, handlesHash, cleartextsHash } })),

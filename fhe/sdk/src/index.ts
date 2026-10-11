@@ -1,8 +1,8 @@
-// @fhish/sdk: the client side of Fhish on Monad.
+// @kakushi/fhe-sdk: the client side of Kakushi on Monad.
 import { parseAbi, type Account, type Hex, type PublicClient, type WalletClient } from "viem";
 
-export const FhishType = { ebool: 0, euint32: 3, euint64: 4 } as const;
-export type FhishTypeName = keyof typeof FhishType;
+export const KakushiType = { ebool: 0, euint32: 3, euint64: 4 } as const;
+export type KakushiTypeName = keyof typeof KakushiType;
 
 /** Produces a serialized tfhe CompactCiphertextList under the network public key. */
 export interface Encryptor {
@@ -15,7 +15,7 @@ export interface EncryptedInput {
   ms: { encrypt: number; attest: number };
 }
 
-export interface FhishClientOptions {
+export interface KakushiFheClientOptions {
   gatewayUrl: string;
   chainId: number;
   encryptor: Encryptor;
@@ -35,11 +35,11 @@ const hexToBytes = (h: string): Uint8Array => {
 };
 const bytesToHex = (b: Uint8Array): Hex => `0x${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}` as Hex;
 
-export class FhishClient {
-  readonly o: FhishClientOptions;
+export class KakushiFheClient {
+  readonly o: KakushiFheClientOptions;
   private pk: Uint8Array | null = null;
 
-  constructor(o: FhishClientOptions) {
+  constructor(o: KakushiFheClientOptions) {
     this.o = { ...o, gatewayUrl: o.gatewayUrl.replace(/\/$/, "") };
   }
 
@@ -53,14 +53,14 @@ export class FhishClient {
   }
 
   /** Encrypt `value` for `contract`, called by `user`. Use the result as FHE.fromExternal(handle, proof). */
-  async encrypt(type: FhishTypeName, value: bigint | number | boolean, contract: Hex, user: Hex): Promise<EncryptedInput> {
+  async encrypt(type: KakushiTypeName, value: bigint | number | boolean, contract: Hex, user: Hex): Promise<EncryptedInput> {
     const t0 = Date.now();
-    const list = await this.o.encryptor.encrypt(await this.publicKey(), FhishType[type], typeof value === "number" ? BigInt(value) : value);
+    const list = await this.o.encryptor.encrypt(await this.publicKey(), KakushiType[type], typeof value === "number" ? BigInt(value) : value);
     const t1 = Date.now();
     const r = await fetch(`${this.o.gatewayUrl}/inputs`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ciphertext: b64(list), type: FhishType[type], user, contract }),
+      body: JSON.stringify({ ciphertext: b64(list), type: KakushiType[type], user, contract }),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(`gateway: ${j.error ?? r.status}`);
@@ -78,7 +78,7 @@ export class FhishClient {
   /** The EIP-712 request a user signs to read `handles` (exposed for wallets with their own signing API). */
   static userDecryptTypedData(chainId: number, handles: Hex[], contract: Hex, publicKey: Hex, expiresAt: bigint) {
     return {
-      domain: { name: "Fhish", version: "1", chainId },
+      domain: { name: "Kakushi FHE", version: "1", chainId },
       types: { UserDecrypt: [{ name: "handles", type: "bytes32[]" }, { name: "contractAddress", type: "address" }, { name: "publicKey", type: "bytes" }, { name: "expiresAt", type: "uint256" }] },
       primaryType: "UserDecrypt" as const,
       message: { handles, contractAddress: contract, publicKey, expiresAt },
@@ -90,13 +90,13 @@ export class FhishClient {
     handles: Hex[],
     contract: Hex,
     user: Hex,
-    sign: (typedData: ReturnType<typeof FhishClient.userDecryptTypedData>) => Promise<Hex>,
+    sign: (typedData: ReturnType<typeof KakushiFheClient.userDecryptTypedData>) => Promise<Hex>,
     ttlSec = 300,
   ): Promise<Record<string, bigint>> {
     const kp = (await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])) as CryptoKeyPair;
     const publicKey = bytesToHex(new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey)));
     const expiresAt = BigInt(Math.floor(Date.now() / 1000) + ttlSec);
-    const signature = await sign(FhishClient.userDecryptTypedData(this.o.chainId, handles, contract, publicKey, expiresAt));
+    const signature = await sign(KakushiFheClient.userDecryptTypedData(this.o.chainId, handles, contract, publicKey, expiresAt));
     const r = await fetch(`${this.o.gatewayUrl}/decrypt/user`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -110,7 +110,7 @@ export class FhishClient {
       const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: epk }, kp.privateKey, 256);
       const hk = await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]);
       const key = await crypto.subtle.deriveKey(
-        { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("fhish-seal-v1") },
+        { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("kakushi-fhe-seal-v1") },
         hk,
         { name: "AES-GCM", length: 256 },
         false,

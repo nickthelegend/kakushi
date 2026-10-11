@@ -47,7 +47,7 @@ export function payrollPolicy(o: PayrollPolicyOptions): PolicyCreateParams {
   const methods: PolicyMethod[] = o.allowSend === false ? ["eth_signTransaction"] : ["eth_signTransaction", "eth_sendTransaction"];
   return {
     version: "1.0",
-    name: "Fhish payroll operator",
+    name: "Kakushi payroll operator",
     chain_type: "ethereum",
     rules: methods.map((method) => ({
       name: `${method}: only cAUSD.runPayrollFrom on Monad testnet, until ${new Date(o.notAfter * 1000).toISOString().slice(0, 10)}`,

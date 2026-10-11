@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {FHE} from "../lib/FHE.sol";
-import {ebool, euint32, externalEbool} from "../lib/FhishTypes.sol";
+import {ebool, euint32, externalEbool} from "../lib/KakushiTypes.sol";
 
 /// @title ConfidentialVoting: ballots are encrypted booleans; only the final tally is revealed.
 abstract contract ConfidentialVoting {

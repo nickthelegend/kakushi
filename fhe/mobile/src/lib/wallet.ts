@@ -22,7 +22,7 @@ import type { LocalAccount } from "viem";
 import { hexToBytes, type Hex } from "./bytes.ts";
 
 /** The PRF salt namespaces the derived key: same passkey, different salt -> unrelated account. */
-export const FHISH_PRF_SALT = sha256(new TextEncoder().encode("fhish-pay.account.v1"));
+export const KAKUSHI_FHE_PRF_SALT = sha256(new TextEncoder().encode("kakushi-pay.account.v1"));
 export const EVM_PATH = "m/44'/60'/0'/0/0";
 
 export interface Wallet {
@@ -81,7 +81,7 @@ export async function createPasskeyWallet(env: PasskeyEnv, label: string): Promi
   const created = await createPasskeyWithPrfOutput({
     rp: { id: env.rpId, name: env.rpName },
     user: { name: label, displayName: label },
-    prfSalt: FHISH_PRF_SALT,
+    prfSalt: KAKUSHI_FHE_PRF_SALT,
     webAuthnClient: env.webAuthnClient,
   });
   return walletFromPrf(created.credentialId, created.prfOutput);
@@ -95,7 +95,7 @@ export async function createPasskeyWallet(env: PasskeyEnv, label: string): Promi
 export async function passkeyWallet(env: PasskeyEnv, credentialId?: string): Promise<Wallet> {
   const r = await getPasskeyPrfOutput({
     rpId: env.rpId,
-    prfSalt: FHISH_PRF_SALT,
+    prfSalt: KAKUSHI_FHE_PRF_SALT,
     webAuthnClient: env.webAuthnClient,
     ...(credentialId ? { credential: { credentialId } } : {}),
   });

@@ -15,7 +15,7 @@ test("sealed output opens only with the client's ephemeral key (same steps as th
   const shared = await subtle.deriveBits({ name: "ECDH", public: epk }, kp.privateKey, 256);
   const hk = await subtle.importKey("raw", shared, "HKDF", false, ["deriveKey"]);
   const key = await subtle.deriveKey(
-    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("fhish-seal-v1") },
+    { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("kakushi-fhe-seal-v1") },
     hk,
     { name: "AES-GCM", length: 256 },
     false,
@@ -28,7 +28,7 @@ test("sealed output opens only with the client's ephemeral key (same steps as th
   const other = await subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]);
   const bad = await subtle.deriveBits({ name: "ECDH", public: epk }, other.privateKey, 256);
   const hk2 = await subtle.importKey("raw", bad, "HKDF", false, ["deriveKey"]);
-  const key2 = await subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("fhish-seal-v1") }, hk2, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const key2 = await subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: new TextEncoder().encode("kakushi-fhe-seal-v1") }, hk2, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
   await assert.rejects(subtle.decrypt({ name: "AES-GCM", iv: Buffer.from(s.iv, "hex") }, key2, Buffer.from(s.ct, "hex")));
 });
 

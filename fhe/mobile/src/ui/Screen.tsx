@@ -50,10 +50,10 @@ export function Screen({
                 <T style={{ fontSize: 22, color: C.biolum, lineHeight: 24 }}>‹</T>
               </Pressable>
             ) : (
-              <Image source={require("../../assets/fhish-fin.png")} style={s.logo} />
+              <Image source={require("../../assets/kakushi-fin.png")} style={s.logo} />
             )}
             <T kind="h2" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {title ?? "Fhish Pay"}
+              {title ?? "Kakushi Pay"}
             </T>
           </Row>
           {right ?? <SessionChip />}

@@ -1,4 +1,4 @@
-// HTTP client for fhish-engine (native tfhe-rs). Localhost only.
+// HTTP client for kakushi-fhe-engine (native tfhe-rs). Localhost only.
 export class Engine {
   readonly url: string;
   constructor(url: string) {

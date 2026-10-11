@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {FHE} from "../lib/FHE.sol";
-import {ebool, euint32, euint64, externalEuint64} from "../lib/FhishTypes.sol";
+import {ebool, euint32, euint64, externalEuint64} from "../lib/KakushiTypes.sol";
 
 /// @title SealedBidAuction: bids stay encrypted forever; only the winner and price are revealed.
 /// @notice Each bid updates an encrypted running maximum and an encrypted winner index with

@@ -37,8 +37,8 @@ interface AppValue {
 }
 
 const Ctx = createContext<AppValue | null>(null);
-const K_ACCOUNT = "fhish.account.v1";
-const K_NETWORK = "fhish.network.v1";
+const K_ACCOUNT = "kakushi.fhe.account.v1";
+const K_NETWORK = "kakushi.fhe.network.v1";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [network, setNetworkState] = useState<NetworkId>("local");

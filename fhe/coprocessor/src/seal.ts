@@ -13,7 +13,7 @@ export function seal(clientPublicKeyHex: string, plaintext: string): Sealed {
   const ecdh = createECDH("prime256v1");
   ecdh.generateKeys();
   const shared = ecdh.computeSecret(Buffer.from(clientPublicKeyHex.replace(/^0x/, ""), "hex"));
-  const key = Buffer.from(hkdfSync("sha256", shared, Buffer.alloc(0), Buffer.from("fhish-seal-v1"), 32));
+  const key = Buffer.from(hkdfSync("sha256", shared, Buffer.alloc(0), Buffer.from("kakushi-fhe-seal-v1"), 32));
   const iv = randomBytes(12);
   const c = createCipheriv("aes-256-gcm", key, iv);
   const ct = Buffer.concat([c.update(plaintext, "utf8"), c.final(), c.getAuthTag()]);

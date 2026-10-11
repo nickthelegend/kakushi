@@ -1,6 +1,6 @@
 upstream/
 node_modules/
-.fhish/
+.kakushi-fhe/
 .data/
 .stack/
 target/

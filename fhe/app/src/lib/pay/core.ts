@@ -1,4 +1,4 @@
-// Fhish Pay: shared, isomorphic helpers (browser and API routes).
+// Kakushi Pay: shared, isomorphic helpers (browser and API routes).
 import { defineChain, formatUnits, hexToString, parseAbi, parseUnits, stringToHex, type Hex } from "viem";
 
 export const MONAD_TESTNET_ID = 10143;
@@ -51,7 +51,7 @@ export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 /** EIP-712 batch authorization: the employer signs the exact encrypted batch the operator may submit. */
 export function payrollBatchTypedData(p: { chainId: number; token: Hex; employer: Hex; operator: Hex; to: Hex[]; amounts: Hex[]; ref: Hex; deadline: bigint }) {
   return {
-    domain: { name: "Fhish Payroll", version: "1", chainId: p.chainId, verifyingContract: p.token },
+    domain: { name: "Kakushi Payroll", version: "1", chainId: p.chainId, verifyingContract: p.token },
     types: {
       PayrollBatch: [
         { name: "employer", type: "address" },

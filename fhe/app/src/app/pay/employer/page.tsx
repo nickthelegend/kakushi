@@ -115,7 +115,7 @@ export default function EmployerPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 pt-8 sm:pt-12">
-      <p className="font-mono text-sm text-biolum">Fhish Payroll</p>
+      <p className="font-mono text-sm text-biolum">Kakushi Payroll</p>
       <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Payroll nobody can read.</h1>
       <p className="mt-3 max-w-2xl text-tide">
         Pay the whole team in one Monad transaction. Every salary is encrypted in this browser; on-chain, each one is a ciphertext that only you and that employee can open. Colleagues, competitors and block explorers see that payroll ran, not who earns what.{" "}
@@ -126,7 +126,7 @@ export default function EmployerPage() {
       </div>
 
       {!env ? (
-        <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Fhish Pay deployment…</p>
+        <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Kakushi Pay deployment…</p>
       ) : !w ? (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
           <SignIn why="Sign in as the employer. On the fork, Alice is funded with AUSD and is the natural employer; Bob and Carol are the employees." />

@@ -3,7 +3,7 @@
 // never ships or runs Privy. Privy features used here:
 //   1. login with email or passkey, embedded wallet created on login (Monad testnet, 10143)
 //   2. native gas sponsorship: useSendTransaction(..., { sponsor: true }) (EIP-7702 + paymaster)
-//   3. EIP-712 signing with the embedded wallet (Fhish user decryption, payroll batch authorizations)
+//   3. EIP-712 signing with the embedded wallet (Kakushi user decryption, payroll batch authorizations)
 //   4. on the local fork, useSignTransaction + our own eth_sendRawTransactionSync broadcast, because
 //      Privy's paymaster cannot reach a fork
 import { useEffect, useMemo, useRef } from "react";
@@ -27,7 +27,7 @@ export default function PrivyBridge({ appId, clientId, client, network, onState 
       appId={appId}
       clientId={clientId}
       config={{
-        appearance: { theme: "#021a20", accentColor: "#34e3ff", logo: `${location.origin}/fhish-fin.png`, landingHeader: "Sign in to Fhish Pay" },
+        appearance: { theme: "#021a20", accentColor: "#34e3ff", logo: `${location.origin}/kakushi-fin.png`, landingHeader: "Sign in to Kakushi Pay" },
         loginMethods: ["email", "passkey"],
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" }, showWalletUIs: false },
         defaultChain: monadTestnet,
@@ -68,7 +68,7 @@ function Inner({ client, network, onState }: Omit<Props, "appId" | "clientId">) 
         const submittedAt = Date.now();
         if (sponsored) {
           // Privy native gas sponsorship: the embedded wallet is upgraded with EIP-7702 and a paymaster
-          // pays. msg.sender is still the user's address, so Fhish input proofs bound to it verify.
+          // pays. msg.sender is still the user's address, so Kakushi input proofs bound to it verify.
           const { hash } = await fns.current.sendTransaction(
             { to: tx.to, data: tx.data, chainId: MONAD_TESTNET_ID, gasLimit: toHex(tx.gas) },
             { sponsor: true, address, uiOptions: { showWalletUIs: false } },

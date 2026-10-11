@@ -2,7 +2,7 @@
 // must equal the feed built from raw chain logs. Bundled with esbuild because flows.ts uses the app's
 // "@/" alias. From app/:
 //   esbuild scripts/activity-parity.ts --bundle --platform=node --format=esm --alias:@=./src \
-//     --external:viem --external:'@fhish/*' --outfile=.parity.mjs && node .parity.mjs
+//     --external:viem --external:'@kakushi/fhe-*' --outfile=.parity.mjs && node .parity.mjs
 import { createPublicClient, defineChain, http, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { readFileSync } from "node:fs";
@@ -18,7 +18,7 @@ globalThis.fetch = ((u: string | URL | Request, i?: RequestInit) => f(typeof u =
 
 const chain = defineChain({ id: 10143, name: "fork", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: ["http://127.0.0.1:18810"] } } });
 const client = createPublicClient({ chain, transport: http() }) as PublicClient;
-const env = { client, fhish: null as never, token: apps.causd, ausd: apps.ausd, oracle: dep.oracle, chainId: 10143, network: "local", fromBlock: BigInt(dep.deployBlock) } as PayEnv;
+const env = { client, fhe: null as never, token: apps.causd, ausd: apps.ausd, oracle: dep.oracle, chainId: 10143, network: "local", fromBlock: BigInt(dep.deployBlock) } as PayEnv;
 const KEYS = ["0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"] as Hex[];
 
 let ok = true;

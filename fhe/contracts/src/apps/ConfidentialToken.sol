@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {FHE} from "../lib/FHE.sol";
-import {ebool, euint64, externalEuint64} from "../lib/FhishTypes.sol";
+import {ebool, euint64, externalEuint64} from "../lib/KakushiTypes.sol";
 
 /// @title ConfidentialToken: ERC-7984-shaped token with encrypted balances.
 /// @notice Balances and transfer amounts are euint64 handles. A transfer of more than the balance

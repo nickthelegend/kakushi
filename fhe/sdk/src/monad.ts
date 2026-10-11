@@ -1,4 +1,4 @@
-// Monad-native settlement for Fhish apps.
+// Monad-native settlement for Kakushi apps.
 //
 // Monad blocks move through commit states: Proposed -> Voted (~300 ms) -> Finalized (~600 ms) ->
 // Verified (state root, a few blocks later). The `monadNewHeads` WebSocket subscription announces

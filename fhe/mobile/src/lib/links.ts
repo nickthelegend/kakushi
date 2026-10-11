@@ -1,6 +1,6 @@
 // Pay links. The one-time claim key travels ONLY in the URL fragment (#k=...): fragments are never
 // sent to a server, and the app never logs or uploads the key.
-//   fhishpay://claim?net=local&id=7#k=0x...
+//   kakushipay://claim?net=local&id=7#k=0x...
 //   https://<LINK_HOST>/claim?net=local&id=7#k=0x...   (opens the app via associated domains)
 import { LINK_HOST, type NetworkId } from "./config.ts";
 import type { Hex } from "./bytes.ts";
@@ -13,11 +13,11 @@ export interface ParsedLink {
 
 export function linkUrls(net: NetworkId, id: bigint, key: Hex) {
   const q = `net=${net}&id=${id}#k=${key}`;
-  return { app: `fhishpay://claim?${q}`, web: `https://${LINK_HOST}/claim?${q}` };
+  return { app: `kakushipay://claim?${q}`, web: `https://${LINK_HOST}/claim?${q}` };
 }
 
 export function parseLink(url: string): ParsedLink | null {
-  const m = url.trim().match(/^(?:fhishpay:\/\/|https?:\/\/[^/]+\/)claim\/?\?([^#]*)#(.*)$/i);
+  const m = url.trim().match(/^(?:kakushipay:\/\/|https?:\/\/[^/]+\/)claim\/?\?([^#]*)#(.*)$/i);
   if (!m) return null;
   const q = new Map(m[1]!.split("&").map((kv) => kv.split("=") as [string, string]));
   const f = new Map(m[2]!.split("&").map((kv) => kv.split("=") as [string, string]));
@@ -32,7 +32,7 @@ export function parseLink(url: string): ParsedLink | null {
 // the payee and payer can decrypt the amount, so the link just points at the on-chain request.
 // The readable memo rides in the fragment (never sent to a server); on-chain it is only a hash, which
 // the app checks against the request's PaymentRequested event at block `b`.
-//   fhishpay://request?net=local&id=3&b=69540400#m=rent
+//   kakushipay://request?net=local&id=3&b=69540400#m=rent
 //   https://<LINK_HOST>/request?net=local&id=3&b=69540400#m=rent
 export interface ParsedRequestLink {
   net: NetworkId;
@@ -44,11 +44,11 @@ export interface ParsedRequestLink {
 
 export function requestUrls(net: NetworkId, id: bigint, block?: bigint, memo?: string) {
   const q = `net=${net}&id=${id}${block !== undefined ? `&b=${block}` : ""}${memo?.trim() ? `#m=${encodeURIComponent(memo.trim())}` : ""}`;
-  return { app: `fhishpay://request?${q}`, web: `https://${LINK_HOST}/request?${q}` };
+  return { app: `kakushipay://request?${q}`, web: `https://${LINK_HOST}/request?${q}` };
 }
 
 export function parseRequestLink(url: string): ParsedRequestLink | null {
-  const m = url.trim().match(/^(?:fhishpay:\/\/|https?:\/\/[^/]+\/)request\/?\?([^#]*)(?:#(.*))?$/i);
+  const m = url.trim().match(/^(?:kakushipay:\/\/|https?:\/\/[^/]+\/)request\/?\?([^#]*)(?:#(.*))?$/i);
   if (!m) return null;
   const q = new Map(m[1]!.split("&").map((kv) => kv.split("=") as [string, string]));
   const f = new Map((m[2] ?? "").split("&").filter(Boolean).map((kv) => kv.split("=") as [string, string]));

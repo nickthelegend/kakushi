@@ -2,7 +2,7 @@
 // Monad heartbeat: real Monad testnet blocks moving through their commit states, live from the
 // public monadNewHeads WebSocket subscription. Read-only; shown even when the app runs on a fork.
 import { useEffect, useRef, useState } from "react";
-import { COMMIT_STATES, type CommitState } from "@fhish/sdk/monad";
+import { COMMIT_STATES, type CommitState } from "@kakushi/fhe-sdk/monad";
 import { acquireHeads, releaseHeads, resetHeads, MONAD_WSS } from "@/lib/pay/heads";
 
 type Seen = Partial<Record<CommitState, number>>;

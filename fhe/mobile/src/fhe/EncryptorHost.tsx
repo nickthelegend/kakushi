@@ -11,7 +11,7 @@ export function EncryptorHost() {
   const ref = useRef<WebView>(null);
   useEffect(() => {
     encryptor.attach((json) => {
-      ref.current?.injectJavaScript(`window.__fhish && window.__fhish.handle(${JSON.stringify(json)}); true;`);
+      ref.current?.injectJavaScript(`window.__kakushiFhe && window.__kakushiFhe.handle(${JSON.stringify(json)}); true;`);
     });
   }, []);
   return (

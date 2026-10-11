@@ -11,10 +11,10 @@ export async function nodeEncryptor(): Promise<WebEncryptor> {
   const enc = new WebEncryptor();
   const sandbox: any = { atob, btoa, TextDecoder, TextEncoder, Response, Blob, DecompressionStream, WebAssembly, BigInt, Date, JSON, Uint8Array, String, Number, Promise, Error, Object, Array, Function, crypto: globalThis.crypto };
   sandbox.globalThis = sandbox;
-  sandbox.__fhishOut = (s: string) => enc.receive(s);
+  sandbox.__kakushiFheOut = (s: string) => enc.receive(s);
   vm.createContext(sandbox);
   vm.runInContext(script, sandbox);
-  enc.attach((json) => sandbox.__fhish.handle(json));
+  enc.attach((json) => sandbox.__kakushiFhe.handle(json));
   await enc.whenReady();
   return enc;
 }

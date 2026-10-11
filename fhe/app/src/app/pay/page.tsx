@@ -101,17 +101,17 @@ export default function PayPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 pt-8 sm:pt-12">
-      <p className="font-mono text-sm text-biolum">Fhish Pay</p>
+      <p className="font-mono text-sm text-biolum">Kakushi Pay</p>
       <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Your money, your eyes only.</h1>
       <p className="mt-3 max-w-2xl text-tide">
-        Real Agora AUSD on Monad, with amounts and balances encrypted end to end. Pay anyone, request money, send money by link to someone with no wallet yet, and cash out whenever you like. <Link href="/pay/employer" className="text-biolum hover:underline">Paying a team? Open Fhish Payroll.</Link>
+        Real Agora AUSD on Monad, with amounts and balances encrypted end to end. Pay anyone, request money, send money by link to someone with no wallet yet, and cash out whenever you like. <Link href="/pay/employer" className="text-biolum hover:underline">Paying a team? Open Kakushi Payroll.</Link>
       </p>
       <div className="mt-6">
         <PrivyBanner />
       </div>
 
       {!env ? (
-        <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Fhish Pay deployment… If this stays, the stack is not running (cAUSD missing from contracts/deployments).</p>
+        <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Kakushi Pay deployment… If this stays, the stack is not running (cAUSD missing from contracts/deployments).</p>
       ) : !w ? (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
           <div className="min-w-0 space-y-6">

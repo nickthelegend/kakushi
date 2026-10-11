@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {FHE} from "../lib/FHE.sol";
-import {euint64, externalEuint64} from "../lib/FhishTypes.sol";
+import {euint64, externalEuint64} from "../lib/KakushiTypes.sol";
 import {ConfidentialERC20Wrapper, IERC20Like} from "./ConfidentialERC20Wrapper.sol";
 
 /// ERC-2612 + ERC-3009, as implemented by Agora AUSD and Circle USDC.
@@ -271,7 +271,7 @@ abstract contract ConfidentialPayments is ConfidentialERC20Wrapper {
     }
 
     function payrollDomainSeparator() public view returns (bytes32) {
-        return keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("Fhish Payroll"), keccak256("1"), block.chainid, address(this)));
+        return keccak256(abi.encode(_DOMAIN_TYPEHASH, keccak256("Kakushi Payroll"), keccak256("1"), block.chainid, address(this)));
     }
 
     function payrollBatchDigest(

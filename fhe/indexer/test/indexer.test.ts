@@ -35,16 +35,16 @@ describe("payments", () => {
         [CHAIN]: {
           simulate: [
             // pay(): ConfidentialTransfer then Paid in the same tx
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(1, 1, 1), params: { from: ALICE, to: BOB, amount: h(1) } },
-            { contract: "FhishPayToken", event: "Paid", ...at(1, 1, 1), params: { from: ALICE, to: BOB, amount: h(1), ref: ref("invoice-42") } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(1, 1, 1), params: { from: ALICE, to: BOB, amount: h(1) } },
+            { contract: "KakushiPayToken", event: "Paid", ...at(1, 1, 1), params: { from: ALICE, to: BOB, amount: h(1), ref: ref("invoice-42") } },
             // plain confidentialTransfer
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(2, 2, 2), params: { from: BOB, to: CAROL, amount: h(2) } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(2, 2, 2), params: { from: BOB, to: CAROL, amount: h(2) } },
             // runPayrollFrom by an operator: two salaries
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(3, 3, 3), params: { from: ALICE, to: BOB, amount: h(3) } },
-            { contract: "FhishPayToken", event: "Paid", ...at(3, 3, 3), params: { from: ALICE, to: BOB, amount: h(3), ref: R } },
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(3, 3, 3), params: { from: ALICE, to: CAROL, amount: h(4) } },
-            { contract: "FhishPayToken", event: "Paid", ...at(3, 3, 3), params: { from: ALICE, to: CAROL, amount: h(4), ref: R } },
-            { contract: "FhishPayToken", event: "PayrollRun", ...at(3, 3, 3), params: { employer: ALICE, operator: OPERATOR, count: 2n, ref: R } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(3, 3, 3), params: { from: ALICE, to: BOB, amount: h(3) } },
+            { contract: "KakushiPayToken", event: "Paid", ...at(3, 3, 3), params: { from: ALICE, to: BOB, amount: h(3), ref: R } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(3, 3, 3), params: { from: ALICE, to: CAROL, amount: h(4) } },
+            { contract: "KakushiPayToken", event: "Paid", ...at(3, 3, 3), params: { from: ALICE, to: CAROL, amount: h(4), ref: R } },
+            { contract: "KakushiPayToken", event: "PayrollRun", ...at(3, 3, 3), params: { employer: ALICE, operator: OPERATOR, count: 2n, ref: R } },
           ],
         },
       },
@@ -92,12 +92,12 @@ describe("pay links", () => {
     const ix = createTestIndexer();
     const key: Addr = "0x9999999999999999999999999999999999999999";
     const created = (id: bigint, d: number, txN: number, amt: number) => [
-      { contract: "FhishPayToken" as const, event: "ConfidentialTransfer" as const, ...at(d, d, txN), params: { from: ALICE, to: CAUSD, amount: h(amt) } },
-      { contract: "FhishPayToken" as const, event: "LinkCreated" as const, ...at(d, d, txN), params: { id, sender: ALICE, claimKey: key, expiry: BigInt(T0 + 86_400), amount: h(amt) } },
+      { contract: "KakushiPayToken" as const, event: "ConfidentialTransfer" as const, ...at(d, d, txN), params: { from: ALICE, to: CAUSD, amount: h(amt) } },
+      { contract: "KakushiPayToken" as const, event: "LinkCreated" as const, ...at(d, d, txN), params: { id, sender: ALICE, claimKey: key, expiry: BigInt(T0 + 86_400), amount: h(amt) } },
     ];
     const claimed = (id: bigint, d: number, dSec: number, txN: number, amt: number, to: `0x${string}` = NEWCOMER) => [
-      { contract: "FhishPayToken" as const, event: "ConfidentialTransfer" as const, ...at(d, dSec, txN), params: { from: CAUSD, to, amount: h(amt) } },
-      { contract: "FhishPayToken" as const, event: "LinkClaimed" as const, ...at(d, dSec, txN), params: { id, to } },
+      { contract: "KakushiPayToken" as const, event: "ConfidentialTransfer" as const, ...at(d, dSec, txN), params: { from: CAUSD, to, amount: h(amt) } },
+      { contract: "KakushiPayToken" as const, event: "LinkClaimed" as const, ...at(d, dSec, txN), params: { id, to } },
     ];
     await ix.process({
       chains: {
@@ -110,8 +110,8 @@ describe("pay links", () => {
             ...claimed(1n, 10, 91, 14, 101), // 90 s
             ...claimed(2n, 11, 32, 15, 201, BOB), // 30 s
             ...claimed(3n, 12, 303, 16, 301), // 300 s
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(13, 90_000, 17), params: { from: CAUSD, to: ALICE, amount: h(401) } },
-            { contract: "FhishPayToken", event: "LinkRefunded", ...at(13, 90_000, 17), params: { id: 4n } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(13, 90_000, 17), params: { from: CAUSD, to: ALICE, amount: h(401) } },
+            { contract: "KakushiPayToken", event: "LinkRefunded", ...at(13, 90_000, 17), params: { id: 4n } },
           ],
         },
       },
@@ -158,11 +158,11 @@ describe("reveals", () => {
       chains: {
         [CHAIN]: {
           simulate: [
-            { contract: "FhishDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(1, 10, 1), params: { requestId: 1n, requester: CAUSD, handles: [h(9)], callback: "0x12345678" } },
-            { contract: "FhishDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(2, 11, 2), params: { requestId: 2n, requester: BOB, handles: [h(10), h(11)], callback: "0xabcdef01" } },
-            { contract: "FhishDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(3, 12, 3), params: { requestId: 3n, requester: BOB, handles: [h(12)], callback: "0xabcdef01" } },
-            { contract: "FhishDecryptionOracle", event: "DecryptionFulfilled", srcAddress: ORACLE, ...at(4, 14, 4), params: { requestId: 1n, cleartexts: [CLEAR], callbackOk: true, via: RELAYER } },
-            { contract: "FhishDecryptionOracle", event: "DecryptionFulfilled", srcAddress: ORACLE, ...at(8, 19, 5), params: { requestId: 2n, cleartexts: [CLEAR, CLEAR], callbackOk: false, via: CRE_FORWARDER as `0x${string}` } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(1, 10, 1), params: { requestId: 1n, requester: CAUSD, handles: [h(9)], callback: "0x12345678" } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(2, 11, 2), params: { requestId: 2n, requester: BOB, handles: [h(10), h(11)], callback: "0xabcdef01" } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(3, 12, 3), params: { requestId: 3n, requester: BOB, handles: [h(12)], callback: "0xabcdef01" } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionFulfilled", srcAddress: ORACLE, ...at(4, 14, 4), params: { requestId: 1n, cleartexts: [CLEAR], callbackOk: true, via: RELAYER } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionFulfilled", srcAddress: ORACLE, ...at(8, 19, 5), params: { requestId: 2n, cleartexts: [CLEAR, CLEAR], callbackOk: false, via: CRE_FORWARDER as `0x${string}` } },
           ],
         },
       },
@@ -208,16 +208,16 @@ describe("public TVL", () => {
       chains: {
         [CHAIN]: {
           simulate: [
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(1, 1, 1), params: { from: ZERO, to: ALICE, amount: h(50) } },
-            { contract: "FhishPayToken", event: "Wrapped", ...at(1, 1, 1), params: { account: ALICE, amount: 5_000_000_000n } },
-            { contract: "FhishPayToken", event: "Wrapped", ...at(2, 2, 2), params: { account: BOB, amount: 300_000_000n } },
-            { contract: "FhishPayToken", event: "Wrapped", srcAddress: CUSDC, ...at(3, 3, 3), params: { account: CAROL, amount: 200_000_000n } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(1, 1, 1), params: { from: ZERO, to: ALICE, amount: h(50) } },
+            { contract: "KakushiPayToken", event: "Wrapped", ...at(1, 1, 1), params: { account: ALICE, amount: 5_000_000_000n } },
+            { contract: "KakushiPayToken", event: "Wrapped", ...at(2, 2, 2), params: { account: BOB, amount: 300_000_000n } },
+            { contract: "KakushiPayToken", event: "Wrapped", srcAddress: CUSDC, ...at(3, 3, 3), params: { account: CAROL, amount: 200_000_000n } },
             // unwrap: burn, oracle request, UnwrapRequested (one tx) ... then the KMS callback
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(4, 4, 4), params: { from: BOB, to: ZERO, amount: h(77) } },
-            { contract: "FhishDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(4, 4, 4), params: { requestId: 7n, requester: CAUSD, handles: [h(77)], callback: "0x11111111" } },
-            { contract: "FhishPayToken", event: "UnwrapRequested", ...at(4, 4, 4), params: { requestId: 7n, account: BOB } },
-            { contract: "FhishPayToken", event: "Unwrapped", ...at(6, 7, 5), params: { requestId: 7n, account: BOB, amount: 100_000_000n } },
-            { contract: "FhishDecryptionOracle", event: "DecryptionFulfilled", srcAddress: ORACLE, ...at(6, 7, 5), params: { requestId: 7n, cleartexts: [100_000_000n], callbackOk: true, via: RELAYER } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(4, 4, 4), params: { from: BOB, to: ZERO, amount: h(77) } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionRequested", srcAddress: ORACLE, ...at(4, 4, 4), params: { requestId: 7n, requester: CAUSD, handles: [h(77)], callback: "0x11111111" } },
+            { contract: "KakushiPayToken", event: "UnwrapRequested", ...at(4, 4, 4), params: { requestId: 7n, account: BOB } },
+            { contract: "KakushiPayToken", event: "Unwrapped", ...at(6, 7, 5), params: { requestId: 7n, account: BOB, amount: 100_000_000n } },
+            { contract: "KakushiDecryptionOracle", event: "DecryptionFulfilled", srcAddress: ORACLE, ...at(6, 7, 5), params: { requestId: 7n, cleartexts: [100_000_000n], callbackOk: true, via: RELAYER } },
           ],
         },
       },
@@ -259,7 +259,7 @@ describe("FHE executor", () => {
     const ix = createTestIndexer();
     const EXECUTOR = "0x4488f514d57837771d4b700ab22d4c58cd66cd53";
     const op = (code: bigint, scalar: boolean, caller: `0x${string}`, d: number) => ({
-      contract: "FhishExecutor" as const,
+      contract: "KakushiExecutor" as const,
       event: "FheOp" as const,
       srcAddress: EXECUTOR as `0x${string}`,
       block: { number: B0 + d, timestamp: T0 + d },
@@ -273,9 +273,9 @@ describe("FHE executor", () => {
             op(1n, false, CAUSD, 1),
             op(2n, false, CAUSD, 1),
             op(1n, true, BOB, 2),
-            { contract: "FhishExecutor", event: "FheSelect", srcAddress: EXECUTOR, block: { number: B0 + 3, timestamp: T0 + 3 }, params: { result: h(5), control: h(6), ifTrue: h(7), ifFalse: h(8), caller: CAUSD } },
-            { contract: "FhishExecutor", event: "VerifyInput", srcAddress: EXECUTOR, block: { number: B0 + 3, timestamp: T0 + 3 }, params: { result: h(9), inputHandle: h(10), user: ALICE, caller: CAUSD } },
-            { contract: "FhishExecutor", event: "TrivialEncrypt", srcAddress: EXECUTOR, block: { number: B0 + 4, timestamp: T0 + 4 }, params: { result: h(11), value: 0n, toType: 5n } },
+            { contract: "KakushiExecutor", event: "FheSelect", srcAddress: EXECUTOR, block: { number: B0 + 3, timestamp: T0 + 3 }, params: { result: h(5), control: h(6), ifTrue: h(7), ifFalse: h(8), caller: CAUSD } },
+            { contract: "KakushiExecutor", event: "VerifyInput", srcAddress: EXECUTOR, block: { number: B0 + 3, timestamp: T0 + 3 }, params: { result: h(9), inputHandle: h(10), user: ALICE, caller: CAUSD } },
+            { contract: "KakushiExecutor", event: "TrivialEncrypt", srcAddress: EXECUTOR, block: { number: B0 + 4, timestamp: T0 + 4 }, params: { result: h(11), value: 0n, toType: 5n } },
           ],
         },
       },
@@ -298,19 +298,19 @@ describe("payment requests", () => {
         [CHAIN]: {
           simulate: [
             // carol asks bob (#1) and the newcomer (#2); alice asks bob (#3)
-            { contract: "FhishPayToken", event: "PaymentRequested", ...at(1, 1, 30), params: { id: 1n, payee: CAROL, payer: BOB, expiry: exp, ref: ref("rent october"), due: h(500) } },
-            { contract: "FhishPayToken", event: "PaymentRequested", ...at(2, 2, 31), params: { id: 2n, payee: CAROL, payer: NEWCOMER, expiry: exp, ref: ref("too much"), due: h(501) } },
-            { contract: "FhishPayToken", event: "PaymentRequested", ...at(3, 3, 32), params: { id: 3n, payee: ALICE, payer: BOB, expiry: exp, ref: ref("lunch"), due: h(502) } },
+            { contract: "KakushiPayToken", event: "PaymentRequested", ...at(1, 1, 30), params: { id: 1n, payee: CAROL, payer: BOB, expiry: exp, ref: ref("rent october"), due: h(500) } },
+            { contract: "KakushiPayToken", event: "PaymentRequested", ...at(2, 2, 31), params: { id: 2n, payee: CAROL, payer: NEWCOMER, expiry: exp, ref: ref("too much"), due: h(501) } },
+            { contract: "KakushiPayToken", event: "PaymentRequested", ...at(3, 3, 32), params: { id: 3n, payee: ALICE, payer: BOB, expiry: exp, ref: ref("lunch"), due: h(502) } },
             // bob pays #1: the value move is a ConfidentialTransfer in the same tx
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(4, 10, 33), params: { from: BOB, to: CAROL, amount: h(503) } },
-            { contract: "FhishPayToken", event: "RequestPaid", ...at(4, 10, 33), params: { id: 1n, payer: BOB, sent: h(503) } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(4, 10, 33), params: { from: BOB, to: CAROL, amount: h(503) } },
+            { contract: "KakushiPayToken", event: "RequestPaid", ...at(4, 10, 33), params: { id: 1n, payer: BOB, sent: h(503) } },
             // the newcomer tries #2 twice (balance short: an encrypted 0 moves each time)
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(5, 20, 34), params: { from: NEWCOMER, to: CAROL, amount: h(504) } },
-            { contract: "FhishPayToken", event: "RequestPaid", ...at(5, 20, 34), params: { id: 2n, payer: NEWCOMER, sent: h(504) } },
-            { contract: "FhishPayToken", event: "ConfidentialTransfer", ...at(6, 30, 35), params: { from: NEWCOMER, to: CAROL, amount: h(505) } },
-            { contract: "FhishPayToken", event: "RequestPaid", ...at(6, 30, 35), params: { id: 2n, payer: NEWCOMER, sent: h(505) } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(5, 20, 34), params: { from: NEWCOMER, to: CAROL, amount: h(504) } },
+            { contract: "KakushiPayToken", event: "RequestPaid", ...at(5, 20, 34), params: { id: 2n, payer: NEWCOMER, sent: h(504) } },
+            { contract: "KakushiPayToken", event: "ConfidentialTransfer", ...at(6, 30, 35), params: { from: NEWCOMER, to: CAROL, amount: h(505) } },
+            { contract: "KakushiPayToken", event: "RequestPaid", ...at(6, 30, 35), params: { id: 2n, payer: NEWCOMER, sent: h(505) } },
             // alice cancels #3
-            { contract: "FhishPayToken", event: "RequestCancelled", ...at(7, 40, 36), params: { id: 3n } },
+            { contract: "KakushiPayToken", event: "RequestCancelled", ...at(7, 40, 36), params: { id: 3n } },
           ],
         },
       },
@@ -362,8 +362,8 @@ describe("payment requests", () => {
       chains: {
         [CHAIN]: {
           simulate: [
-            { contract: "FhishPayToken", event: "RequestPaid", ...at(1, 1, 40), params: { id: 99n, payer: BOB, sent: h(600) } },
-            { contract: "FhishPayToken", event: "RequestCancelled", ...at(2, 2, 41), params: { id: 98n } },
+            { contract: "KakushiPayToken", event: "RequestPaid", ...at(1, 1, 40), params: { id: 99n, payer: BOB, sent: h(600) } },
+            { contract: "KakushiPayToken", event: "RequestCancelled", ...at(2, 2, 41), params: { id: 98n } },
           ],
         },
       },

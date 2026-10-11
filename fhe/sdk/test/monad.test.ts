@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { MonadHeads, trackByTags } from "../src/monad.ts";
 
-// Live, read-only checks against Monad testnet (skipped offline or with FHISH_OFFLINE=1).
-const live = process.env.FHISH_OFFLINE !== "1";
+// Live, read-only checks against Monad testnet (skipped offline or with KAKUSHI_FHE_OFFLINE=1).
+const live = process.env.KAKUSHI_FHE_OFFLINE !== "1";
 
 test("monadNewHeads: a fresh block goes Proposed -> Voted -> Finalized in order, sub-second", { skip: !live, timeout: 30_000 }, async () => {
   const heads = new MonadHeads();

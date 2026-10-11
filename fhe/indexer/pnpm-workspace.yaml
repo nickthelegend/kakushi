@@ -1,4 +1,4 @@
 # Standalone pnpm workspace: keeps `pnpm install` here (and on Envio Cloud, root dir = indexer)
-# from resolving against the parent fhish-monad workspace.
+# from resolving against the parent kakushi-fhe workspace.
 packages:
   - "."

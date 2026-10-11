@@ -309,21 +309,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fhish-engine"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "base64",
- "hex",
- "serde",
- "serde_json",
- "sha3",
- "tfhe",
- "tokio",
-]
-
-[[package]]
 name = "find-msvc-tools"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -507,6 +492,21 @@ dependencies = [
  "cfg-if",
  "futures-util",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kakushi-fhe-engine"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha3",
+ "tfhe",
+ "tokio",
 ]
 
 [[package]]

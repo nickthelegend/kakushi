@@ -1,17 +1,17 @@
 "use client";
-// Every Fhish Pay action, written once against the PayWallet interface (Privy or local fork).
+// Every Kakushi Pay action, written once against the PayWallet interface (Privy or local fork).
 // Amounts are encrypted in this tab (Zama tfhe WASM) and bound to (sender, cAUSD) before they leave.
 import { BaseError, ContractFunctionRevertedError, encodeFunctionData, parseEventLogs, parseSignature, type Abi, type Hex, type PublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { FhishClient, waitForDecryption } from "@fhish/sdk";
+import { KakushiFheClient, waitForDecryption } from "@kakushi/fhe-sdk";
 import { payAbi } from "@/lib/abi";
 import { erc20Abi, isZeroHandle, payrollBatchTypedData, permitTypedData, refToBytes32, withBuffer } from "./core";
 import type { PayWallet, SentTx } from "./wallet";
 
 export interface PayEnv {
   client: PublicClient;
-  fhish: FhishClient;
-  token: Hex; // cAUSD (FhishPayToken over Agora AUSD)
+  fhe: KakushiFheClient;
+  token: Hex; // cAUSD (KakushiPayToken over Agora AUSD)
   ausd: Hex;
   oracle: Hex;
   chainId: number;
@@ -78,7 +78,7 @@ export async function balances(env: PayEnv, who: Hex) {
 export async function reveal(env: PayEnv, wallet: PayWallet, handles: Hex[]): Promise<Record<string, bigint>> {
   const hs = [...new Set(handles.filter((h) => !isZeroHandle(h)).map((h) => h.toLowerCase() as Hex))];
   if (!hs.length) return {};
-  return env.fhish.userDecryptWith(hs, env.token, wallet.address, (td) => wallet.signTypedData(td as never));
+  return env.fhe.userDecryptWith(hs, env.token, wallet.address, (td) => wallet.signTypedData(td as never));
 }
 
 // ------------------------------------------------------------------ onboarding
@@ -118,7 +118,7 @@ export async function wrap(env: PayEnv, wallet: PayWallet, amount: bigint, onSte
 
 export async function payPrivately(env: PayEnv, wallet: PayWallet, to: Hex, amount: bigint, ref: string, onStep?: (s: string) => void) {
   onStep?.("Encrypting the amount in this tab…");
-  const enc = await env.fhish.encrypt("euint64", amount, env.token, wallet.address);
+  const enc = await env.fhe.encrypt("euint64", amount, env.token, wallet.address);
   onStep?.(`Encrypted in ${enc.ms.encrypt} ms, attested in ${enc.ms.attest} ms. Sending…`);
   return { enc, sent: await callPay(env, wallet, "pay", [to, enc.handle, enc.proof, refToBytes32(ref)]) };
 }
@@ -127,7 +127,7 @@ export async function createPayLink(env: PayEnv, wallet: PayWallet, amount: bigi
   const key = generatePrivateKey(); // one-time claim key: travels only in the URL fragment
   const claimKey = privateKeyToAccount(key).address;
   onStep?.("Encrypting the amount in this tab…");
-  const enc = await env.fhish.encrypt("euint64", amount, env.token, wallet.address);
+  const enc = await env.fhe.encrypt("euint64", amount, env.token, wallet.address);
   const expiry = BigInt(Math.floor(Date.now() / 1000) + Math.round(days * 86400));
   onStep?.("Escrowing the encrypted amount behind a one-time key…");
   const sent = await callPay(env, wallet, "createLink", [enc.handle, enc.proof, claimKey, expiry]);
@@ -164,7 +164,7 @@ export async function claimPayLink(env: PayEnv, wallet: PayWallet, id: bigint, k
 /** Cash out: burn an encrypted amount; the KMS reveals only that amount and the contract releases AUSD. */
 export async function cashOut(env: PayEnv, wallet: PayWallet, amount: bigint, onStep?: (s: string) => void) {
   onStep?.("Encrypting the amount in this tab…");
-  const enc = await env.fhish.encrypt("euint64", amount, env.token, wallet.address);
+  const enc = await env.fhe.encrypt("euint64", amount, env.token, wallet.address);
   onStep?.("Burning it from your encrypted balance…");
   const sent = await callPay(env, wallet, "unwrap", [enc.handle, enc.proof]);
   const ev = parseEventLogs({ abi: payAbi, logs: sent.receipt.logs, eventName: "UnwrapRequested" })[0];
@@ -193,7 +193,7 @@ export async function encryptSalaries(env: PayEnv, rows: PayrollRow[], user: Hex
   const out: { handle: Hex; proof: Hex }[] = [];
   for (const [i, r] of rows.entries()) {
     onStep?.(`Encrypting salary ${i + 1} of ${rows.length} in this tab…`);
-    const e = await env.fhish.encrypt("euint64", r.amount, env.token, user);
+    const e = await env.fhe.encrypt("euint64", r.amount, env.token, user);
     out.push({ handle: e.handle, proof: e.proof });
   }
   return out;
@@ -434,7 +434,7 @@ export const requestUrl = (id: bigint) => `${location.origin}/pay?request=${id}`
 /** Ask `payer` for `amount`: encrypted here, bound to (this wallet, cAUSD); only payee and payer can read it. */
 export async function requestMoney(env: PayEnv, wallet: PayWallet, payer: Hex, amount: bigint, ref: string, days: number, onStep?: (s: string) => void) {
   onStep?.("Encrypting the amount in this tab…");
-  const enc = await env.fhish.encrypt("euint64", amount, env.token, wallet.address);
+  const enc = await env.fhe.encrypt("euint64", amount, env.token, wallet.address);
   const now = Number((await env.client.getBlock()).timestamp); // chain time: a fork can run ahead of the wall clock
   const expiry = BigInt(Math.max(now, Math.floor(Date.now() / 1000)) + Math.round(days * 86400));
   onStep?.(`Encrypted in ${enc.ms.encrypt} ms. Sending the request…`);

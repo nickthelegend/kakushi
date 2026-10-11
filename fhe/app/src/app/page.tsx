@@ -33,13 +33,13 @@ function Hero() {
     <section ref={box} className="relative isolate overflow-hidden">
       <Shoal bytes={bytes} origin={origin} className="absolute inset-0 -z-10 h-full w-full" />
       <div className="mx-auto max-w-6xl px-5 pt-14 pb-24 sm:pt-20">
-        <p className="font-mono text-sm text-biolum">Fhish Pay · confidential payments infrastructure for Monad</p>
+        <p className="font-mono text-sm text-biolum">Kakushi Pay · confidential payments infrastructure for Monad</p>
         <h1 className="mt-4 max-w-4xl font-display text-[clamp(40px,7vw,88px)] font-extrabold leading-[0.96] tracking-[-0.03em]">Pay anyone. Show no one.</h1>
         <p className="mt-7 max-w-2xl text-lg text-tide">
           Real stablecoins, Agora AUSD and Circle USDC, with every amount and every balance encrypted end to end. Run payroll, send money by link, keep your balance to yourself, and settle with Monad finality in well under a second.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Fhish Pay</Link>
+          <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Kakushi Pay</Link>
           <Link href="/pay/employer" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Run a private payroll</Link>
         </div>
         <form
@@ -60,7 +60,7 @@ function Hero() {
             </button>
           </div>
           <p className="mt-3 min-h-12 text-sm text-tide" aria-live="polite">
-            {state.phase === "idle" && "Zama's tfhe-rs, compiled to WASM, encrypts it under the Fhish network key. Nothing is sent anywhere."}
+            {state.phase === "idle" && "Zama's tfhe-rs, compiled to WASM, encrypts it under the Kakushi network key. Nothing is sent anywhere."}
             {state.phase === "loading" && state.msg}
             {state.phase === "done" && (
               <>
@@ -109,13 +109,13 @@ function TwoViews() {
           <p className="mt-4 text-sm text-silt">Decrypted for this person only: the gateway checks the on-chain ACL and seals the value to a key that exists only in their tab. Their colleague's salary stays a ciphertext, even to them.</p>
         </figure>
       </div>
-      <p className="mt-3 text-xs text-silt">Illustration. The live version is one click away in Fhish Pay.</p>
+      <p className="mt-3 text-xs text-silt">Illustration. The live version is one click away in Kakushi Pay.</p>
     </section>
   );
 }
 
 const PRODUCTS = [
-  { t: "Private payroll", b: "Pay the whole team in one transaction. Each salary is a separate ciphertext only the employer and that employee can read. Hand the run to a policy-fenced Privy server wallet and payroll goes out on schedule while you are offline.", href: "/pay/employer", cta: "Open Fhish Payroll" },
+  { t: "Private payroll", b: "Pay the whole team in one transaction. Each salary is a separate ciphertext only the employer and that employee can read. Hand the run to a policy-fenced Privy server wallet and payroll goes out on schedule while you are offline.", href: "/pay/employer", cta: "Open Kakushi Payroll" },
   { t: "Pay links", b: "Send money to someone who has no wallet yet: the amount is escrowed encrypted behind a one-time key that lives only in the link. They sign in with an email, claim it without buying gas, and only they see how much.", href: "/pay", cta: "Create a pay link" },
   { t: "Private balances", b: "Wrap AUSD into cAUSD and your balance becomes yours alone. Pay with a public reference for your books, reveal your own numbers with one signature, cash out whenever you like; only the cash-out amount is ever decrypted.", href: "/pay", cta: "See your balance" },
 ];
@@ -133,7 +133,7 @@ function Privy() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div>
           <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">Sign in with an email. Gas is on us.</h2>
-          <p className="mt-4 max-w-md text-tide">Fhish Pay runs on Privy for far more than login: wallets, sponsored gas and a policy-bound payroll robot.</p>
+          <p className="mt-4 max-w-md text-tide">Kakushi Pay runs on Privy for far more than login: wallets, sponsored gas and a policy-bound payroll robot.</p>
           <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-kelp-strong px-3 py-1 text-xs text-tide">
             <span className={`size-1.5 rounded-full ${pay.mode === "privy" ? "bg-sea-green" : "bg-lantern"}`} aria-hidden />
             {pay.mode === "privy" ? "Privy is live on this deployment" : "This deployment runs in local-fork mode (Privy not configured)"}
@@ -179,10 +179,10 @@ function Metrics() {
   );
 }
 
-const CODE = `import {FHE} from "@fhish/lib/FHE.sol";
-import {FhishConfig} from "@fhish/FhishConfig.sol";
+const CODE = `import {FHE} from "@kakushi/fhe/lib/FHE.sol";
+import {KakushiConfig} from "@kakushi/fhe/KakushiConfig.sol";
 
-contract Payroll is FhishConfig {               // line 1
+contract Payroll is KakushiConfig {               // line 1
     mapping(address => euint64) balance;
 
     function pay(address to, externalEuint64 enc, bytes calldata proof) external {
@@ -206,7 +206,7 @@ const VS: [string, string, string, string][] = [
   ["Make an existing token confidential", "Wrap any ERC-20 (AUSD, USDC) as-is", "Rewrite against their stack", "Rewrite against their stack"],
   ["Where it runs", "Monad: sub-second finality, measured live on this page", "Ethereum mainnet", "Testnets (Ethereum, Arbitrum, Base)"],
   ["Published latency", "Yes, live p50/p95 on this site", "Not published", "Research benchmarks"],
-  ["Who holds the decryption key today", "Fhish KMS (k-of-n signers; threshold key is roadmap)", "13-node MPC network", "Threshold network"],
+  ["Who holds the decryption key today", "Kakushi KMS (k-of-n signers; threshold key is roadmap)", "13-node MPC network", "Threshold network"],
 ];
 
 export default function Home() {
@@ -234,7 +234,7 @@ export default function Home() {
         <div>
           <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">Settled before you look up.</h2>
           <p className="mt-4 max-w-md text-tide">
-            Monad blocks move from Proposed to Voted to Finalized in well under a second. Fhish Pay shows that ladder, with real timings, after every payment, and waits for finality before the KMS will reveal anything. The table is live Monad testnet, straight from its monadNewHeads stream.
+            Monad blocks move from Proposed to Voted to Finalized in well under a second. Kakushi Pay shows that ladder, with real timings, after every payment, and waits for finality before the KMS will reveal anything. The table is live Monad testnet, straight from its monadNewHeads stream.
           </p>
         </div>
         <Heartbeat rows={7} />
@@ -247,7 +247,7 @@ export default function Home() {
           <p className="font-mono text-sm text-biolum">For developers</p>
           <h2 className="mt-2 font-display text-3xl font-bold leading-tight sm:text-4xl">Two lines, and the payments contract you already wrote goes dark.</h2>
           <p className="mt-5 max-w-md text-tide">
-            Fhish Pay is one contract on top of Fhish, the encrypted-computation layer for Monad. Inherit <code className="font-mono text-biolum">FhishConfig</code> and use encrypted types where you used plain ones. The API mirrors Zama's fhEVM, so their contracts and ERC-7984 tokens port by changing an import.
+            Kakushi Pay is one contract on top of Kakushi, the encrypted-computation layer for Monad. Inherit <code className="font-mono text-biolum">KakushiConfig</code> and use encrypted types where you used plain ones. The API mirrors Zama's fhEVM, so their contracts and ERC-7984 tokens port by changing an import.
           </p>
           <Link href="/developers" className="mt-6 inline-block text-sm font-semibold text-biolum hover:underline">Read the developer guide →</Link>
         </div>
@@ -273,14 +273,14 @@ export default function Home() {
           ))}
         </ol>
         <h3 className="mt-16 font-display text-xl font-bold">Measured, not promised</h3>
-        <p className="mt-2 max-w-xl text-sm text-silt">Medians from the Fhish coprocessor on a 10-core laptop running tfhe-rs 1.8.1. The right column updates from a running gateway.</p>
+        <p className="mt-2 max-w-xl text-sm text-silt">Medians from the Kakushi coprocessor on a 10-core laptop running tfhe-rs 1.8.1. The right column updates from a running gateway.</p>
         <div className="mt-6">
           <Metrics />
         </div>
       </section>
 
       <section className="mx-auto mt-32 max-w-6xl px-5">
-        <h2 className="font-display text-3xl font-bold sm:text-4xl">Also built on Fhish</h2>
+        <h2 className="font-display text-3xl font-bold sm:text-4xl">Also built on Kakushi</h2>
         <p className="mt-3 max-w-xl text-tide">The same encrypted types power more than payments.</p>
         <div className="mt-10 grid gap-x-12 gap-y-10 sm:grid-cols-2">
           {ALSO.map((a) => (
@@ -294,13 +294,13 @@ export default function Home() {
       </section>
 
       <section className="mx-auto mt-32 max-w-6xl px-5">
-        <h2 className="max-w-2xl font-display text-3xl font-bold leading-tight sm:text-4xl">Where Fhish stands next to Zama and Fhenix</h2>
+        <h2 className="max-w-2xl font-display text-3xl font-bold leading-tight sm:text-4xl">Where Kakushi stands next to Zama and Fhenix</h2>
         <div className="mt-8 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-[15px]">
             <thead className="text-sm text-silt">
               <tr className="border-b border-kelp">
                 <th className="py-3 pr-4 font-normal" />
-                <th className="py-3 pr-4 font-medium text-biolum">Fhish on Monad</th>
+                <th className="py-3 pr-4 font-medium text-biolum">Kakushi on Monad</th>
                 <th className="py-3 pr-4 font-normal">Zama Protocol</th>
                 <th className="py-3 font-normal">Fhenix CoFHE</th>
               </tr>
@@ -317,7 +317,7 @@ export default function Home() {
             </tbody>
           </table>
         </div>
-        <p className="mt-4 max-w-2xl text-sm text-silt">Comparison from public docs, October 2026 (docs/research/COMPETITORS.md). Fhish's own trust model today: one KMS operator set holds the key; threshold decryption and ZK input proofs are on the roadmap.</p>
+        <p className="mt-4 max-w-2xl text-sm text-silt">Comparison from public docs, October 2026 (docs/research/COMPETITORS.md). Kakushi's own trust model today: one KMS operator set holds the key; threshold decryption and ZK input proofs are on the roadmap.</p>
       </section>
 
       <section className="mx-auto mt-32 max-w-6xl px-5">
@@ -325,9 +325,9 @@ export default function Home() {
           <h2 className="max-w-xl font-display text-3xl font-bold leading-tight sm:text-4xl">Money that minds its own business.</h2>
           <p className="mt-4 max-w-lg text-tide">Real AUSD, encrypted end to end, final on Monad in under a second.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Fhish Pay</Link>
+            <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Kakushi Pay</Link>
             <Link href="/pay/employer" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Run payroll</Link>
-            <Link href="/developers" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Build on Fhish</Link>
+            <Link href="/developers" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Build on Kakushi</Link>
           </div>
         </div>
       </section>

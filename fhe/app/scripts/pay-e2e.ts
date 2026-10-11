@@ -1,4 +1,4 @@
-// End-to-end check of Fhish Pay's web flows on the LOCAL FORK, through the app's own API routes.
+// End-to-end check of Kakushi Pay's web flows on the LOCAL FORK, through the app's own API routes.
 //   node scripts/pay-e2e.ts            (app dev server on :3810, anvil fork :18810, gateway :8890)
 // Drives exactly what the pages do (same contract calls, same /api/payroll/run, /api/sponsor and
 // /api/faucet routes), with LOCAL ANVIL ONLY dev keys and fresh random accounts. It never touches
@@ -7,9 +7,9 @@ import { BaseError, ContractFunctionRevertedError, createPublicClient, createWal
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { FhishClient, waitForDecryption } from "@fhish/sdk";
-import { nativeEncryptor, nodeTfheEncryptor } from "@fhish/sdk/node";
-import { sendRawSync, trackByTags, type CommitTimeline } from "@fhish/sdk/monad";
+import { KakushiFheClient, waitForDecryption } from "@kakushi/fhe-sdk";
+import { nativeEncryptor, nodeTfheEncryptor } from "@kakushi/fhe-sdk/node";
+import { sendRawSync, trackByTags, type CommitTimeline } from "@kakushi/fhe-sdk/monad";
 import { payAbi } from "../src/lib/abi.ts";
 import { erc20Abi, payrollBatchTypedData, permitTypedData, withBuffer } from "../src/lib/pay/core.ts";
 
@@ -27,7 +27,7 @@ const CAROL = privateKeyToAccount("0x7c852118294e51e653712a81e05800f419141751be5
 
 const chain = defineChain({ id: 10143, name: "Monad testnet (local fork)", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
 const pub = createPublicClient({ chain, transport: http(RPC) });
-const enginePath = `${ROOT}engine/bin/fhish-engine`;
+const enginePath = `${ROOT}engine/bin/kakushi-fhe-engine`;
 let encryptor;
 try {
   readFileSync(enginePath);
@@ -35,7 +35,7 @@ try {
 } catch {
   encryptor = nodeTfheEncryptor();
 }
-const fhish = new FhishClient({ gatewayUrl: process.env.FHISH_GATEWAY_URL ?? "http://127.0.0.1:8890", chainId: 10143, encryptor });
+const fhe = new KakushiFheClient({ gatewayUrl: process.env.KAKUSHI_FHE_GATEWAY_URL ?? "http://127.0.0.1:8890", chainId: 10143, encryptor });
 
 const results: { name: string; pass: boolean; detail: string }[] = [];
 const ladders: string[] = [];
@@ -60,7 +60,7 @@ const post = async (path: string, body: unknown) => {
   const r = await fetch(`${APP}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   return { status: r.status, j: await r.json() };
 };
-const decryptAs = (acct: PrivateKeyAccount, handles: Hex[]) => fhish.userDecryptWith(handles, TOKEN, acct.address, (td) => acct.signTypedData(td as never));
+const decryptAs = (acct: PrivateKeyAccount, handles: Hex[]) => fhe.userDecryptWith(handles, TOKEN, acct.address, (td) => acct.signTypedData(td as never));
 const handleOf = async (who: Hex) => (await pub.readContract({ address: TOKEN, abi: payAbi, functionName: "confidentialBalanceOf", args: [who] })) as Hex;
 const ausdOf = async (who: Hex) => pub.readContract({ address: AUSD, abi: erc20Abi, functionName: "balanceOf", args: [who] });
 async function check(name: string, fn: () => Promise<{ pass: boolean; detail: string }>) {
@@ -101,7 +101,7 @@ await check("Wrap (ERC-2612 permit, one tx)", async () => {
 await check("Payroll from the employer's wallet", async () => {
   const rows: [Hex, bigint][] = [[E1.address, 1_000_000_000n], [BOB.address, 3_200_000_000n]];
   const enc = [];
-  for (const [, v] of rows) enc.push(await fhish.encrypt("euint64", v, TOKEN, ALICE.address));
+  for (const [, v] of rows) enc.push(await fhe.encrypt("euint64", v, TOKEN, ALICE.address));
   const rc = await send(ALICE, TOKEN, payAbi, "runPayroll", [rows.map((r) => r[0]), enc.map((e) => e.handle), enc.map((e) => e.proof), stringToHex(`payroll e2e ${Date.now()}`, { size: 32 })]);
   const paid = parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "Paid" });
   const e1h = paid.find((p) => p.args.to.toLowerCase() === E1.address.toLowerCase())!.args.amount as Hex;
@@ -115,7 +115,7 @@ await check("Payroll from the employer's wallet", async () => {
 await check("Payroll by operator via /api/payroll/run", async () => {
   await send(ALICE, TOKEN, payAbi, "setOperator", [OPERATOR, Math.floor(Date.now() / 1000) + 86400]);
   const to = [E2.address];
-  const enc = await fhish.encrypt("euint64", 750_000_000n, TOKEN, OPERATOR); // bound to the operator, the tx sender
+  const enc = await fhe.encrypt("euint64", 750_000_000n, TOKEN, OPERATOR); // bound to the operator, the tx sender
   const ref = stringToHex(`payroll op ${Date.now()}`, { size: 32 }); // the contract pays each (employer, ref) once
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
   const td = payrollBatchTypedData({ chainId: 10143, token: TOKEN, employer: ALICE.address, operator: OPERATOR, to, amounts: [enc.handle], ref, deadline });
@@ -146,7 +146,7 @@ await check("Payroll by operator via /api/payroll/run", async () => {
 await check("Pay link → new account (sponsored claim)", async () => {
   const key = generatePrivateKey();
   const claimKey = privateKeyToAccount(key).address;
-  const enc = await fhish.encrypt("euint64", 250_000_000n, TOKEN, BOB.address);
+  const enc = await fhe.encrypt("euint64", 250_000_000n, TOKEN, BOB.address);
   const rc = await send(BOB, TOKEN, payAbi, "createLink", [enc.handle, enc.proof, claimKey, BigInt(Math.floor(Date.now() / 1000) + 7 * 86400)]);
   const id = parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "LinkCreated" })[0]!.args.id;
   const digest = (await pub.readContract({ address: TOKEN, abi: payAbi, functionName: "claimDigest", args: [id, NEW.address] })) as Hex;
@@ -169,7 +169,7 @@ await check("Pay link → new account (sponsored claim)", async () => {
 
 // 5. private payment with a public reference
 await check("Private payment with reference", async () => {
-  const enc = await fhish.encrypt("euint64", 42_000_000n, TOKEN, BOB.address);
+  const enc = await fhe.encrypt("euint64", 42_000_000n, TOKEN, BOB.address);
   const rc = await send(BOB, TOKEN, payAbi, "pay", [CAROL.address, enc.handle, enc.proof, stringToHex("Invoice 0042", { size: 32 })]);
   const p = parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "Paid" })[0]!;
   const v = await decryptAs(CAROL, [p.args.amount as Hex]);
@@ -181,7 +181,7 @@ await check("Cash out (unwrap via KMS callback)", async () => {
   const f = await post("/api/faucet", { address: E1.address, mon: true });
   if (f.status !== 200) throw new Error(`faucet ${f.status}`);
   const before = await ausdOf(E1.address);
-  const enc = await fhish.encrypt("euint64", 400_000_000n, TOKEN, E1.address);
+  const enc = await fhe.encrypt("euint64", 400_000_000n, TOKEN, E1.address);
   const rc = await send(E1, TOKEN, payAbi, "unwrap", [enc.handle, enc.proof]);
   const id = parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "UnwrapRequested" })[0]!.args.requestId;
   const t = Date.now();
@@ -195,7 +195,7 @@ await check("Cash out (unwrap via KMS callback)", async () => {
 // 7. payment request: carol asks bob for 75 (encrypted for carol); bob reveals it, pays; carol sees 0 owed
 const reqExpiry = async () => (await pub.getBlock()).timestamp + 86400n; // chain time: the fork can run ahead
 async function request(payee: PrivateKeyAccount, payer: Hex, amount: bigint, label: string) {
-  const enc = await fhish.encrypt("euint64", amount, TOKEN, payee.address); // bound to the payee: the tx sender
+  const enc = await fhe.encrypt("euint64", amount, TOKEN, payee.address); // bound to the payee: the tx sender
   const rc = await send(payee, TOKEN, payAbi, "requestPayment", [payer, enc.handle, enc.proof, await reqExpiry(), stringToHex(label, { size: 32 })]);
   return parseEventLogs({ abi: payAbi, logs: rc.logs, eventName: "PaymentRequested" })[0]!.args.id;
 }
@@ -256,7 +256,7 @@ await check("Unaffordable request stays owed, then cancelled", async () => {
   };
 });
 
-console.log(`\nFhish Pay web flows on the local fork (${Math.round((Date.now() - t0) / 1000)} s)`);
+console.log(`\nKakushi Pay web flows on the local fork (${Math.round((Date.now() - t0) / 1000)} s)`);
 for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.name.padEnd(48)} ${r.detail}`);
 console.log("\nsettlement ladders (local fork: latest / safe / finalized tags, 1 s blocks; ms after the receipt):");
 for (const l of ladders) console.log(`  ${l}`);

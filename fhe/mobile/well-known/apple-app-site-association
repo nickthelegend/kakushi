@@ -1,4 +1,4 @@
 {
-  "webcredentials": { "apps": ["TEAM_ID.xyz.fhish.pay"] },
-  "applinks": { "details": [{ "appIDs": ["TEAM_ID.xyz.fhish.pay"], "components": [{ "/": "/claim*" }, { "/": "/request*" }] }] }
+  "webcredentials": { "apps": ["TEAM_ID.xyz.kakushi.pay"] },
+  "applinks": { "details": [{ "appIDs": ["TEAM_ID.xyz.kakushi.pay"], "components": [{ "/": "/claim*" }, { "/": "/request*" }] }] }
 }

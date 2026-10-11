@@ -1,12 +1,12 @@
 {
-  "name": "@fhish/indexer",
+  "name": "@kakushi/fhe-indexer",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Envio HyperIndex indexer for Fhish Pay (confidential payments on Monad)",
+  "description": "Envio HyperIndex indexer for Kakushi Pay (confidential payments on Monad)",
   "scripts": {
     "configure": "node scripts/configure.ts",
-    "configure:testnet": "FHISH_NETWORK=testnet node scripts/configure.ts",
+    "configure:testnet": "KAKUSHI_FHE_NETWORK=testnet node scripts/configure.ts",
     "codegen": "envio codegen",
     "dev": "envio dev",
     "start": "envio start",

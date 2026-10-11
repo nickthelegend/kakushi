@@ -1,7 +1,7 @@
 // Builds the on-device FHE encryptor that runs inside a hidden WebView (Hermes has no WebAssembly).
 //
 // Input:  node-tfhe 1.8.1 (Zama's single-threaded wasm-bindgen build; same tfhe-rs version as the
-//         Fhish engine, so ciphertext lists are compatible). Unlike the browser `tfhe` package it does
+//         Kakushi engine, so ciphertext lists are compatible). Unlike the browser `tfhe` package it does
 //         not need SharedArrayBuffer / cross-origin isolation, which a WebView cannot guarantee.
 // Output: src/fhe/encryptorHtml.generated.ts, exporting ENCRYPTOR_HTML: one self-contained HTML page
 //         with the tfhe JS (gzip+base64) and the tfhe wasm (gzip+base64) inlined (~1.9 MB).
@@ -23,7 +23,7 @@ const root = join(here, "..");
 const require = createRequire(join(root, "package.json"));
 const pkgDir = dirname(require.resolve("node-tfhe/package.json"));
 const version = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")).version;
-if (version !== "1.8.1") throw new Error(`node-tfhe ${version}: the Fhish network runs tfhe-rs 1.8.1`);
+if (version !== "1.8.1") throw new Error(`node-tfhe ${version}: the Kakushi network runs tfhe-rs 1.8.1`);
 
 let js = readFileSync(join(pkgDir, "tfhe.js"), "utf8");
 const tail = /const wasmPath = `\$\{__dirname\}\/tfhe_bg\.wasm`;\s*const wasmBytes = require\('fs'\)\.readFileSync\(wasmPath\);\s*const wasmModule = new WebAssembly\.Module\(wasmBytes\);\s*let wasm = new WebAssembly\.Instance\(wasmModule, __wbg_get_imports\(\)\)\.exports;\s*wasm\.__wbindgen_start\(\);\s*$/;
@@ -39,7 +39,7 @@ const wasmB64 = gzipSync(wasm, { level: 9 }).toString("base64");
 // The page script. Protocol (JSON strings both ways):
 //   in : {id, op:"setKey", key:<b64 CompactPublicKey>} | {id, op:"encrypt", type:0|3|4, value:"<decimal>"} | {id, op:"ping"}
 //   out: {id, ok:true, data?:<b64>, ms?} | {id, ok:false, error} | {ready:true, ms} (once, after wasm init)
-// Input arrives through window.__fhish.handle(msg) (native: injectJavaScript) or a window "message"
+// Input arrives through window.__kakushiFhe.handle(msg) (native: injectJavaScript) or a window "message"
 // event (web iframe). Output goes to window.ReactNativeWebView.postMessage or parent.postMessage.
 const script = String.raw`
 (function () {
@@ -50,7 +50,7 @@ const script = String.raw`
     var s = JSON.stringify(o);
     if (typeof window !== "undefined" && window.ReactNativeWebView) window.ReactNativeWebView.postMessage(s);
     else if (typeof window !== "undefined" && window.parent && window.parent !== window) window.parent.postMessage(s, "*");
-    else if (typeof globalThis.__fhishOut === "function") globalThis.__fhishOut(s);
+    else if (typeof globalThis.__kakushiFheOut === "function") globalThis.__kakushiFheOut(s);
   }
   function b64ToBytes(b) { var s = atob(b); var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
   function bytesToB64(u) { var s = ""; for (var i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
@@ -96,14 +96,14 @@ const script = String.raw`
       out({ id: m.id, ok: false, error: String(e && e.message || e) });
     }
   }
-  globalThis.__fhish = { handle: handle, ready: ready };
+  globalThis.__kakushiFhe = { handle: handle, ready: ready };
   if (typeof window !== "undefined" && window.addEventListener) {
     window.addEventListener("message", function (ev) { if (typeof ev.data === "string" && ev.data.indexOf('"op"') > 0) handle(ev.data); });
   }
 })();
 `;
 
-const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>fhish encryptor</title></head><body><script>${script}</script></body></html>`;
+const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>kakushi-fhe encryptor</title></head><body><script>${script}</script></body></html>`;
 
 const outDir = join(root, "src", "fhe");
 mkdirSync(outDir, { recursive: true });

@@ -1,11 +1,15 @@
-# Fhish on Monad
+# Kakushi Confidential (FHE) on Monad
 
-**Confidential payments infrastructure for Monad.** Fhish is a fully homomorphic encryption network
+> Formerly **Fhish**: this directory is the FHE half of [Kakushi](../README.md), the privacy provider for
+> Monad. The ZK half (stealth addresses, shielded pool, private calls, private bridge) lives in
+> `../packages`. `fhe/` is its own pnpm workspace with its own lockfile; run its commands from here.
+
+**Confidential payments infrastructure for Monad.** Kakushi Confidential is a fully homomorphic encryption network
 built for Monad: balances and amounts stay encrypted on-chain while contracts still compute on them.
-**Fhish Pay** is the product on top: real stablecoins (Agora AUSD, Circle USDC) whose every balance,
+**Kakushi Pay** is the product on top: real stablecoins (Agora AUSD, Circle USDC) whose every balance,
 payment, salary and pay link is a ciphertext. The chain sees who paid whom and when; never how much.
 
-| Fhish Pay | What happens on-chain |
+| Kakushi Pay | What happens on-chain |
 |---|---|
 | Make AUSD private (one signature, gas sponsored) | `wrapWithAuthorization` (ERC-3009): a public deposit becomes an encrypted balance |
 | Pay a friend | `pay(to, encryptedAmount, proof, ref)`: both balances updated homomorphically |
@@ -21,10 +25,10 @@ Every step settles in under a second on Monad, and the apps show it: **Proposed 
 Any contract can use the same machinery in two lines:
 
 ```solidity
-import {FHE} from "@fhish/lib/FHE.sol";
-import {FhishConfig} from "@fhish/FhishConfig.sol";
+import {FHE} from "@kakushi/fhe/lib/FHE.sol";
+import {KakushiConfig} from "@kakushi/fhe/KakushiConfig.sol";
 
-contract SealedBid is FhishConfig {
+contract SealedBid is KakushiConfig {
     euint64 highest;
     function bid(externalEuint64 x, bytes calldata proof) external {
         euint64 b = FHE.fromExternal(x, proof);
@@ -61,22 +65,22 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 ## Architecture
 
 ```
- browser / node                     Monad (300 ms blocks)                     Fhish network
+ browser / node                     Monad (300 ms blocks)                     Kakushi network
  ───────────────                    ─────────────────────                     ─────────────
  tfhe WASM encrypt ──► gateway ──── k-of-n input attestation (EIP-712) ──┐
                        /inputs                                            │
  user tx ───────────────────────► your contract                           │
                                     │ FHE.add / select / gt …             │
                                     ▼                                     │
-                                  FhishExecutor  ── ACL check per operand │
+                                  KakushiExecutor  ── ACL check per operand │
                                     │ emits FheOp(op, result, lhs, rhs)   │
                                     │ (symbolic: handles only)            ▼
                                     │                         coprocessor: parallel op graph
-                                    │                         ──► fhish-engine (tfhe-rs, native)
+                                    │                         ──► kakushi-fhe-engine (tfhe-rs, native)
                                     │                              real ciphertexts per handle
                                     ▼
                          FHE.requestDecryption(handles, cb)
-                                  FhishDecryptionOracle ◄── KMS k-of-n signs DecryptionResult
+                                  KakushiDecryptionOracle ◄── KMS k-of-n signs DecryptionResult
                                     │                   ◄── delivered by Chainlink CRE (onReport)
                                     ▼                       or the relayer (fulfill)
                          your contract.cb(requestId, cleartexts)   ← automatic callback
@@ -85,21 +89,21 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | Layer | Where | What it does |
 |---|---|---|
 | `FHE.sol` | `contracts/src/lib` | The library contracts call. Ops return new handles (32 bytes, last byte = type). |
-| `FhishExecutor` | `contracts/src/lib` | Checks the ACL on every operand, derives the result handle, emits the op. No FHE on-chain, so ops cost ordinary gas. |
-| `FhishACL` | `contracts/src/lib` | Persistent grants plus **transient** grants in EIP-1153 storage (free within a tx). |
-| `FhishInputVerifier` | `contracts/src/lib` | k-of-n EIP-712 `InputAttestation(handle, user, contract)`: an input only works for the user and contract it was encrypted for. |
-| `FhishDecryptionOracle` | `contracts/src/oracle` | Public reveals with **automatic callbacks**, k-of-n KMS signatures, Chainlink CRE `onReport`. |
-| `ConfidentialPayments` | `contracts/src/apps` | Fhish Pay: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payment requests, encrypted payroll (operators relay only employer-signed EIP-712 batches, one payment per reference), gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
-| `FhishRegistry` | `contracts/src/lib` | CREATE3 via CreateX: **the same address on every chain** (`0x2152Ed4dD179fCDe7FE0c2F35e274Ce4D7b0BaF9`). `FhishConfig` reads it, which makes the integration one inheritance. |
-| fhish-engine | `engine/` | Rust + axum over tfhe-rs 1.8.1: keygen, input validation, every op, select, random, decrypt. |
+| `KakushiExecutor` | `contracts/src/lib` | Checks the ACL on every operand, derives the result handle, emits the op. No FHE on-chain, so ops cost ordinary gas. |
+| `KakushiACL` | `contracts/src/lib` | Persistent grants plus **transient** grants in EIP-1153 storage (free within a tx). |
+| `KakushiInputVerifier` | `contracts/src/lib` | k-of-n EIP-712 `InputAttestation(handle, user, contract)`: an input only works for the user and contract it was encrypted for. |
+| `KakushiDecryptionOracle` | `contracts/src/oracle` | Public reveals with **automatic callbacks**, k-of-n KMS signatures, Chainlink CRE `onReport`. |
+| `ConfidentialPayments` | `contracts/src/apps` | Kakushi Pay: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payment requests, encrypted payroll (operators relay only employer-signed EIP-712 batches, one payment per reference), gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
+| `KakushiRegistry` | `contracts/src/lib` | CREATE3 via CreateX: **the same address on every chain** (`0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7`). `KakushiConfig` reads it, which makes the integration one inheritance. |
+| kakushi-fhe-engine | `engine/` | Rust + axum over tfhe-rs 1.8.1: keygen, input validation, every op, select, random, decrypt. |
 | coprocessor | `coprocessor/` | Follows the executor's events and schedules the op graph in parallel, respecting handle dependencies. Gateway (inputs, sealed user decryption), KMS, metrics. |
-| CRE workflow | `cre/` | `fhish-decrypt-relay`: log trigger per request + cron sweep, HTTP fetch with DON consensus, `writeReport` to the oracle. |
-| SDK | `sdk/` | `FhishClient.encrypt / userDecrypt / waitForDecryption`. Encryptors: Zama `node-tfhe` (Node, pure JS, ~40 ms), the engine CLI, and `tfhe` WASM with a thread pool (browser). |
-| MetaMask plugin | `plugins/mm-fhish/` | `mm fhish …`: confidential trading for the MetaMask Agent Wallet (dark OTC, sealed bids, confidential USDC). |
+| CRE workflow | `cre/` | `kakushi-fhe-decrypt-relay`: log trigger per request + cron sweep, HTTP fetch with DON consensus, `writeReport` to the oracle. |
+| SDK | `sdk/` | `KakushiFheClient.encrypt / userDecrypt / waitForDecryption`. Encryptors: Zama `node-tfhe` (Node, pure JS, ~40 ms), the engine CLI, and `tfhe` WASM with a thread pool (browser). |
+| MetaMask plugin | `plugins/mm-kakushi/` | `mm kakushi …`: confidential trading for the MetaMask Agent Wallet (dark OTC, sealed bids, confidential USDC). |
 | Skills | `skills/` | Agent skills: write confidential contracts, use the SDK, operate the network. |
-| Fhish Pay web | `app/` | `/pay` (send, pay links, reveal, cash out), `/pay/employer` (encrypted payroll, operator + scheduled runs), `/claim`, `/activity` (Envio), live Monad heartbeat; Privy (embedded wallet, gas sponsorship, server wallet + policy). Plus the playground, developer docs and metrics. |
-| Fhish Pay mobile | `mobile/` | Expo app for Agora's bounty: Mera passkey accounts, AUSD faucet, gasless private wrap, encrypted sends and pay links, claim, reveal, cash out, settlement ladder. tfhe runs in a hidden WebView (Hermes has no WebAssembly). |
-| Indexer | `indexer/` | Envio HyperIndex over Fhish Pay, the oracle and the executor: payment graph without amounts, link lifecycle, payroll runs, reveal latency, public TVL. |
+| Kakushi Pay web | `app/` | `/pay` (send, pay links, reveal, cash out), `/pay/employer` (encrypted payroll, operator + scheduled runs), `/claim`, `/activity` (Envio), live Monad heartbeat; Privy (embedded wallet, gas sponsorship, server wallet + policy). Plus the playground, developer docs and metrics. |
+| Kakushi Pay mobile | `mobile/` | Expo app for Agora's bounty: Mera passkey accounts, AUSD faucet, gasless private wrap, encrypted sends and pay links, claim, reveal, cash out, settlement ladder. tfhe runs in a hidden WebView (Hermes has no WebAssembly). |
+| Indexer | `indexer/` | Envio HyperIndex over Kakushi Pay, the oracle and the executor: payment graph without amounts, link lifecycle, payroll runs, reveal latency, public TVL. |
 
 ### Decryption, three ways
 
@@ -121,7 +125,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
   (the 100-block poller remains the source of truth). Elsewhere it starts at `latest`, while the KMS signs a public decryption only once the request's block is
   `finalized` (Monad: ~2-3 blocks behind). The FHE work overlaps finality, so the gate usually costs
   nothing, and a reorged request can never leak a plaintext.
-- **Gas is charged on the limit.** Ops are event-only on-chain; every Fhish transaction (relayer,
+- **Gas is charged on the limit.** Ops are event-only on-chain; every Kakushi transaction (relayer,
   CRE runner, SDK examples) sets an explicit limit of estimate + 30%.
 - **Commit states in the product.** `MonadHeads` subscribes to `monadNewHeads` and tracks a payment's
   block through Proposed → Voted → Finalized → Verified; `trackByTags` gives the same ladder from
@@ -134,9 +138,9 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 
 ---
 
-## Fhish vs Zama vs Fhenix
+## Kakushi FHE vs Zama vs Fhenix
 
-| | **Fhish (Monad)** | Zama Protocol | Fhenix CoFHE |
+| | **Kakushi (Monad)** | Zama Protocol | Fhenix CoFHE |
 |---|---|---|---|
 | FHE library | tfhe-rs 1.8.1 | tfhe-rs | TFHE (FHEOS) |
 | Chain | Monad, 300 ms blocks | Ethereum mainnet | testnets |
@@ -145,7 +149,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | Coordination layer | Monad itself | Arbitrum gateway rollup | Threshold Network |
 | Delivery | relayer or **Chainlink CRE** | relayer | relayer |
 | Solidity API | Zama-compatible `FHE.sol` | `FHE.sol` | `FHE.sol` (own) |
-| Integration | inherit `FhishConfig` (CREATE3 registry, same address everywhere) | `SepoliaConfig` per chain | per chain |
+| Integration | inherit `KakushiConfig` (CREATE3 registry, same address everywhere) | `SepoliaConfig` per chain | per chain |
 | Gas on Monad (charged on limit) | ops are event-only; tight explicit gas limits everywhere | HCU metering with per-block SSTOREs | queue writes |
 | KMS | k-of-n signers (configurable) | 13-node MPC in Nitro enclaves | threshold network |
 
@@ -163,7 +167,7 @@ tfhe-rs ciphertexts on a fork of Monad testnet (`node scripts/e2e-local.ts --del
 PASS  Sealed-bid auction               winner bob @ 1337; close -> callback 4950 ms; bob user-decrypted his bid = 1337; losing bids never decrypted
 PASS  Confidential USDC (any ERC-20)   bob sees 20 cUSDC, alice 30 cUSDC, carol refused; bob unwrapped 5 real USDC
 PASS  Dark OTC                         bob @3000 missed (nothing revealed), carol @3200 crossed at the maker's 3150
-PASS  Fhish Pay on real AUSD           salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD
+PASS  Kakushi Pay on real AUSD           salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD
 PASS  Chainlink CRE delivery           4/4 callbacks delivered by CRE reports through the KeystoneForwarder (KMS signatures re-verified on-chain)
 ```
 
@@ -182,10 +186,10 @@ PASS  Chainlink CRE delivery           4/4 callbacks delivered by CRE reports th
 | finality gate (wait until the request block is `finalized`) | 3–1,085 | 1,086 |
 | request → callback through Chainlink CRE (local runner, 1 s fork blocks) | 0.8–3.3 s | |
 
-Standalone engine benchmarks (`fhish-engine`, tfhe-rs 1.8.1): keygen 1.9 s, encrypt ~6 ms,
+Standalone engine benchmarks (`kakushi-fhe-engine`, tfhe-rs 1.8.1): keygen 1.9 s, encrypt ~6 ms,
 add 174 ms, gt 103 ms, select 158 ms, max 275 ms when the machine is otherwise idle.
 
-**Gas** (Foundry traces; Monad charges the gas *limit*, so every Fhish transaction sets a tight
+**Gas** (Foundry traces; Monad charges the gas *limit*, so every Kakushi transaction sets a tight
 explicit limit):
 
 | Call | Gas |
@@ -238,12 +242,12 @@ Requirements: Node ≥ 22.18, pnpm 10, Foundry, Rust (stable), and the `cre` CLI
 
 ```bash
 pnpm install
-pnpm engine:build && mkdir -p engine/bin && cp engine/target/release/fhish-engine engine/bin/
+pnpm engine:build && mkdir -p engine/bin && cp engine/target/release/kakushi-fhe-engine engine/bin/
 pnpm contracts:test                                               # Solidity tests
-pnpm e2e                                                          # fork + engine + deploy + 4 scenarios (incl. Fhish Pay on real AUSD)
+pnpm e2e                                                          # fork + engine + deploy + 4 scenarios (incl. Kakushi Pay on real AUSD)
 pnpm e2e --deliver cre                                            # same, every callback through Chainlink CRE
 node scripts/e2e-local.ts --keep --deliver cre                    # keep the stack up for the app
-pnpm --filter @fhish/app dev                                      # http://localhost:3810 (/pay, /pay/employer, /activity)
+pnpm --filter @kakushi/fhe-app dev                                      # http://localhost:3810 (/pay, /pay/employer, /activity)
 node app/scripts/pay-e2e.ts                                       # every web flow through the app's routes
 cd mobile && sh scripts/install-deps.sh && node scripts/verify-fork.ts   # mobile: 16 checks on the fork; npx expo start
 cd indexer && pnpm install && node scripts/configure.ts           # then envio start (indexer/README.md); scripts/verify.ts
@@ -252,29 +256,37 @@ cd indexer && pnpm install && node scripts/configure.ts           # then envio s
 | Service | Port |
 |---|---|
 | anvil fork of Monad testnet | 18810 |
-| fhish-engine | 8899 |
+| kakushi-fhe-engine | 8899 |
 | coprocessor + gateway | 8890 |
 | local CRE runner | 8891 |
-| app | 3810 |
-| indexer GraphQL (Hasura) / Postgres | 8892 / 5442 |
+| app (Kakushi Pay web) | 3810 |
+| indexer GraphQL (Hasura) / Postgres / Envio indexer | 8892 / 5442 / 9908 |
+
+These do not overlap the ZK side of the monorepo (anvils 18710-18714, app and services 3710-3715,
+4201), so both stacks can run at once.
+
+Environment variables use the `KAKUSHI_FHE_` prefix (`KAKUSHI_FHE_NETWORK`, `KAKUSHI_FHE_GATEWAY_URL`,
+`KAKUSHI_FHE_RPC_URL`, `KAKUSHI_FHE_OFFLINE`, ...). Local state (engine keys, follower cursors) lives in
+`.kakushi-fhe/` (gitignored); signer keys in `.secrets/` (gitignored).
 
 ### Use it in your contract
 
 ```bash
-forge install fhish-tech/fhish-monad
-# remappings.txt: @fhish/=lib/fhish-monad/contracts/src/
+forge install nickthelegend/kakushi
+# remappings.txt: @kakushi/fhe/=lib/kakushi/fhe/contracts/src/
 ```
 
-Then follow [skills/fhish-confidential-contracts/SKILL.md](skills/fhish-confidential-contracts/SKILL.md).
+Then follow [skills/kakushi-confidential-contracts/SKILL.md](skills/kakushi-confidential-contracts/SKILL.md).
 Ready-made apps: `ConfidentialToken` (ERC-7984-shaped), `ConfidentialERC20Wrapper` (wrap any ERC-20),
-`SealedBidAuction`, `ConfidentialVoting`, `DarkOTC`, and `ConfidentialPayments` (`FhishPayToken`: payments,
+`SealedBidAuction`, `ConfidentialVoting`, `DarkOTC`, and `ConfidentialPayments` (`KakushiPayToken`: payments,
 pay links, payroll, gasless onboarding over any ERC-20).
 
 ---
 
 ## Attribution and disclosure
 
-- **Pre-existing work by the author.** Fhish began as multichain FHE experiments in the
+- **Pre-existing work by the author.** This FHE stack was developed as **Fhish** and renamed when it
+  merged into Kakushi (history kept: `git log -- fhe/`). It began as multichain FHE experiments in the
   [fhish-tech](https://github.com/fhish-tech) organization (Flare, Stellar, Algorand). Their symbolic
   coprocessor pattern informed this design. This repository is a new implementation for Monad
   written during Metropolis: the contracts, the native engine, the parallel coprocessor, the KMS,
@@ -292,18 +304,18 @@ pay links, payroll, gasless onboarding over any ERC-20).
 contracts/   Foundry: FHE.sol, executor, ACL, input verifier, oracle, registry, apps, tests, deploy
 engine/      Rust: tfhe-rs 1.8.1 engine (HTTP) and CLI encryptor
 coprocessor/ TypeScript: op-graph scheduler, gateway, KMS, metrics
-cre/         Chainlink CRE workflow fhish-decrypt-relay + local runner
+cre/         Chainlink CRE workflow kakushi-fhe-decrypt-relay + local runner
 sdk/         TypeScript client (Node + browser)
-plugins/     mm-fhish: MetaMask Agent Wallet plugin
-app/         Next.js: Fhish Pay web (pay, payroll, claim, activity), playground, developers, metrics
-mobile/      Expo: Fhish Pay mobile (Mera passkeys, AUSD)
+plugins/     mm-kakushi: MetaMask Agent Wallet plugin
+app/         Next.js: Kakushi Pay web (pay, payroll, claim, activity), playground, developers, metrics
+mobile/      Expo: Kakushi Pay mobile (Mera passkeys, AUSD)
 indexer/     Envio HyperIndex
 skills/      Agent skills
 scripts/     e2e-local.ts
 docs/        research
 ```
 
-Fhish's code is MIT licensed. The FHE library is [Zama tfhe-rs](https://github.com/zama-ai/tfhe-rs)
+Kakushi's code is MIT licensed. The FHE library is [Zama tfhe-rs](https://github.com/zama-ai/tfhe-rs)
 (BSD-3-Clause-Clear). Zama's terms allow development, research and prototyping free of charge;
-**commercial use of tfhe-rs needs a patent license from Zama.** A mainnet Fhish must either obtain
+**commercial use of tfhe-rs needs a patent license from Zama.** A mainnet Kakushi FHE deployment must either obtain
 that license or move to a different FHE backend; the engine's HTTP interface is the seam for that.

@@ -6,16 +6,16 @@ import { usePay } from "@/lib/pay/wallet";
 import { explain, type PayEnv } from "@/lib/pay/flows";
 import { short } from "@/lib/pay/core";
 
-/** Everything a Fhish Pay page needs from the runtime, or null while loading / not deployed. */
+/** Everything a Kakushi Pay page needs from the runtime, or null while loading / not deployed. */
 export function usePayEnv(): PayEnv | null {
   const rt = useRt();
   return useMemo(() => {
     const a = rt.cfg?.apps;
     const d = rt.cfg?.deployment;
-    if (!rt.client || !rt.fhish || !a?.causd || !a.ausd || !d) return null;
+    if (!rt.client || !rt.fhe || !a?.causd || !a.ausd || !d) return null;
     return {
       client: rt.client,
-      fhish: rt.fhish,
+      fhe: rt.fhe,
       token: a.causd,
       ausd: a.ausd,
       oracle: d.oracle,
@@ -23,7 +23,7 @@ export function usePayEnv(): PayEnv | null {
       network: rt.cfg!.network,
       fromBlock: BigInt((d as { deployBlock?: number }).deployBlock ?? 0),
     } satisfies PayEnv;
-  }, [rt.client, rt.fhish, rt.cfg]);
+  }, [rt.client, rt.fhe, rt.cfg]);
 }
 
 /** busy/progress/error state for one action, with a readable error. */
@@ -108,7 +108,7 @@ export function SignIn({ why, guestFirst = false }: { why: string; guestFirst?: 
   );
 }
 
-/** Header chip on Fhish Pay pages: who is signed in, and sign out. */
+/** Header chip on Kakushi Pay pages: who is signed in, and sign out. */
 export function PayChip() {
   const pay = usePay();
   if (!pay.wallet)

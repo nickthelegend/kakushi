@@ -116,13 +116,13 @@ Ethereum mainnet and Sepolia are confirmed. Multichain coprocessors arrived in v
 
 ---
 
-## 4. Gaps a Monad-native coprocessor ("Fhish") can exploit
+## 4. Gaps a Monad-native coprocessor ("Kakushi") can exploit
 
 Monad context: **300 ms blocks, 600 ms finality** since MIP-12 (2026-07-23), **gas charged on gas limit** with no refunds, 30M per-tx gas, **128 KB contracts** ([Monad blog](https://monad.xyz/blog/300ms-block-times), [differences](https://docs.monad.xyz/developer-essentials/differences)).
 
 ### 4.1 Decryption latency and orchestration (biggest gap)
 
-| Problem in Zama / Fhenix | Evidence | Fhish opportunity |
+| Problem in Zama / Fhenix | Evidence | Kakushi opportunity |
 |---|---|---|
 | Reveals take **two txs plus a client relay**: mark decryptable, then off-chain fetch, then submit proof. The on-chain oracle callback was removed (Zama v0.9; Fhenix moved to `decryptForTx`) | [Zama changelog](https://docs.zama.org/protocol/changelog/zama-protocol-change-log.md), [Fhenix](https://www.fhenix.io/blog/decryption-in-cofhe-evolved) | **Coprocessor-driven auto-fulfilment**: the network posts the signed plaintext and calls back automatically within N blocks, so no dApp babysitting is needed. Keep the self-relay path as a fallback |
 | Zama's decryption path is host → coprocessors → **Arbitrum Gateway** → 13-node MPC in Nitro → relayer → client → host. There are no published latency numbers; anecdotally it is tens of seconds | [gateway](https://docs.zama.org/protocol/protocol/overview/gateway), [BlockEden](https://blockeden.xyz/blog/2026/04/02/zama-fhe-fully-homomorphic-encryption-blockchain-privacy-primitive/) | No separate gateway chain. Use **Monad itself as the coordination layer** (600 ms finality beats an Arbitrum hop). Publish p50/p95 "request → plaintext on-chain" as a first-class metric. Target low single-digit seconds |

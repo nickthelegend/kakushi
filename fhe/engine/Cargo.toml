@@ -1,9 +1,9 @@
 [package]
-name = "fhish-engine"
+name = "kakushi-fhe-engine"
 version = "0.1.0"
 edition = "2021"
 license = "BSD-3-Clause-Clear"
-description = "Fhish FHE engine: native multi-threaded Zama tfhe-rs for the Monad coprocessor (keygen, input expansion, homomorphic ops, decryption) plus a local encryption CLI."
+description = "Kakushi FHE engine: native multi-threaded Zama tfhe-rs for the Monad coprocessor (keygen, input expansion, homomorphic ops, decryption) plus a local encryption CLI."
 
 [dependencies]
 tfhe = { version = "=1.8.1", features = ["integer"] }

@@ -1,6 +1,6 @@
 # Evidence: what was verified and how (2026-10-09)
 
-Environment: the local Monad-testnet fork (anvil :18810, chain 10143), the Fhish gateway on :8890 and the engine on :8899, all already running. Node 26.5, Expo SDK 57.0.27, React Native 0.86.3.
+Environment: the local Monad-testnet fork (anvil :18810, chain 10143), the Kakushi gateway on :8890 and the engine on :8899, all already running. Node 26.5, Expo SDK 57.0.27, React Native 0.86.3.
 
 ## 1. App modules against the fork: `node scripts/verify-fork.ts` → 23/23 PASS
 
@@ -17,11 +17,11 @@ The full output is in [evidence/verify-fork.txt](evidence/verify-fork.txt). The 
 | Make private: ERC-3009 wrap submitted by sponsor | cAUSD +100, gas limit = estimate × 1.3, ladder Proposed → Voted → Finalized |
 | Pay alice → bob (encrypted) | bob +12.50 (revealed by bob); amount **absent from calldata** |
 | Privacy: alice cannot reveal bob's balance | gateway: `not allowed to decrypt` |
-| Pay link create + URL round trip | `fhishpay://` and `https://` forms parse back to the same id and key |
+| Pay link create + URL round trip | `kakushipay://` and `https://` forms parse back to the same id and key |
 | Pay link claimed by the **Mera account** with **0 MON** (sponsor submits) | revealed 7.25 cAUSD through Mera `toViemAccount().signTypedData` |
 | Second claim refused | "Link #N was already claimed." |
 | Cash out: unwrap + oracle callback | callback after ~2.9 s, bob AUSD +2.00 |
-| **Request:** alice asks bob (encrypted) + link round trip | `fhishpay://` and `https://` request links parse back to the same id, block and memo; `keccak256("rent october")` equals the event's `ref`; the amount is absent from calldata; ladder Proposed → Voted → Finalized |
+| **Request:** alice asks bob (encrypted) + link round trip | `kakushipay://` and `https://` request links parse back to the same id, block and memo; `keccak256("rent october")` equals the event's `ref`; the amount is absent from calldata; ladder Proposed → Voted → Finalized |
 | **Request:** payer reveals the requested amount | bob (payer) and alice (payee) both reveal 9.75 from `requestDue` |
 | **Request:** bob pays → alice reveals owed 0, balance +amount | owed 0.00 · alice +9.75 · bob −9.75 (each revealed by its owner) |
 | **Request:** unaffordable request stays owed | request for bob's balance + 1,000: `payRequest` succeeds, nothing moves (both balances unchanged), still owed the full amount, still open |
@@ -65,14 +65,14 @@ Activity got faster with this change. It used to run one 100-block-paged `eth_ge
 - `npx expo install --check`: "Dependencies are up to date" (SDK 57).
 - `npx expo export --platform ios`: Hermes bundle compiled (`index-….hbc`, 5.9 MB, includes the 1.9 MB encryptor page and fonts).
 - `npx expo export --platform web`: bundle compiled (4 MB).
-- Export outputs went to `~/.fhish-pay-mobile/` and were deleted afterwards.
+- Export outputs went to `~/.kakushi-pay-mobile/` and were deleted afterwards.
 
 ## 4. Not verified (and why)
 
 - **Real passkeys on a device or simulator.** These need a development build plus an associated domain on a public HTTPS host with an AASA naming the Apple Team ID (see README, "Passkey domain"). Expo Go has no native passkey module, and the app detects this and says so. Building natively (`expo run:ios`: Pods, DerivedData) wasn't possible within the disk budget. The Mera integration code itself (`src/lib/wallet.ts`, real `@category-labs/mera` 0.2.0) is verified in section 1 with a software authenticator.
 - **The tfhe encryptor inside an iOS WKWebView (Expo Go).** I booted an iPhone 17 Pro simulator (iOS 26.5) and tried to install the cached Expo Go 57.0.9, but `simctl install` hung for more than 7 minutes and the device reported no screen surface. I aborted, shut that simulator down and deleted the extracted app. The encryptor page itself is verified in Node (`vm`) and in Chromium (iframe). It relies only on `WebAssembly`, `DecompressionStream` (iOS 16.4+), `new Function` and `postMessage`.
-- **Monad testnet transactions.** These were deliberately not sent (out of scope), and Fhish Pay isn't deployed there yet. Testnet reads and the WebSocket heartbeat were verified.
+- **Monad testnet transactions.** These were deliberately not sent (out of scope), and Kakushi Pay isn't deployed there yet. Testnet reads and the WebSocket heartbeat were verified.
 - **Android.** Not run.
-- **Payment requests on a device.** Request links were exercised in the Expo web build (`http://localhost:8081/request?…`) and in Node, but not in the native app. The `fhishpay://request` scheme, the iOS `applinks` `/request*` entry and the Android `/request` intent filter are configured but not tested natively, for the same reasons as above.
+- **Payment requests on a device.** Request links were exercised in the Expo web build (`http://localhost:8081/request?…`) and in Node, but not in the native app. The `kakushipay://request` scheme, the iOS `applinks` `/request*` entry and the Android `/request` intent filter are configured but not tested natively, for the same reasons as above.
 - **Scanning a payer's QR code.** Not built. It would need `expo-camera`, a new native module, and this pass added no packages. The payer field has **Paste**, which extracts the first `0x…` address from the clipboard.
 - The fork is shared with another agent's work, so request ids and Activity contents include their transactions. The balance-delta checks read each account's balance right before and after its own transaction, and they passed on two full runs.

@@ -1,9 +1,9 @@
 {
-  "name": "@fhish/sdk",
+  "name": "@kakushi/fhe-sdk",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "Fhish SDK for Monad: encrypt inputs, attach proofs, user-decrypt (EIP-712, sealed), await public decryptions. Encryptors: Zama node-tfhe (Node, pure JS/WASM), native engine CLI, and Zama tfhe WASM (browser).",
+  "description": "Kakushi SDK for Monad: encrypt inputs, attach proofs, user-decrypt (EIP-712, sealed), await public decryptions. Encryptors: Zama node-tfhe (Node, pure JS/WASM), native engine CLI, and Zama tfhe WASM (browser).",
   "exports": {
     ".": "./src/index.ts",
     "./node": "./src/node.ts",

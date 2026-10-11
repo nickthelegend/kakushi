@@ -1,5 +1,5 @@
 const STEPS: [string, string, string][] = [
-  ["Make the contract confidential", "Inherit FhishConfig first, then use encrypted types. Keep every handle you store with FHE.allowThis, and FHE.allow it to whoever may read it.", `contract Vault is FhishConfig {
+  ["Make the contract confidential", "Inherit KakushiConfig first, then use encrypted types. Keep every handle you store with FHE.allowThis, and FHE.allow it to whoever may read it.", `contract Vault is KakushiConfig {
     mapping(address => euint64) balances;
 
     function deposit(externalEuint64 amount, bytes calldata proof) external {
@@ -9,11 +9,11 @@ const STEPS: [string, string, string][] = [
         FHE.allow(balances[msg.sender], msg.sender);
     }
 }`],
-  ["Encrypt in the client", "The value is encrypted on the user's device. The gateway returns a proof bound to that user and that contract only.", `const fhish = new FhishClient({ gatewayUrl, chainId: 10143, encryptor: wasmEncryptor() });
-const { handle, proof } = await fhish.encrypt("euint64", 250n, vault, user);
+  ["Encrypt in the client", "The value is encrypted on the user's device. The gateway returns a proof bound to that user and that contract only.", `const fhe = new KakushiFheClient({ gatewayUrl, chainId: 10143, encryptor: wasmEncryptor() });
+const { handle, proof } = await fhe.encrypt("euint64", 250n, vault, user);
 await wallet.writeContract({ address: vault, abi, functionName: "deposit", args: [handle, proof] });`],
   ["Read your own value", "One EIP-712 signature. The gateway checks the on-chain ACL and seals the value to a key that exists only in this tab.", `const h = await client.readContract({ address: vault, abi, functionName: "balances", args: [user] });
-const { [h.toLowerCase()]: balance } = await fhish.userDecrypt([h], vault, wallet);`],
+const { [h.toLowerCase()]: balance } = await fhe.userDecrypt([h], vault, wallet);`],
   ["Reveal something publicly", "Ask once; the KMS decrypts, signs k-of-n, and calls you back. No relayer to run, no second transaction.", `uint256 id = FHE.requestDecryption(handles, this.onRevealed.selector);
 
 function onRevealed(uint256 id, uint256[] calldata clear) external {
@@ -41,7 +41,7 @@ export default function Developers() {
       </ol>
       <section className="mt-20 border-t border-kelp pt-10">
         <h2 className="font-display text-2xl font-bold">Claude skills</h2>
-        <p className="mt-3 max-w-2xl text-tide">The repository ships three skills so a coding agent writes Fhish correctly: <code className="font-mono text-biolum">fhish-confidential-contracts</code> (types, ACL rules, select-not-require, reveals), <code className="font-mono text-biolum">fhish-sdk</code> (encrypt, user decryption, browser setup) and <code className="font-mono text-biolum">fhish-operator</code> (engine, coprocessor, deployment, metrics). Copy <code className="font-mono">skills/</code> into <code className="font-mono">~/.claude/skills</code>.</p>
+        <p className="mt-3 max-w-2xl text-tide">The repository ships three skills so a coding agent writes Kakushi correctly: <code className="font-mono text-biolum">kakushi-confidential-contracts</code> (types, ACL rules, select-not-require, reveals), <code className="font-mono text-biolum">kakushi-fhe-sdk</code> (encrypt, user decryption, browser setup) and <code className="font-mono text-biolum">kakushi-fhe-operator</code> (engine, coprocessor, deployment, metrics). Copy <code className="font-mono">skills/</code> into <code className="font-mono">~/.claude/skills</code>.</p>
       </section>
     </div>
   );

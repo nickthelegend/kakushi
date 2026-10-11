@@ -1,7 +1,7 @@
-// Fhish Pay on Agora AUSD: every operation the app performs, free of React so it runs in Node too
+// Kakushi Pay on Agora AUSD: every operation the app performs, free of React so it runs in Node too
 // (scripts/verify-fork.ts drives exactly these functions against the local fork).
 //
-// cAUSD = FhishPayToken (contracts/src/apps/ConfidentialPayments.sol): AUSD wrapped 1:1 into an
+// cAUSD = KakushiPayToken (contracts/src/apps/ConfidentialPayments.sol): AUSD wrapped 1:1 into an
 // encrypted balance. Amounts of pay / createLink / unwrap are encrypted on this device; the chain
 // stores ciphertext handles only. Only the owner can reveal their balance (EIP-712 + sealed reply).
 import {
@@ -22,7 +22,7 @@ import {
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import type { Network } from "./config.ts";
-import { FhishClient, type EncryptedInput, type Encryptor } from "./fhish.ts";
+import { KakushiFheClient, type EncryptedInput, type Encryptor } from "./fhe.ts";
 import { MonadHeads, sendRawSync, trackByTags, type CommitState, type CommitTimeline, type SentTx } from "./monad.ts";
 import type { Hex } from "./bytes.ts";
 
@@ -55,7 +55,7 @@ export const payAbi = parseAbi([
   "event RequestCancelled(uint256 indexed id)",
   "error AmountTooLarge()",
   "error BadClaimSignature()",
-  "error FhishNotConfigured()",
+  "error KakushiNotConfigured()",
   "error LinkExpired(uint256 id)",
   "error LinkNotExpired(uint256 id)",
   "error LinkNotOpen(uint256 id)",
@@ -84,7 +84,7 @@ export const AUSD_DECIMALS = 6;
 export interface PayContext {
   net: Network;
   pub: PublicClient;
-  fhish: FhishClient;
+  fhe: KakushiFheClient;
   causd: Hex;
   oracle: Hex;
   /** DEV gas sponsor on the local fork (submits signature-only actions); null on testnet */
@@ -92,7 +92,7 @@ export interface PayContext {
 }
 
 export function makeContext(net: Network, encryptor: Encryptor, sponsor: LocalAccount | null = null): PayContext {
-  if (!net.deployment) throw new Error(`${net.label}: Fhish Pay is not deployed on this network yet`);
+  if (!net.deployment) throw new Error(`${net.label}: Kakushi Pay is not deployed on this network yet`);
   const chain = defineChain({
     id: net.chainId,
     name: net.label,
@@ -103,7 +103,7 @@ export function makeContext(net: Network, encryptor: Encryptor, sponsor: LocalAc
   return {
     net,
     pub,
-    fhish: new FhishClient(net.gatewayUrl, net.chainId, encryptor),
+    fhe: new KakushiFheClient(net.gatewayUrl, net.chainId, encryptor),
     causd: net.deployment.causd,
     oracle: net.deployment.oracle,
     sponsor: net.dev ? sponsor : null,
@@ -230,7 +230,7 @@ export async function balances(ctx: PayContext, who: Hex): Promise<Balances> {
 /** Reveal your own encrypted balance: sign an EIP-712 request; the reply is sealed to this device. */
 export async function reveal(ctx: PayContext, account: LocalAccount, handle: Hex): Promise<bigint> {
   if (handle === ZERO_HANDLE) return 0n;
-  const out = await ctx.fhish.userDecrypt([handle], ctx.causd, account.address, (td) => account.signTypedData(td as never));
+  const out = await ctx.fhe.userDecrypt([handle], ctx.causd, account.address, (td) => account.signTypedData(td as never));
   const v = out[handle.toLowerCase()];
   if (v === undefined) throw new Error("gateway returned no value for this handle");
   return v;
@@ -292,7 +292,7 @@ export interface Hooks {
 }
 
 export async function pay(ctx: PayContext, account: LocalAccount, to: Hex, amount: bigint, memo = "", hooks: Hooks = {}) {
-  const enc = await ctx.fhish.encrypt("euint64", amount, ctx.causd, account.address);
+  const enc = await ctx.fhe.encrypt("euint64", amount, ctx.causd, account.address);
   hooks.encrypted?.(enc);
   const tx = await sendTx(ctx, account, ctx.causd, payAbi, "pay", [to, enc.handle, enc.proof, refFromMemo(memo)]);
   return { tx, enc };
@@ -312,7 +312,7 @@ export async function createLink(ctx: PayContext, account: LocalAccount, amount:
   const key = generatePrivateKey();
   const claimKey = privateKeyToAccount(key).address;
   const expiry = BigInt(Math.floor(Date.now() / 1000) + ttlSec);
-  const enc = await ctx.fhish.encrypt("euint64", amount, ctx.causd, account.address);
+  const enc = await ctx.fhe.encrypt("euint64", amount, ctx.causd, account.address);
   hooks.encrypted?.(enc);
   const tx = await sendTx(ctx, account, ctx.causd, payAbi, "createLink", [enc.handle, enc.proof, claimKey, expiry]);
   const ev = parseEventLogs({ abi: payAbi, logs: tx.logs, eventName: "LinkCreated" })[0];
@@ -361,7 +361,7 @@ export async function refundLink(ctx: PayContext, account: LocalAccount, id: big
 export async function requestPayment(ctx: PayContext, account: LocalAccount, payer: Hex, amount: bigint, memo = "", ttlSec = 7 * 86400, hooks: Hooks = {}) {
   const expiry = BigInt(Math.floor(Date.now() / 1000) + ttlSec);
   const ref = refFromMemo(memo);
-  const enc = await ctx.fhish.encrypt("euint64", amount, ctx.causd, account.address);
+  const enc = await ctx.fhe.encrypt("euint64", amount, ctx.causd, account.address);
   hooks.encrypted?.(enc);
   const tx = await sendTx(ctx, account, ctx.causd, payAbi, "requestPayment", [payer, enc.handle, enc.proof, expiry, ref]);
   const ev = parseEventLogs({ abi: payAbi, logs: tx.logs, eventName: "PaymentRequested" })[0];
@@ -425,7 +425,7 @@ export const memoMatches = (memo: string, ref: Hex) => refFromMemo(memo).toLower
  * the KMS decrypts only this amount and the oracle callback (onUnwrapDecrypted) pays out AUSD.
  */
 export async function unwrap(ctx: PayContext, account: LocalAccount, amount: bigint, onStage?: (s: "encrypted" | "requested" | "decrypting" | "paid", info?: unknown) => void, timeoutMs = 120_000) {
-  const enc = await ctx.fhish.encrypt("euint64", amount, ctx.causd, account.address);
+  const enc = await ctx.fhe.encrypt("euint64", amount, ctx.causd, account.address);
   onStage?.("encrypted", enc);
   const tx = await sendTx(ctx, account, ctx.causd, payAbi, "unwrap", [enc.handle, enc.proof]);
   const req = parseEventLogs({ abi: payAbi, logs: tx.logs, eventName: "UnwrapRequested" })[0];

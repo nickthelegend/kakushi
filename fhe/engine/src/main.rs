@@ -1,4 +1,4 @@
-//! fhish-engine: the FHE half of the Fhish coprocessor on Monad.
+//! kakushi-fhe-engine: the FHE half of the Kakushi coprocessor on Monad.
 //!
 //! The Monad contracts never see plaintext and never do FHE math (an EVM can't). They emit a
 //! symbolic graph of operations over 32-byte handles. This engine materializes that graph with
@@ -8,7 +8,7 @@
 //!   keygen  create the network keyset (client key = the secret decryption root)
 //!   encrypt client-side encryption for Node tooling: a CompactCiphertextList under the public key
 //!
-//! Handle layout (matches FhishCoprocessor.sol): last byte = FhishType (0 ebool, 3 euint32, 4 euint64).
+//! Handle layout (matches KakushiCoprocessor.sol): last byte = KakushiType (0 ebool, 3 euint32, 4 euint64).
 //! TRUST: today a single engine holds the client key (like Zama's testnet KMS). Threshold KMS is
 //! roadmap; decryption is only ever performed after the coprocessor checks the on-chain ACL.
 
@@ -144,7 +144,7 @@ impl Engine {
     }
 }
 
-/// opcodes, identical to FhishCoprocessor.sol
+/// opcodes, identical to KakushiCoprocessor.sol
 fn binop(op: u8, a: &Ct, b: Option<&Ct>, scalar: Option<u64>) -> Result<Ct> {
     macro_rules! arith {
         ($x:expr, $y:expr, $s:expr, $T:ty, $wrap:path, $cast:ty) => {{
@@ -477,7 +477,7 @@ fn arg<'a>(args: &'a [String], name: &str) -> Option<&'a str> {
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let cmd = args.get(1).map(|s| s.as_str()).unwrap_or("help");
-    let dir = PathBuf::from(arg(&args, "--dir").unwrap_or(".fhish"));
+    let dir = PathBuf::from(arg(&args, "--dir").unwrap_or(".kakushi-fhe"));
     match cmd {
         "serve" => {
             let port: u16 = arg(&args, "--port").unwrap_or("8899").parse()?;
@@ -488,7 +488,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         // Client-side encryption for Node tooling: values never leave the caller's machine.
-        // fhish-engine encrypt --pk public_key.bin --type 3 --value 41  -> base64 CompactCiphertextList
+        // kakushi-fhe-engine encrypt --pk public_key.bin --type 3 --value 41  -> base64 CompactCiphertextList
         "encrypt" => {
             let pk_path = arg(&args, "--pk").ok_or_else(|| anyhow!("--pk <public_key.bin> required"))?;
             let t: u8 = arg(&args, "--type").unwrap_or("3").parse()?;
@@ -506,7 +506,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         _ => {
-            eprintln!("usage: fhish-engine serve|keygen|encrypt [--dir .fhish] [--port 8899] [--pk f --type 3 --value n]");
+            eprintln!("usage: kakushi-fhe-engine serve|keygen|encrypt [--dir .kakushi-fhe] [--port 8899] [--pk f --type 3 --value n]");
             Ok(())
         }
     }

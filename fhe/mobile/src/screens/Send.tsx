@@ -86,7 +86,7 @@ export function Send() {
   const shareLink = async () => {
     if (!link) return;
     await Share.share({
-      message: `I sent you ${sentAmt !== null ? formatAusd(sentAmt) + " " : ""}AUSD with Fhish Pay. Open this link to claim it (keep it private: whoever has it can claim):\n${link.web}\n\nIn the app: ${link.app}`,
+      message: `I sent you ${sentAmt !== null ? formatAusd(sentAmt) + " " : ""}AUSD with Kakushi Pay. Open this link to claim it (keep it private: whoever has it can claim):\n${link.web}\n\nIn the app: ${link.app}`,
     });
   };
 

@@ -1,9 +1,9 @@
 {
-  "name": "@fhish/coprocessor",
+  "name": "@kakushi/fhe-coprocessor",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Fhish coprocessor + gateway + KMS for Monad: replays the executor's symbolic op graph with real tfhe-rs (via fhish-engine), attests inputs, serves sealed user decryption and delivers signed public decryptions.",
+  "description": "Kakushi coprocessor + gateway + KMS for Monad: replays the executor's symbolic op graph with real tfhe-rs (via kakushi-fhe-engine), attests inputs, serves sealed user decryption and delivers signed public decryptions.",
   "scripts": { "start": "node src/main.ts", "typecheck": "tsc --noEmit", "test": "node --test test/*.test.ts" },
   "dependencies": { "viem": "^2.38.0" },
   "devDependencies": { "typescript": "^5.9.3", "@types/node": "^22.20.1" }

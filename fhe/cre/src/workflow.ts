@@ -1,18 +1,18 @@
 /**
- * fhish-decrypt-relay: Chainlink CRE is Fhish's decryption delivery layer.
+ * kakushi-fhe-decrypt-relay: Chainlink CRE is Kakushi's decryption delivery layer.
  *
- * A contract calls FHE.requestDecryption(handles, callback). The Fhish KMS (k-of-n) decrypts and
+ * A contract calls FHE.requestDecryption(handles, callback). The Kakushi KMS (k-of-n) decrypts and
  * signs an EIP-712 DecryptionResult, then publishes it at GET {gateway}/decryptions/:id. This
  * workflow replaces the single relayer key that would otherwise push `fulfill`:
  *
- *   trigger  (a) EVM log trigger on FhishDecryptionOracle.DecryptionRequested, one run per request
+ *   trigger  (a) EVM log trigger on KakushiDecryptionOracle.DecryptionRequested, one run per request
  *            (b) cron sweep over the newest requests, which catches anything (a) missed
  *   reads    requests(id).fulfilled and handlesOf(id) on Monad (skip finished work, and refuse a
  *            result whose handles differ from the on-chain request)
  *   fetch    the signed result over the HTTP capability; every node returns a canonical string
  *            and the DON only proceeds on identical answers
  *   write    report = abi.encode(requestId, cleartexts, signatures) -> KeystoneForwarder ->
- *            FhishDecryptionOracle.onReport, which re-verifies the k-of-n KMS signatures and
+ *            KakushiDecryptionOracle.onReport, which re-verifies the k-of-n KMS signatures and
  *            calls the requesting contract back
  *
  * CRE adds liveness (no relayer key to keep funded and online) without adding trust: a report
@@ -43,7 +43,7 @@ export const configSchema = z.object({
   schedule: z.string().min(1),
   chainSelectorName: z.string(),
   oracle: address,
-  /** Fhish gateway base URL, e.g. https://gateway.fhish.xyz */
+  /** Kakushi gateway base URL, e.g. https://gateway.kakushi.xyz */
   gatewayUrl: z.string().url(),
   /** block the reads use; "finalized" on Monad testnet (~2 blocks behind latest) */
   readAt: z.enum(["finalized", "latest"]).default("finalized"),
@@ -133,7 +133,7 @@ function relay(runtime: Runtime<Config>, evm: EVMClient, requestId: bigint, know
 export function onRequested(runtime: Runtime<Config>, log: TriggerLog): string {
   const evm = evmClient(runtime.config.chainSelectorName);
   const r = relay(runtime, evm, requestIdFromTopics(log.topics.map((t) => bytesToHex(t) as Hex)));
-  runtime.log(`fhish-decrypt-relay ${JSON.stringify(r)}`);
+  runtime.log(`kakushi-fhe-decrypt-relay ${JSON.stringify(r)}`);
   if (r.status === "error") throw new Error(r.detail);
   return JSON.stringify(r);
 }
@@ -152,7 +152,7 @@ export function onSweep(runtime: Runtime<Config>, _payload?: CronPayload): strin
     if (r.status === "written") writes++;
     out.push(r);
   }
-  runtime.log(`fhish-decrypt-relay sweep ${JSON.stringify(out)}`);
+  runtime.log(`kakushi-fhe-decrypt-relay sweep ${JSON.stringify(out)}`);
   return JSON.stringify(out);
 }
 

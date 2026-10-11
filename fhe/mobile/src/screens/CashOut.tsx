@@ -7,7 +7,7 @@ import { useApp } from "../state/AppState";
 import { useFlow } from "../ui/useFlow";
 import { useBalances } from "../ui/useBalances";
 import { formatAusd, parseAusd, shortHex, unwrap } from "../lib/pay";
-import type { EncryptedInput } from "../lib/fhish";
+import type { EncryptedInput } from "../lib/fhe";
 import type { SentTx } from "../lib/monad";
 
 /** cAUSD -> AUSD. Only the cashed-out amount is ever decrypted, by the KMS, for the oracle callback. */

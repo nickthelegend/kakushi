@@ -1,4 +1,4 @@
-// Generates real Fhish Pay activity on the LOCAL anvil fork so the indexer has something to show:
+// Generates real Kakushi Pay activity on the LOCAL anvil fork so the indexer has something to show:
 // wrap (approve + wrap), a private pay() with a reference, a plain confidentialTransfer, two pay links
 // claimed by a brand-new account (+ one left open), an operator-run payroll, payment requests (one paid,
 // one too large for the payer's balance and attempted anyway, one cancelled), and an unwrap whose
@@ -11,13 +11,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, createWalletClient, defineChain, http, parseAbi, parseEventLogs, toHex, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { FhishClient, waitForDecryption } from "../../sdk/src/index.ts";
+import { KakushiFheClient, waitForDecryption } from "../../sdk/src/index.ts";
 import { nativeEncryptor, nodeTfheEncryptor } from "../../sdk/src/node.ts";
 import { payAbi } from "../../sdk/src/apps.ts";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const RPC = process.env.FHISH_RPC_URL ?? "http://127.0.0.1:18810";
-const GATEWAY = process.env.FHISH_GATEWAY_URL ?? "http://127.0.0.1:8890";
+const RPC = process.env.KAKUSHI_FHE_RPC_URL ?? "http://127.0.0.1:18810";
+const GATEWAY = process.env.KAKUSHI_FHE_GATEWAY_URL ?? "http://127.0.0.1:8890";
 if (!/^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(RPC)) throw new Error("activity.ts only runs against a local fork");
 
 // LOCAL ANVIL ONLY: Foundry's public dev keys
@@ -37,8 +37,8 @@ const chain = defineChain({ id: 10143, name: "Monad testnet (local fork)", nativ
 const pub = createPublicClient({ chain, transport: http(RPC) });
 if ((await pub.getChainId()) !== 10143) throw new Error("not the Monad testnet fork");
 
-const engine = `${ROOT}engine/bin/fhish-engine`;
-const fhish = new FhishClient({ gatewayUrl: GATEWAY, chainId: 10143, encryptor: existsSync(engine) ? nativeEncryptor(engine) : nodeTfheEncryptor() });
+const engine = `${ROOT}engine/bin/kakushi-fhe-engine`;
+const fhe = new KakushiFheClient({ gatewayUrl: GATEWAY, chainId: 10143, encryptor: existsSync(engine) ? nativeEncryptor(engine) : nodeTfheEncryptor() });
 const erc20 = parseAbi(["function approve(address,uint256) returns (bool)"]);
 
 /** Monad bills the gas limit: estimate, then +30%. */
@@ -52,12 +52,12 @@ async function send(who: Who | Hex, address: Hex, abi: any, functionName: string
   console.log(`  ${functionName.padEnd(22)} ${hash} block ${rc.blockNumber} gas ${rc.gasUsed}/${(est * 13n) / 10n}`);
   return rc;
 }
-const enc = (value: bigint, user: Hex) => fhish.encrypt("euint64", value, TOKEN, user);
+const enc = (value: bigint, user: Hex) => fhe.encrypt("euint64", value, TOKEN, user);
 const ref = (s: string) => toHex(s, { size: 32 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const AU = (n: number) => BigInt(Math.round(n * 1e6)); // AUSD has 6 decimals
 
-console.log(`Fhish Pay activity on ${RPC} · token ${TOKEN} (cAUSD over real Agora AUSD)`);
+console.log(`Kakushi Pay activity on ${RPC} · token ${TOKEN} (cAUSD over real Agora AUSD)`);
 
 console.log("1. wrap: approve + wrap (public amounts)");
 await send("alice", AUSD, erc20, "approve", [TOKEN, AU(2000)]);
@@ -110,7 +110,7 @@ for (const [, amt] of staff) salaries.push(await enc(AU(amt), addr("carol")));
 const payrollRef = ref(`payroll-${Date.now()}`);
 const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
 const batchSig = await privateKeyToAccount(KEYS.alice).signTypedData({
-  domain: { name: "Fhish Payroll", version: "1", chainId: 10143, verifyingContract: TOKEN },
+  domain: { name: "Kakushi Payroll", version: "1", chainId: 10143, verifyingContract: TOKEN },
   types: { PayrollBatch: [{ name: "employer", type: "address" }, { name: "operator", type: "address" }, { name: "to", type: "address[]" }, { name: "amounts", type: "bytes32[]" }, { name: "ref", type: "bytes32" }, { name: "deadline", type: "uint256" }] },
   primaryType: "PayrollBatch",
   message: { employer: addr("alice"), operator: addr("carol"), to: staff.map(([w]) => w), amounts: salaries.map((s) => s.handle), ref: payrollRef, deadline },

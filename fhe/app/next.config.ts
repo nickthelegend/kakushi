@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
 const privy = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 
 const config: NextConfig = {
-  transpilePackages: ["@fhish/sdk"],
+  transpilePackages: ["@kakushi/fhe-sdk"],
   // without an app ID, swap Privy's React SDK for a stub so it is not compiled or shipped at all
   turbopack: privy ? {} : { resolveAlias: { "@privy-io/react-auth": "./src/lib/pay/privy-stub.ts" } },
   experimental: {

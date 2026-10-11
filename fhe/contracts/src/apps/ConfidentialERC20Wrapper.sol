@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {FHE} from "../lib/FHE.sol";
-import {euint64, externalEuint64} from "../lib/FhishTypes.sol";
+import {euint64, externalEuint64} from "../lib/KakushiTypes.sol";
 import {ConfidentialToken} from "./ConfidentialToken.sol";
 
 interface IERC20Like {

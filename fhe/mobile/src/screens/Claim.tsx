@@ -75,7 +75,7 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
   if (!link) {
     return (
       <Screen title="Claim a pay link" back>
-        <T kind="dim">Paste a Fhish Pay link someone sent you.</T>
+        <T kind="dim">Paste a Kakushi Pay link someone sent you.</T>
         <Gap h={S.md} />
         <Field label="Link" placeholder="https://…/claim?net=…&id=…#k=…" value={paste} onChangeText={setPaste} error={pasteErr} multiline style={{}} inputStyle={{ minHeight: 80, paddingTop: 12 }} />
         <Gap h={S.md} />
@@ -83,7 +83,7 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
           title="Open link"
           onPress={() => {
             const p = parseLink(paste);
-            if (!p) setPasteErr("That is not a Fhish Pay link.");
+            if (!p) setPasteErr("That is not a Kakushi Pay link.");
             else {
               setPasteErr(null);
               setLink(p);
@@ -125,7 +125,7 @@ export function Claim({ link: initial }: { link?: ParsedLink }) {
         ) : infoErr ? (
           <Notice tone="error">{infoErr}</Notice>
         ) : !ctx ? (
-          <Notice tone="warn">{`Fhish Pay is not deployed on ${NETWORKS[link.net].label} yet.`}</Notice>
+          <Notice tone="warn">{`Kakushi Pay is not deployed on ${NETWORKS[link.net].label} yet.`}</Notice>
         ) : (
           <T kind="small">checking the link…</T>
         )}

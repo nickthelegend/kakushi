@@ -1,4 +1,4 @@
-// Fhish deep-sea palette. Rule: biolum (cyan) marks anything encrypted; lantern (amber) appears only
+// Kakushi deep-sea palette. Rule: biolum (cyan) marks anything encrypted; lantern (amber) appears only
 // on values that were just revealed to their owner. Everything else is foam on abyss.
 export const C = {
   abyss: "#021a20",

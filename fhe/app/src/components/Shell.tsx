@@ -54,10 +54,10 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="relative z-[1] min-h-dvh">
       <header className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
-        <Link href="/" className="flex items-center gap-2" aria-label="Fhish home">
+        <Link href="/" className="flex items-center gap-2" aria-label="Kakushi home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/fhish-fin.png" alt="" className="size-8" />
-          <span className="font-display text-lg font-bold tracking-tight">fhish</span>
+          <img src="/kakushi-fin.png" alt="" className="size-8" />
+          <span className="font-display text-lg font-bold tracking-tight">kakushi</span>
         </Link>
         <nav className="hidden gap-5 text-sm md:flex" aria-label="Main">
           {NAV.map((n) => (
@@ -85,7 +85,7 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
       <main>{children}</main>
       <footer className="mx-auto mt-24 max-w-6xl border-t border-kelp px-5 py-8 text-sm text-silt">
-        Fhish Pay on Monad: confidential payments on real AUSD. FHE by Zama tfhe-rs; the coprocessor, KMS and contracts are Fhish. <a className="text-tide hover:text-foam" href="https://github.com/fhish-tech">github.com/fhish-tech</a>
+        Kakushi Pay on Monad: confidential payments on real AUSD. FHE by Zama tfhe-rs; the coprocessor, KMS and contracts are Kakushi. <a className="text-tide hover:text-foam" href="https://github.com/nickthelegend/kakushi">github.com/nickthelegend/kakushi</a>
       </footer>
     </div>
   );

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { createWalletClient, http, recoverTypedDataAddress, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { FhishClient, FhishType } from "../src/index.ts";
+import { KakushiFheClient, KakushiType } from "../src/index.ts";
 import { seal } from "../../coprocessor/src/seal.ts";
 
 // A stub gateway: verifies the user's EIP-712 authorization like the real one, then seals with the
@@ -27,7 +27,7 @@ function startGateway(): Promise<{ url: string; server: Server }> {
     }
     if (req.url === "/decrypt/user") {
       const signer = await recoverTypedDataAddress({
-        domain: { name: "Fhish", version: "1", chainId: CHAIN },
+        domain: { name: "Kakushi FHE", version: "1", chainId: CHAIN },
         types: { UserDecrypt: [{ name: "handles", type: "bytes32[]" }, { name: "contractAddress", type: "address" }, { name: "publicKey", type: "bytes" }, { name: "expiresAt", type: "uint256" }] },
         primaryType: "UserDecrypt",
         message: { handles: b.handles, contractAddress: b.contract, publicKey: b.publicKey, expiresAt: BigInt(b.expiresAt) },
@@ -49,11 +49,11 @@ test("encrypt sends the serialized list, type, user and contract; returns handle
   const { url, server } = await startGateway();
   try {
     const encryptor = { encrypt: async (pk: Uint8Array, type: number, v: bigint | boolean) => new Uint8Array([pk.length, type, Number(v)]) };
-    const c = new FhishClient({ gatewayUrl: `${url}/`, chainId: CHAIN, encryptor });
+    const c = new KakushiFheClient({ gatewayUrl: `${url}/`, chainId: CHAIN, encryptor });
     const r = await c.encrypt("euint64", 7, contract, user.address);
     assert.equal(r.handle, handle);
     assert.equal(r.proof, "0x1234");
-    assert.deepEqual(Buffer.from(seen.inputs.ciphertext, "base64"), Buffer.from([3, FhishType.euint64, 7]));
+    assert.deepEqual(Buffer.from(seen.inputs.ciphertext, "base64"), Buffer.from([3, KakushiType.euint64, 7]));
     assert.equal(seen.inputs.type, 4);
     assert.equal(seen.inputs.user, user.address);
   } finally {
@@ -65,7 +65,7 @@ test("userDecrypt signs EIP-712 and opens values sealed to its ephemeral key", a
   const { url, server } = await startGateway();
   try {
     const wallet = createWalletClient({ account: user, transport: http("http://127.0.0.1:1") });
-    const c = new FhishClient({ gatewayUrl: url, chainId: CHAIN, encryptor: { encrypt: async () => new Uint8Array() } });
+    const c = new KakushiFheClient({ gatewayUrl: url, chainId: CHAIN, encryptor: { encrypt: async () => new Uint8Array() } });
     const out = await c.userDecrypt([handle], contract, wallet);
     assert.equal(out[handle.toLowerCase()], 1337n);
   } finally {
@@ -73,6 +73,6 @@ test("userDecrypt signs EIP-712 and opens values sealed to its ephemeral key", a
   }
 });
 
-test("type codes match the Solidity FhishType library", () => {
-  assert.deepEqual(FhishType, { ebool: 0, euint32: 3, euint64: 4 });
+test("type codes match the Solidity KakushiType library", () => {
+  assert.deepEqual(KakushiType, { ebool: 0, euint32: 3, euint64: 4 });
 });

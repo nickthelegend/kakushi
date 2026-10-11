@@ -1,7 +1,7 @@
 "use client";
 // One shared monadNewHeads subscription per tab (Monad testnet, read-only). Used by the heartbeat
 // and, when the app runs against Monad testnet itself, by the settlement ladder.
-import { MonadHeads } from "@fhish/sdk/monad";
+import { MonadHeads } from "@kakushi/fhe-sdk/monad";
 
 export const MONAD_WSS = process.env.NEXT_PUBLIC_MONAD_WSS || "wss://testnet-rpc.monad.xyz";
 

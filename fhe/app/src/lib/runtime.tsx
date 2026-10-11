@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPublicClient, createWalletClient, custom, defineChain, http, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { FhishClient } from "@fhish/sdk";
+import { KakushiFheClient } from "@kakushi/fhe-sdk";
 import { browserEncryptor } from "./encrypt";
 
 export interface Deployment {
@@ -31,7 +31,7 @@ export interface Cfg {
 interface Rt {
   cfg: Cfg | null;
   client: PublicClient | null;
-  fhish: FhishClient | null;
+  fhe: KakushiFheClient | null;
   account: Hex | null;
   label: string | null;
   wallet: WalletClient | null;
@@ -54,12 +54,12 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
     [cfg],
   );
   const client = useMemo(() => (typeof window === "undefined" ? null : (createPublicClient({ chain, transport: http(`${location.origin}/api/rpc`) }) as PublicClient)), [chain]);
-  const fhish = useMemo(() => (typeof window === "undefined" ? null : new FhishClient({ gatewayUrl: `${location.origin}/api/gw`, chainId: cfg?.chainId ?? 10143, encryptor: browserEncryptor })), [cfg]);
+  const fhe = useMemo(() => (typeof window === "undefined" ? null : new KakushiFheClient({ gatewayUrl: `${location.origin}/api/gw`, chainId: cfg?.chainId ?? 10143, encryptor: browserEncryptor })), [cfg]);
 
   const value: Rt = {
     cfg,
     client,
-    fhish,
+    fhe,
     wallet,
     label,
     account: (wallet?.account?.address as Hex) ?? null,

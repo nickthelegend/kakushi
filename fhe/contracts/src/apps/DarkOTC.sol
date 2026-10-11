@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import {FHE} from "../lib/FHE.sol";
-import {ebool, euint64, externalEuint64} from "../lib/FhishTypes.sol";
+import {ebool, euint64, externalEuint64} from "../lib/KakushiTypes.sol";
 
 /// @title DarkOTC: a dark order desk. Limit prices are encrypted; nothing leaks unless orders cross.
 /// @notice A maker posts an encrypted minimum price (ask) for a size; a taker answers with an

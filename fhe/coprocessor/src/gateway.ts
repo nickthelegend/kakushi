@@ -78,7 +78,7 @@ export function startGateway(o: GatewayOpts) {
         const handle = inputHandle(list, type, o.chainId, o.executor);
         // the engine refuses anything that is not a well-formed list under the network key
         await o.engine.input(handle, type, list.toString("base64"));
-        const domain = { name: "FhishInputVerifier", version: "1", chainId: o.chainId, verifyingContract: o.inputVerifier } as const;
+        const domain = { name: "KakushiInputVerifier", version: "1", chainId: o.chainId, verifyingContract: o.inputVerifier } as const;
         const types = { InputAttestation: [{ name: "handle", type: "bytes32" }, { name: "user", type: "address" }, { name: "contractAddress", type: "address" }] } as const;
         const sigs = await Promise.all(
           o.inputSigners.slice(0, o.inputThreshold).map((s) => s.signTypedData({ domain, types, primaryType: "InputAttestation", message: { handle, user: b.user, contractAddress: b.contract } })),
@@ -97,7 +97,7 @@ export function startGateway(o: GatewayOpts) {
         if (expiresAt < BigInt(Math.floor(Date.now() / 1000))) return json(res, 401, { error: "authorization expired" });
         const ok = await o.client.verifyTypedData({
           address: b.user,
-          domain: { name: "Fhish", version: "1", chainId: o.chainId },
+          domain: { name: "Kakushi FHE", version: "1", chainId: o.chainId },
           types: { UserDecrypt: [{ name: "handles", type: "bytes32[]" }, { name: "contractAddress", type: "address" }, { name: "publicKey", type: "bytes" }, { name: "expiresAt", type: "uint256" }] },
           primaryType: "UserDecrypt",
           message: { handles, contractAddress: b.contract, publicKey: b.publicKey, expiresAt },

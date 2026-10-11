@@ -1,7 +1,7 @@
 // DEV helper (local fork only): DEV alice creates a pay link with the app's own code and prints it,
 // e.g. to open it in the Expo web build or the simulator.
 //   node scripts/make-link.ts 5.25 [base-url]
-// base-url defaults to http://localhost:8081 (Expo web); the fhishpay:// form is printed too.
+// base-url defaults to http://localhost:8081 (Expo web); the kakushipay:// form is printed too.
 import { NETWORKS } from "../src/lib/config.ts";
 import { devWallet } from "../src/lib/wallet.ts";
 import { linkUrls } from "../src/lib/links.ts";

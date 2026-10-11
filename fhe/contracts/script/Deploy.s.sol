@@ -2,19 +2,19 @@
 pragma solidity ^0.8.28;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {FhishExecutor} from "../src/lib/FhishExecutor.sol";
-import {FhishInputVerifier} from "../src/lib/FhishInputVerifier.sol";
-import {FhishDecryptionOracle} from "../src/oracle/FhishDecryptionOracle.sol";
-import {FhishRegistry} from "../src/lib/FhishRegistry.sol";
-import {FhishConfigStruct} from "../src/lib/FhishTypes.sol";
+import {KakushiExecutor} from "../src/lib/KakushiExecutor.sol";
+import {KakushiInputVerifier} from "../src/lib/KakushiInputVerifier.sol";
+import {KakushiDecryptionOracle} from "../src/oracle/KakushiDecryptionOracle.sol";
+import {KakushiRegistry} from "../src/lib/KakushiRegistry.sol";
+import {KakushiConfigStruct} from "../src/lib/KakushiTypes.sol";
 
 interface ICreateX {
     function deployCreate3(bytes32 salt, bytes memory initCode) external payable returns (address);
 }
 
-/// Deploys Fhish on one chain. The registry goes to its CREATE3 address (same on every chain).
+/// Deploys Kakushi on one chain. The registry goes to its CREATE3 address (same on every chain).
 /// env: DEPLOYER (address, broadcasts; locally impersonated), INPUT_SIGNERS, KMS_SIGNERS (comma lists),
-///      INPUT_THRESHOLD, KMS_THRESHOLD, CRE_FORWARDER (optional), REGISTRY_SALT, FHISH_NETWORK
+///      INPUT_THRESHOLD, KMS_THRESHOLD, CRE_FORWARDER (optional), REGISTRY_SALT, KAKUSHI_FHE_NETWORK
 contract Deploy is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
@@ -26,14 +26,14 @@ contract Deploy is Script {
         uint256 kmsK = vm.envOr("KMS_THRESHOLD", uint256(2));
         address forwarder = vm.envOr("CRE_FORWARDER", address(0));
         bytes32 salt = vm.envBytes32("REGISTRY_SALT");
-        string memory network = vm.envOr("FHISH_NETWORK", string("local"));
+        string memory network = vm.envOr("KAKUSHI_FHE_NETWORK", string("local"));
 
         vm.startBroadcast(deployer);
-        FhishInputVerifier iv = new FhishInputVerifier(deployer, inputSigners, inputK);
-        FhishExecutor ex = new FhishExecutor(iv);
-        FhishDecryptionOracle oracle = new FhishDecryptionOracle(ex.acl(), forwarder, deployer, kmsSigners, kmsK);
-        address registry = CREATEX.deployCreate3(salt, abi.encodePacked(type(FhishRegistry).creationCode, abi.encode(deployer)));
-        FhishRegistry(registry).setConfig(FhishConfigStruct(address(ex.acl()), address(ex), address(iv), address(oracle)));
+        KakushiInputVerifier iv = new KakushiInputVerifier(deployer, inputSigners, inputK);
+        KakushiExecutor ex = new KakushiExecutor(iv);
+        KakushiDecryptionOracle oracle = new KakushiDecryptionOracle(ex.acl(), forwarder, deployer, kmsSigners, kmsK);
+        address registry = CREATEX.deployCreate3(salt, abi.encodePacked(type(KakushiRegistry).creationCode, abi.encode(deployer)));
+        KakushiRegistry(registry).setConfig(KakushiConfigStruct(address(ex.acl()), address(ex), address(iv), address(oracle)));
         vm.stopBroadcast();
 
         string memory o = "d";

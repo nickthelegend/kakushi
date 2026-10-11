@@ -1,9 +1,9 @@
 {
-  "name": "fhish-monad",
+  "name": "kakushi-fhe",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Fhish on Monad: plug-and-play fully homomorphic encryption for any Solidity contract. Native Zama tfhe-rs coprocessor, k-of-n KMS with automatic decryption callbacks, Chainlink CRE delivery.",
+  "description": "Kakushi on Monad: plug-and-play fully homomorphic encryption for any Solidity contract. Native Zama tfhe-rs coprocessor, k-of-n KMS with automatic decryption callbacks, Chainlink CRE delivery.",
   "type": "module",
   "packageManager": "pnpm@10.29.2",
   "engines": {

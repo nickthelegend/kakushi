@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Lock } from "lucide-react";
 
-// Data comes from the Fhish Pay indexer (Envio HyperIndex) through /api/indexer.
+// Data comes from the Kakushi Pay indexer (Envio HyperIndex) through /api/indexer.
 // Payment amounts are FHE ciphertext handles: this page can only ever show the handle.
 
 type Kind = "PAY" | "PAYROLL" | "LINK_CLAIM" | "TRANSFER";
@@ -144,7 +144,7 @@ export default function ActivityPage() {
         <div>
           <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Live activity</h1>
           <p className="mt-3 max-w-2xl text-tide">
-            Every Fhish Pay payment on Monad, indexed as it lands. Who paid whom and when is public. How much never is: each amount below is the ciphertext handle the chain stores.
+            Every Kakushi Pay payment on Monad, indexed as it lands. Who paid whom and when is public. How much never is: each amount below is the ciphertext handle the chain stores.
           </p>
         </div>
         {meta && (

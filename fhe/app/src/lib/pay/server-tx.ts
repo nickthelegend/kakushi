@@ -1,8 +1,8 @@
-// Server-side transaction helpers for the Fhish Pay API routes (never imported by client code).
+// Server-side transaction helpers for the Kakushi Pay API routes (never imported by client code).
 import "server-only";
 import { createPublicClient, http, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { sendRawSync } from "@fhish/sdk/monad";
+import { sendRawSync } from "@kakushi/fhe-sdk/monad";
 import { network, privyServer, rpcUrl } from "@/lib/server";
 import { MONAD_TESTNET_ID, payChain } from "./core";
 

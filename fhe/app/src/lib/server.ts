@@ -1,12 +1,12 @@
-// Server-only runtime config. FHISH_NETWORK=local|testnet.
+// Server-only runtime config. KAKUSHI_FHE_NETWORK=local|testnet.
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
 
-export const network = () => (process.env.FHISH_NETWORK === "testnet" ? "testnet" : "local");
+export const network = () => (process.env.KAKUSHI_FHE_NETWORK === "testnet" ? "testnet" : "local");
 export const rpcUrl = () => process.env.RPC_URL ?? (network() === "local" ? "http://127.0.0.1:18810" : "https://testnet-rpc.monad.xyz");
-export const gatewayUrl = () => process.env.FHISH_GATEWAY_URL ?? "http://127.0.0.1:8890";
+export const gatewayUrl = () => process.env.KAKUSHI_FHE_GATEWAY_URL ?? "http://127.0.0.1:8890";
 
 // LOCAL ANVIL ONLY: Foundry's public dev keys. Never funded anywhere but the local fork.
 const LOCAL_KEYS = [

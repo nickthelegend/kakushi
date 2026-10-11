@@ -14,7 +14,7 @@ async function forward(req: Request, ctx: { params: Promise<{ path: string[] }> 
     });
     return new NextResponse(await r.arrayBuffer(), { status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "application/json" } });
   } catch (e) {
-    return NextResponse.json({ error: `Fhish gateway unreachable (${(e as Error).message}). Start it with node scripts/e2e-local.ts --keep.` }, { status: 502 });
+    return NextResponse.json({ error: `Kakushi gateway unreachable (${(e as Error).message}). Start it with node scripts/e2e-local.ts --keep.` }, { status: 502 });
   }
 }
 export const GET = forward;
