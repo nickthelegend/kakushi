@@ -6,7 +6,7 @@ import { usePay } from "@/lib/pay/wallet";
 import { explain, type PayEnv } from "@/lib/pay/flows";
 import { short } from "@/lib/pay/core";
 
-/** Everything a Kakushi Pay page needs from the runtime, or null while loading / not deployed. */
+/** Everything a Kakushi Confidential page needs from the runtime, or null while loading / not deployed. */
 export function usePayEnv(): PayEnv | null {
   const rt = useRt();
   return useMemo(() => {
@@ -108,7 +108,7 @@ export function SignIn({ why, guestFirst = false }: { why: string; guestFirst?: 
   );
 }
 
-/** Header chip on Kakushi Pay pages: who is signed in, and sign out. */
+/** Header chip on Kakushi Confidential pages: who is signed in, and sign out. */
 export function PayChip() {
   const pay = usePay();
   if (!pay.wallet)

@@ -8,7 +8,7 @@ const rpId = process.env.KAKUSHI_FHE_PASSKEY_DOMAIN ?? "pay.kakushi.example";
 const appId = process.env.KAKUSHI_FHE_APP_ID ?? "xyz.kakushi.pay";
 
 const config: ExpoConfig = {
-  name: "Kakushi Pay",
+  name: "Kakushi Confidential",
   slug: "kakushi-pay",
   version: "0.1.0",
   scheme: "kakushipay",
@@ -38,8 +38,8 @@ const config: ExpoConfig = {
     ],
   },
   web: { bundler: "metro", output: "single" },
-  plugins: [["expo-secure-store", { faceIDPermission: "Allow Kakushi Pay to keep your account address on this device." }]],
-  extra: { rpId, rpName: "Kakushi Pay" },
+  plugins: [["expo-secure-store", { faceIDPermission: "Allow Kakushi Confidential to keep your account address on this device." }]],
+  extra: { rpId, rpName: "Kakushi Confidential" },
 };
 
 export default config;

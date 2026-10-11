@@ -126,7 +126,7 @@ export default function EmployerPage() {
       </div>
 
       {!env ? (
-        <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Kakushi Pay deployment…</p>
+        <p className="mt-8 rounded-2xl border border-kelp p-6 text-tide">Loading the Kakushi Confidential deployment…</p>
       ) : !w ? (
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
           <SignIn why="Sign in as the employer. On the fork, Alice is funded with AUSD and is the natural employer; Bob and Carol are the employees." />

@@ -85,7 +85,7 @@ put `KakushiRegistry` at the registry address with `deployCodeTo`, sign input at
 decryption results with `vm.sign` (see `contracts/test/KakushiFHE.t.sol`). Real ciphertexts: run the local
 e2e (`node scripts/e2e-local.ts`).
 
-## Payments (Kakushi Pay)
+## Payments (Kakushi Confidential)
 
 `contracts/src/apps/ConfidentialPayments.sol` turns any ERC-20 (Agora AUSD, Circle USDC) into a private
 payments token; deploy `KakushiPayToken(underlying, name, symbol)` from `src/examples/Examples.sol`.

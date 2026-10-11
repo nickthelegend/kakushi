@@ -1,4 +1,4 @@
-// The activity feed wallets render: one FeedItem per Kakushi Pay event per account it involves.
+// The activity feed wallets render: one FeedItem per Kakushi Confidential event per account it involves.
 // Mirrors mobile/src/lib/pay.ts activity() one-to-one, so a client gets its whole history in one
 // query instead of scanning eth_getLogs (100 blocks per call on Monad).
 // Amounts are ciphertext handles; only wraps and settled cash-outs carry a public amount.

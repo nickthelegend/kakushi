@@ -53,7 +53,7 @@ export function Screen({
               <Image source={require("../../assets/kakushi-fin.png")} style={s.logo} />
             )}
             <T kind="h2" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {title ?? "Kakushi Pay"}
+              {title ?? "Kakushi Confidential"}
             </T>
           </Row>
           {right ?? <SessionChip />}

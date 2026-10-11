@@ -3,7 +3,7 @@ import type { PasskeyEnv } from "../lib/wallet";
 
 export const passkeyEnv: PasskeyEnv = {
   rpId: typeof location !== "undefined" ? location.hostname : "localhost",
-  rpName: "Kakushi Pay",
+  rpName: "Kakushi Confidential",
 };
 
 export function passkeySupport(): { ok: boolean; why?: string } {

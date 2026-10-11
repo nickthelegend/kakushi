@@ -1,10 +1,10 @@
-# Kakushi Pay indexer (Envio HyperIndex)
+# Kakushi Confidential indexer (Envio HyperIndex)
 
-Real-time analytics for **Kakushi Pay**, confidential stablecoin payments on Monad: every payment, salary,
+Real-time analytics for **Kakushi Confidential**, confidential stablecoin payments on Monad: every payment, salary,
 pay link, payment request and cash-out, plus the KMS reveal pipeline and the FHE coprocessor behind them. It powers the
 app's live **Activity** page (`/activity`) through `app/src/app/api/indexer/route.ts`.
 
-**Privacy rule: no decrypted amount is ever indexed.** A Kakushi Pay amount is an FHE ciphertext handle
+**Privacy rule: no decrypted amount is ever indexed.** A Kakushi Confidential amount is an FHE ciphertext handle
 (`euint64`). The indexer stores the handle and nothing else. Only the amounts the chain already makes
 public are stored as numbers: wraps (deposit into the private pool) and settled unwraps (cash-out).
 Oracle cleartexts, trivial-encrypt constants and scalar FHE operands are deliberately ignored, and
@@ -16,7 +16,7 @@ HyperIndex **3.14** (V3 config: `chains:`, `indexer.onEvent`, handler-level `fie
 
 | Contract | Events |
 | --- | --- |
-| `KakushiPayToken` (cAUSD over Agora AUSD; cUSDC too: any number of Kakushi Pay tokens, one address list) | `Wrapped`, `UnwrapRequested`, `Unwrapped`, `ConfidentialTransfer`, `Paid`, `LinkCreated`, `LinkClaimed`, `LinkRefunded`, `PayrollRun`, `OperatorSet`, `PaymentRequested`, `RequestPaid`, `RequestCancelled` |
+| `KakushiPayToken` (cAUSD over Agora AUSD; cUSDC too: any number of Kakushi Confidential tokens, one address list) | `Wrapped`, `UnwrapRequested`, `Unwrapped`, `ConfidentialTransfer`, `Paid`, `LinkCreated`, `LinkClaimed`, `LinkRefunded`, `PayrollRun`, `OperatorSet`, `PaymentRequested`, `RequestPaid`, `RequestCancelled` |
 | `KakushiDecryptionOracle` | `DecryptionRequested`, `DecryptionFulfilled` |
 | `KakushiExecutor` (symbolic FHE executor, every Kakushi app) | `FheOp`, `FheSelect`, `TrivialEncrypt`, `VerifyInput`, `Rand` |
 
@@ -32,7 +32,7 @@ HyperIndex **3.14** (V3 config: `chains:`, `indexer.onEvent`, handler-level `fie
 | `Unwrap` | cash-out lifecycle: burned handle, linked `Reveal`, settled public amount, `settleSeconds` |
 | `Account` | payments sent / received, distinct counterparties, payrolls run / operated / received, links created / claimed / refunded, requests sent / received, public wrapped / unwrapped, first / last seen; `sent`, `received`, `linksSent`, `payrolls`, `unwraps`, `requestsOut`, `requestsIn` relations |
 | `PayPair` | who-pays-whom graph: one row per ordered pair with a count (never an amount) |
-| `Token` | per Kakushi Pay token: public wrapped, unwrapped, **TVL**, wraps, cash-outs, payments |
+| `Token` | per Kakushi Confidential token: public wrapped, unwrapped, **TVL**, wraps, cash-outs, payments |
 | `FheOpStat`, `FheCallerStat` | coprocessor load per opcode and per calling contract (which apps use FHE, how much) |
 | `DailyStats` | UTC-day rollup: payments by kind, unique payers, payroll runs, links, requests (created / pay attempts / cancelled), wraps, reveals + latency, FHE ops |
 | `GlobalStats` | protocol totals: payments by kind, unique payers, accounts, payroll runs (+ via operator), links created / claimed / open, **avg and median claim time**, requests / request pay attempts / requests cancelled, public TVL, reveals (pending, per path, failed callbacks, **avg latency in seconds and blocks**), FHE ops |
@@ -137,7 +137,7 @@ KAKUSHI_FHE_NETWORK=testnet pnpm configure     # reads contracts/deployments/tes
 
 **User actions (need your accounts; not done here):**
 
-1. Deploy Kakushi + Kakushi Pay to Monad testnet so `contracts/deployments/testnet.json` (oracle, executor,
+1. Deploy Kakushi + Kakushi Confidential to Monad testnet so `contracts/deployments/testnet.json` (oracle, executor,
    creForwarder, deployBlock) and `testnet-apps.json` (`causd`, optionally `cusdc`) exist
    (see `docs/DEPLOY-LATER.md`).
 2. Run `KAKUSHI_FHE_NETWORK=testnet pnpm configure` and commit the regenerated `config.yaml` and
@@ -154,6 +154,6 @@ The handlers import nothing outside `indexer/` (an Envio Cloud monorepo requirem
 
 ## Extending
 
-- Another Kakushi Pay token: add its key to `KAKUSHI_FHE_PAY_TOKENS` (default `causd,cusdc`) and re-run `configure`.
+- Another Kakushi Confidential token: add its key to `KAKUSHI_FHE_PAY_TOKENS` (default `causd,cusdc`) and re-run `configure`.
 - Another chain (e.g. Monad mainnet, 143): add a `chains:` entry; every id is already chain-prefixed and
   `Account` / `GlobalStats` aggregate across chains.

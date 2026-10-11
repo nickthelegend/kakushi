@@ -1,4 +1,4 @@
-# Kakushi Pay mobile
+# Kakushi Confidential mobile
 
 An Expo (React Native) app for sending **Agora AUSD** across borders **privately** on Monad. It targets the Monad Metropolis Agora bounty, "Best Cross-Border Payments App" (Track 2).
 
@@ -134,4 +134,4 @@ evidence/                    screenshots + verify output (see EVIDENCE.md)
 ## Networks
 
 - **local**: the Monad-testnet fork (chain id 10143). It reads addresses from `contracts/deployments/local.json` and `local-apps.json` (`causd`). Settlement is shown from block tags (latest, safe, finalized). DEV accounts and the DEV sponsor (anvil `carol`) exist only here.
-- **testnet**: `https://testnet-rpc.monad.xyz`, with settlement from `monadNewHeads`, up to Verified. Kakushi Pay isn't deployed there yet (`DEPLOYMENTS.testnet` is `null`), so the app tells the user to stay on the fork. After deployment, run `npm run sync:deployments` and set `EXPO_PUBLIC_TESTNET_GATEWAY`. On testnet a new passkey account needs testnet MON for gas, because there's no sponsor.
+- **testnet**: `https://testnet-rpc.monad.xyz`, with settlement from `monadNewHeads`, up to Verified. Kakushi Confidential isn't deployed there yet (`DEPLOYMENTS.testnet` is `null`), so the app tells the user to stay on the fork. After deployment, run `npm run sync:deployments` and set `EXPO_PUBLIC_TESTNET_GATEWAY`. On testnet a new passkey account needs testnet MON for gas, because there's no sponsor.

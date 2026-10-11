@@ -1,4 +1,4 @@
-// Shared helpers for the Kakushi Pay handlers: ids, lazy entity creation, rollups.
+// Shared helpers for the Kakushi Confidential handlers: ids, lazy entity creation, rollups.
 import type { Account, DailyStats, EvmOnEventContext, GlobalStats, Token } from "envio";
 import { TOKENS } from "../network.generated";
 

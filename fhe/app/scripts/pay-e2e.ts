@@ -1,4 +1,4 @@
-// End-to-end check of Kakushi Pay's web flows on the LOCAL FORK, through the app's own API routes.
+// End-to-end check of Kakushi Confidential's web flows on the LOCAL FORK, through the app's own API routes.
 //   node scripts/pay-e2e.ts            (app dev server on :3810, anvil fork :18810, gateway :8890)
 // Drives exactly what the pages do (same contract calls, same /api/payroll/run, /api/sponsor and
 // /api/faucet routes), with LOCAL ANVIL ONLY dev keys and fresh random accounts. It never touches
@@ -256,7 +256,7 @@ await check("Unaffordable request stays owed, then cancelled", async () => {
   };
 });
 
-console.log(`\nKakushi Pay web flows on the local fork (${Math.round((Date.now() - t0) / 1000)} s)`);
+console.log(`\nKakushi Confidential web flows on the local fork (${Math.round((Date.now() - t0) / 1000)} s)`);
 for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.name.padEnd(48)} ${r.detail}`);
 console.log("\nsettlement ladders (local fork: latest / safe / finalized tags, 1 s blocks; ms after the receipt):");
 for (const l of ladders) console.log(`  ${l}`);

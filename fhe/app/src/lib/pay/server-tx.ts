@@ -1,4 +1,4 @@
-// Server-side transaction helpers for the Kakushi Pay API routes (never imported by client code).
+// Server-side transaction helpers for the Kakushi Confidential API routes (never imported by client code).
 import "server-only";
 import { createPublicClient, http, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";

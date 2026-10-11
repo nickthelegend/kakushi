@@ -28,7 +28,7 @@ contract KakushiVote is KakushiConfig, ConfidentialVoting {
 
 contract KakushiDarkOTC is KakushiConfig, DarkOTC {}
 
-/// Kakushi Pay token: confidential AUSD / USDC with private payments, pay links and payroll.
+/// Kakushi Confidential token: confidential AUSD / USDC with private payments, pay links and payroll.
 contract KakushiPayToken is KakushiConfig, ConfidentialPayments {
     constructor(IERC20Like underlying_, string memory name_, string memory symbol_)
         ConfidentialPayments(underlying_, name_, symbol_)

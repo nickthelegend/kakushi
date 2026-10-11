@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| Project | **Kakushi Pay**, on **Kakushi**: confidential payments infrastructure for Monad |
+| Project | **Kakushi Confidential**, on **Kakushi**: confidential payments infrastructure for Monad |
 | Track | **T2 Consumer Products & Payments** |
 | Bounties | **Agora**: Best Cross-Border Payments App ($10k, T2) · **Privy** ($5k, all) · **Envio** ($1k + hosting, all) |
 | Not targeted (built, kept in repo) | Chainlink CRE delivery workflow; MetaMask Agent Wallet plugin (T1-only bounty) |
@@ -19,7 +19,7 @@
 Stablecoin payments on a public chain publish your salary, your rent and your savings to everyone,
 forever. That is why payroll, remittances and business payments still don't run on-chain.
 
-**Kakushi Pay makes the amount private and keeps everything else on-chain.** You hold real Agora AUSD
+**Kakushi Confidential makes the amount private and keeps everything else on-chain.** You hold real Agora AUSD
 (or Circle USDC). Wrap it once and your balance becomes a ciphertext. Payments, payroll and pay links
 are computed on encrypted numbers by Kakushi, a fully homomorphic encryption network built for Monad.
 The chain sees *who* paid *whom* and *when*, never *how much*. You, and only you, can reveal your own
@@ -69,7 +69,7 @@ On-device FHE: Zama node-tfhe 1.8.1 compiled into a self-contained page run in a
 
 "Integrate Privy beyond authentication."
 
-| Privy feature | Kakushi Pay use | Where |
+| Privy feature | Kakushi Confidential use | Where |
 |---|---|---|
 | Embedded wallet (email/passkey) | employer and employee accounts on Monad testnet | `app/src/lib/pay/privy-bridge.tsx` |
 | Native gas sponsorship (`sponsor: true`, EIP-7702) | wraps, payroll, pay links and claims cost the user no MON | `app/src/lib/pay/wallet.tsx` |
@@ -81,7 +81,7 @@ against the real SDK but need the owner's Privy app to run (`app/PRIVY.md`).
 
 ## Envio ($1k + hosting)
 
-HyperIndex over Kakushi Pay, the decryption oracle and the FHE executor. Derived entities: payment
+HyperIndex over Kakushi Confidential, the decryption oracle and the FHE executor. Derived entities: payment
 graph without amounts, pay-link lifecycle and claim times, payroll runs, reveal latency, public TVL,
 FHE ops per opcode. It drives two core features: every user's payment history on `/pay` (Monad's
 `eth_getLogs` covers 100 blocks per call, so without the indexer a wallet can only show the last few

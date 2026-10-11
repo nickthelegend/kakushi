@@ -33,13 +33,13 @@ function Hero() {
     <section ref={box} className="relative isolate overflow-hidden">
       <Shoal bytes={bytes} origin={origin} className="absolute inset-0 -z-10 h-full w-full" />
       <div className="mx-auto max-w-6xl px-5 pt-14 pb-24 sm:pt-20">
-        <p className="font-mono text-sm text-biolum">Kakushi Pay · confidential payments infrastructure for Monad</p>
+        <p className="font-mono text-sm text-biolum">Kakushi Confidential · confidential payments infrastructure for Monad</p>
         <h1 className="mt-4 max-w-4xl font-display text-[clamp(40px,7vw,88px)] font-extrabold leading-[0.96] tracking-[-0.03em]">Pay anyone. Show no one.</h1>
         <p className="mt-7 max-w-2xl text-lg text-tide">
           Real stablecoins, Agora AUSD and Circle USDC, with every amount and every balance encrypted end to end. Run payroll, send money by link, keep your balance to yourself, and settle with Monad finality in well under a second.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Kakushi Pay</Link>
+          <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Kakushi Confidential</Link>
           <Link href="/pay/employer" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Run a private payroll</Link>
         </div>
         <form
@@ -109,7 +109,7 @@ function TwoViews() {
           <p className="mt-4 text-sm text-silt">Decrypted for this person only: the gateway checks the on-chain ACL and seals the value to a key that exists only in their tab. Their colleague's salary stays a ciphertext, even to them.</p>
         </figure>
       </div>
-      <p className="mt-3 text-xs text-silt">Illustration. The live version is one click away in Kakushi Pay.</p>
+      <p className="mt-3 text-xs text-silt">Illustration. The live version is one click away in Kakushi Confidential.</p>
     </section>
   );
 }
@@ -133,7 +133,7 @@ function Privy() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <div>
           <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">Sign in with an email. Gas is on us.</h2>
-          <p className="mt-4 max-w-md text-tide">Kakushi Pay runs on Privy for far more than login: wallets, sponsored gas and a policy-bound payroll robot.</p>
+          <p className="mt-4 max-w-md text-tide">Kakushi Confidential runs on Privy for far more than login: wallets, sponsored gas and a policy-bound payroll robot.</p>
           <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-kelp-strong px-3 py-1 text-xs text-tide">
             <span className={`size-1.5 rounded-full ${pay.mode === "privy" ? "bg-sea-green" : "bg-lantern"}`} aria-hidden />
             {pay.mode === "privy" ? "Privy is live on this deployment" : "This deployment runs in local-fork mode (Privy not configured)"}
@@ -234,7 +234,7 @@ export default function Home() {
         <div>
           <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl">Settled before you look up.</h2>
           <p className="mt-4 max-w-md text-tide">
-            Monad blocks move from Proposed to Voted to Finalized in well under a second. Kakushi Pay shows that ladder, with real timings, after every payment, and waits for finality before the KMS will reveal anything. The table is live Monad testnet, straight from its monadNewHeads stream.
+            Monad blocks move from Proposed to Voted to Finalized in well under a second. Kakushi Confidential shows that ladder, with real timings, after every payment, and waits for finality before the KMS will reveal anything. The table is live Monad testnet, straight from its monadNewHeads stream.
           </p>
         </div>
         <Heartbeat rows={7} />
@@ -247,7 +247,7 @@ export default function Home() {
           <p className="font-mono text-sm text-biolum">For developers</p>
           <h2 className="mt-2 font-display text-3xl font-bold leading-tight sm:text-4xl">Two lines, and the payments contract you already wrote goes dark.</h2>
           <p className="mt-5 max-w-md text-tide">
-            Kakushi Pay is one contract on top of Kakushi, the encrypted-computation layer for Monad. Inherit <code className="font-mono text-biolum">KakushiConfig</code> and use encrypted types where you used plain ones. The API mirrors Zama's fhEVM, so their contracts and ERC-7984 tokens port by changing an import.
+            Kakushi Confidential is one contract on top of Kakushi, the encrypted-computation layer for Monad. Inherit <code className="font-mono text-biolum">KakushiConfig</code> and use encrypted types where you used plain ones. The API mirrors Zama's fhEVM, so their contracts and ERC-7984 tokens port by changing an import.
           </p>
           <Link href="/developers" className="mt-6 inline-block text-sm font-semibold text-biolum hover:underline">Read the developer guide →</Link>
         </div>
@@ -325,7 +325,7 @@ export default function Home() {
           <h2 className="max-w-xl font-display text-3xl font-bold leading-tight sm:text-4xl">Money that minds its own business.</h2>
           <p className="mt-4 max-w-lg text-tide">Real AUSD, encrypted end to end, final on Monad in under a second.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Kakushi Pay</Link>
+            <Link href="/pay" className="rounded-xl bg-biolum px-5 py-3 font-semibold text-abyss hover:brightness-110">Open Kakushi Confidential</Link>
             <Link href="/pay/employer" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Run payroll</Link>
             <Link href="/developers" className="rounded-xl border border-kelp-strong px-5 py-3 font-semibold hover:bg-trench-2">Build on Kakushi</Link>
           </div>

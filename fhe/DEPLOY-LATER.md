@@ -42,7 +42,7 @@ Check: `deployments/testnet.json` has `registry == 0xEc4A6767F7884712C0B19ada05F
 Verify on MonadVision/Sourcify (`forge verify-contract --verifier sourcify --chain 10143 …`).
 Then deploy the apps with the same calls `scripts/e2e-local.ts --keep` makes, and write
 `deployments/testnet-apps.json`:
-- **Kakushi Pay**: `KakushiPayToken(0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC /* AUSD */, "Confidential AUSD", "cAUSD")`
+- **Kakushi Confidential**: `KakushiPayToken(0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC /* AUSD */, "Confidential AUSD", "cAUSD")`
   as `causd`, and optionally one over Circle USDC `0x534b…43A3`.
 - Playground extras: auction, cUSDC wrapper, dark OTC.
 Demo funds: Agora's faucet `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` `requestFunds(address)` gives 10,000

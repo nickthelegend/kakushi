@@ -50,7 +50,7 @@ export default function ClaimPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pt-8 sm:pt-12">
-      <p className="font-mono text-sm text-biolum">Kakushi Pay · pay link</p>
+      <p className="font-mono text-sm text-biolum">Kakushi Confidential · pay link</p>
       <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Someone sent you money.</h1>
       <p className="mt-3 max-w-2xl text-tide">The amount is sealed on Monad. Claim it to your own account; only you and the sender will ever be able to read how much it was.</p>
       <div className="mt-6">
@@ -62,7 +62,7 @@ export default function ClaimPage() {
           <div className="rounded-[22px] border border-kelp p-6">
             <p className="font-semibold">This link is incomplete.</p>
             <p className="mt-1 text-sm text-tide">A pay link looks like /claim#id=12&amp;k=0x… . Ask the sender to copy it again, all the way to the end.</p>
-            <Link href="/pay" className="mt-4 inline-block text-sm text-biolum hover:underline">Go to Kakushi Pay</Link>
+            <Link href="/pay" className="mt-4 inline-block text-sm text-biolum hover:underline">Go to Kakushi Confidential</Link>
           </div>
         ) : (
           <section className="rounded-[22px] border border-kelp-strong bg-trench/80 p-6">
@@ -162,7 +162,7 @@ export default function ClaimPage() {
             </div>
             <Status step={a.step} error={a.error} />
             <p className="text-sm text-tide">
-              It is yours now. <Link href="/pay" className="text-biolum hover:underline">Open Kakushi Pay</Link> to send it on, or cash it out to AUSD.
+              It is yours now. <Link href="/pay" className="text-biolum hover:underline">Open Kakushi Confidential</Link> to send it on, or cash it out to AUSD.
             </p>
           </section>
         )}

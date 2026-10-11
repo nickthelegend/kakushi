@@ -27,7 +27,7 @@ export default function PrivyBridge({ appId, clientId, client, network, onState 
       appId={appId}
       clientId={clientId}
       config={{
-        appearance: { theme: "#021a20", accentColor: "#34e3ff", logo: `${location.origin}/kakushi-fin.png`, landingHeader: "Sign in to Kakushi Pay" },
+        appearance: { theme: "#021a20", accentColor: "#34e3ff", logo: `${location.origin}/kakushi-fin.png`, landingHeader: "Sign in to Kakushi Confidential" },
         loginMethods: ["email", "passkey"],
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" }, showWalletUIs: false },
         defaultChain: monadTestnet,

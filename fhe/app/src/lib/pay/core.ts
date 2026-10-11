@@ -1,4 +1,4 @@
-// Kakushi Pay: shared, isomorphic helpers (browser and API routes).
+// Kakushi Confidential: shared, isomorphic helpers (browser and API routes).
 import { defineChain, formatUnits, hexToString, parseAbi, parseUnits, stringToHex, type Hex } from "viem";
 
 export const MONAD_TESTNET_ID = 10143;

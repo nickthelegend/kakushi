@@ -9,7 +9,7 @@ const extra = (Constants.expoConfig?.extra ?? {}) as { rpId?: string; rpName?: s
 
 export const passkeyEnv: PasskeyEnv = {
   rpId: extra.rpId ?? "pay.kakushi.example",
-  rpName: extra.rpName ?? "Kakushi Pay",
+  rpName: extra.rpName ?? "Kakushi Confidential",
   webAuthnClient: reactNativeWebAuthnClient,
 };
 

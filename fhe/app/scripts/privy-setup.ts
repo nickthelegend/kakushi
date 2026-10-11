@@ -36,7 +36,7 @@ if (!token) {
   }
 }
 if (!token) {
-  console.error(`No cAUSD address: deploy Kakushi Pay to ${network} first (contracts/deployments/${network}-apps.json) or set KAKUSHI_FHE_PAY_TOKEN.`);
+  console.error(`No cAUSD address: deploy Kakushi Confidential to ${network} first (contracts/deployments/${network}-apps.json) or set KAKUSHI_FHE_PAY_TOKEN.`);
   process.exit(1);
 }
 const days = Number(opt("days") ?? 30);

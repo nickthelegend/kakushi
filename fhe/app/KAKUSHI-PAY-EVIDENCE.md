@@ -1,4 +1,4 @@
-# Kakushi Pay web: verification evidence
+# Kakushi Confidential web: verification evidence
 
 Recorded 2026-10-09 on the local Monad-testnet fork (anvil `:18810`, chain 10143, 1 s blocks, `safe` = latest−1, `finalized` = latest−2), the Kakushi gateway (`:8890`) with real tfhe-rs, and the app dev server (`:3810`). cAUSD = `0x85c5dd61585773423e378146d4bec6f8d149e248` (KakushiPayToken over real Agora AUSD `0xa9012a05…22dC`). No Monad testnet transaction was sent. Privy credentials were not available, so everything below ran in local-fork mode; the Privy paths are compiled and typed but unexercised (see `PRIVY.md`).
 
@@ -24,7 +24,7 @@ Recorded 2026-10-09 on the local Monad-testnet fork (anvil `:18810`, chain 10143
 Same contract calls the pages make, using the app's `/api/payroll/run`, `/api/sponsor` and `/api/faucet`; fresh random accounts for employees and the newcomer; native tfhe-rs encryptor.
 
 ```
-Kakushi Pay web flows on the local fork (34 s)
+Kakushi Confidential web flows on the local fork (34 s)
 PASS  Wrap (ERC-2612 permit, one tx)             alice moved 2,000.00 AUSD into cAUSD with one signature + one tx (domain "Agora Dollar" v1)
 PASS  Payroll from the employer's wallet         2 salaries in 1 tx; E1 reveals own salary 1,000.00; carol trying E1's salary: refused
 PASS  Payroll by operator via /api/payroll/run   operator local-dev-key paid E2 750.00 (E2's own reveal); forged batch 401, unauthorized employer 409, replay 409

@@ -85,7 +85,7 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
       <main>{children}</main>
       <footer className="mx-auto mt-24 max-w-6xl border-t border-kelp px-5 py-8 text-sm text-silt">
-        Kakushi Pay on Monad: confidential payments on real AUSD. FHE by Zama tfhe-rs; the coprocessor, KMS and contracts are Kakushi. <a className="text-tide hover:text-foam" href="https://github.com/nickthelegend/kakushi">github.com/nickthelegend/kakushi</a>
+        Kakushi Confidential on Monad: confidential payments on real AUSD. FHE by Zama tfhe-rs; the coprocessor, KMS and contracts are Kakushi. <a className="text-tide hover:text-foam" href="https://github.com/nickthelegend/kakushi">github.com/nickthelegend/kakushi</a>
       </footer>
     </div>
   );

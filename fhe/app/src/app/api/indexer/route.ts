@@ -1,4 +1,4 @@
-// Server-side proxy to the Kakushi Pay indexer (Envio HyperIndex, Hasura GraphQL).
+// Server-side proxy to the Kakushi Confidential indexer (Envio HyperIndex, Hasura GraphQL).
 //   GET  /api/indexer           -> the activity dashboard snapshot (stats + live feed)
 //   POST /api/indexer {query}   -> any read-only GraphQL query, forwarded as-is
 // KAKUSHI_FHE_INDEXER_URL: the indexer's GraphQL endpoint (Envio Cloud URL in production).
@@ -43,7 +43,7 @@ async function forward(body: string) {
     return new NextResponse(await r.text(), { status: r.status, headers: { "content-type": r.headers.get("content-type") ?? "application/json" } });
   } catch (e) {
     return NextResponse.json(
-      { error: `Kakushi Pay indexer unreachable at ${indexerUrl()} (${(e as Error).message}). Start it with: cd indexer && pnpm start (see indexer/README.md).` },
+      { error: `Kakushi Confidential indexer unreachable at ${indexerUrl()} (${(e as Error).message}). Start it with: cd indexer && pnpm start (see indexer/README.md).` },
       { status: 502 },
     );
   }

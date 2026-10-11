@@ -43,7 +43,7 @@ const softAuthenticator: WebAuthnClient = {
     return { credentialId: Buffer.from(id, "hex"), prfOutput: hmac(sha256, secret, req.prfSalt) };
   },
 };
-const env = { rpId: "pay.kakushi.example", rpName: "Kakushi Pay", webAuthnClient: softAuthenticator };
+const env = { rpId: "pay.kakushi.example", rpName: "Kakushi Confidential", webAuthnClient: softAuthenticator };
 const created = await createPasskeyWallet(env, "verify");
 const createdAddr = created.address;
 created.end();
@@ -57,7 +57,7 @@ check("Mera: session.end() zeroes the key", ended, "signing after end() throws S
 pinned.end();
 const newcomer = restored; // the link claimant: a brand-new passkey account that never held gas
 
-// ---------------------------------------------------------------- Kakushi Pay on the fork
+// ---------------------------------------------------------------- Kakushi Confidential on the fork
 const net = NETWORKS.local;
 const alice = devWallet("alice");
 const bob = devWallet("bob");

@@ -1,5 +1,5 @@
 "use client";
-// Kakushi Pay wallet layer. One interface, two backends:
+// Kakushi Confidential wallet layer. One interface, two backends:
 //   - Privy (NEXT_PUBLIC_PRIVY_APP_ID set): email/passkey login, an embedded wallet on Monad testnet,
 //     transactions sent with Privy native gas sponsorship (EIP-7702 + paymaster), EIP-712 signing.
 //   - Local fork (no Privy credentials): Foundry dev accounts or a fresh in-browser guest key,

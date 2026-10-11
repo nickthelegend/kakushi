@@ -33,7 +33,7 @@ export function AccountSetup({ compact }: { compact?: boolean }) {
         title="Create account with a passkey"
         busy={busy === "create"}
         disabled={!support.ok || !!busy}
-        onPress={go("create", () => app.createPasskey(`Kakushi Pay ${new Date().toISOString().slice(0, 10)}`))}
+        onPress={go("create", () => app.createPasskey(`Kakushi Confidential ${new Date().toISOString().slice(0, 10)}`))}
       />
       <Gap h={S.sm} />
       <Button kind="secondary" title="I already have one: restore" busy={busy === "restore"} disabled={!support.ok || !!busy} onPress={go("restore", () => app.restorePasskey())} />
@@ -100,7 +100,7 @@ export function Onboarding() {
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: S.xl, paddingTop: insets.top + S.xxl, paddingBottom: insets.bottom + S.xl }}>
       <Image source={require("../../assets/kakushi-fin.png")} style={o.logo} />
       <Gap h={S.xl} />
-      <T kind="label" style={{ color: C.biolum }}>Kakushi Pay · Agora AUSD on Monad</T>
+      <T kind="label" style={{ color: C.biolum }}>Kakushi Confidential · Agora AUSD on Monad</T>
       <Gap h={S.sm} />
       <T kind="hero">Send dollars across borders. Privately.</T>
       <Gap h={S.md} />
@@ -129,7 +129,7 @@ export function Onboarding() {
       {!app.ctx ? (
         <>
           <Gap h={S.sm} />
-          <Notice tone="warn">{`Kakushi Pay is not deployed on ${app.net.label} yet. Use the local fork.`}</Notice>
+          <Notice tone="warn">{`Kakushi Confidential is not deployed on ${app.net.label} yet. Use the local fork.`}</Notice>
         </>
       ) : null}
       <T kind="small" style={{ marginTop: S.lg, textAlign: "center", fontFamily: F.mono }}>

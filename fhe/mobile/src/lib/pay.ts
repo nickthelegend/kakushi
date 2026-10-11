@@ -1,4 +1,4 @@
-// Kakushi Pay on Agora AUSD: every operation the app performs, free of React so it runs in Node too
+// Kakushi Confidential on Agora AUSD: every operation the app performs, free of React so it runs in Node too
 // (scripts/verify-fork.ts drives exactly these functions against the local fork).
 //
 // cAUSD = KakushiPayToken (contracts/src/apps/ConfidentialPayments.sol): AUSD wrapped 1:1 into an
@@ -92,7 +92,7 @@ export interface PayContext {
 }
 
 export function makeContext(net: Network, encryptor: Encryptor, sponsor: LocalAccount | null = null): PayContext {
-  if (!net.deployment) throw new Error(`${net.label}: Kakushi Pay is not deployed on this network yet`);
+  if (!net.deployment) throw new Error(`${net.label}: Kakushi Confidential is not deployed on this network yet`);
   const chain = defineChain({
     id: net.chainId,
     name: net.label,

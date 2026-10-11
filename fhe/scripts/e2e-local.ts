@@ -213,9 +213,9 @@ async function main() {
   }
 
 
-  // ---------------------------------------------------------------- Kakushi Pay on real AUSD
+  // ---------------------------------------------------------------- Kakushi Confidential on real AUSD
   try {
-    say("5 · Kakushi Pay on real Agora AUSD: gasless wrap, encrypted payroll, pay link to a new account, cash out");
+    say("5 · Kakushi Confidential on real Agora AUSD: gasless wrap, encrypted payroll, pay link to a new account, cash out");
     const ladder = (tl: CommitTimeline) => `proposed ${tl.at.Proposed} ms · voted ${tl.at.Voted} ms · finalized ${tl.at.Finalized} ms`;
     const settle = async (rc: { blockNumber: bigint }) => trackByTags(pub as never, rc.blockNumber, { pollMs: 50 });
     await fundAusd(addr("alice")); // 10,000 AUSD from Agora's faucet
@@ -317,12 +317,12 @@ async function main() {
       a[ha.toLowerCase()] === 5_000_000_000n - 4_350_000_000n &&
       n[hn.toLowerCase()] === 250_000_000n;
     results.push({
-      name: "Kakushi Pay on real AUSD",
+      name: "Kakushi Confidential on real AUSD",
       pass: okBalances && okRequests && peek && after - before === 1_000_000_000n,
       detail: `salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD`,
     });
   } catch (e) {
-    results.push({ name: "Kakushi Pay on real AUSD", pass: false, detail: (e as Error).message.split("\n")[0]! });
+    results.push({ name: "Kakushi Confidential on real AUSD", pass: false, detail: (e as Error).message.split("\n")[0]! });
   }
 
   if (viaCre) {

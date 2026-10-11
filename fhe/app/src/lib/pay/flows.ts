@@ -1,5 +1,5 @@
 "use client";
-// Every Kakushi Pay action, written once against the PayWallet interface (Privy or local fork).
+// Every Kakushi Confidential action, written once against the PayWallet interface (Privy or local fork).
 // Amounts are encrypted in this tab (Zama tfhe WASM) and bound to (sender, cAUSD) before they leave.
 import { BaseError, ContractFunctionRevertedError, encodeFunctionData, parseEventLogs, parseSignature, type Abi, type Hex, type PublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";

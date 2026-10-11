@@ -1,4 +1,4 @@
-// Generates real Kakushi Pay activity on the LOCAL anvil fork so the indexer has something to show:
+// Generates real Kakushi Confidential activity on the LOCAL anvil fork so the indexer has something to show:
 // wrap (approve + wrap), a private pay() with a reference, a plain confidentialTransfer, two pay links
 // claimed by a brand-new account (+ one left open), an operator-run payroll, payment requests (one paid,
 // one too large for the payer's balance and attempted anyway, one cancelled), and an unwrap whose
@@ -57,7 +57,7 @@ const ref = (s: string) => toHex(s, { size: 32 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const AU = (n: number) => BigInt(Math.round(n * 1e6)); // AUSD has 6 decimals
 
-console.log(`Kakushi Pay activity on ${RPC} · token ${TOKEN} (cAUSD over real Agora AUSD)`);
+console.log(`Kakushi Confidential activity on ${RPC} · token ${TOKEN} (cAUSD over real Agora AUSD)`);
 
 console.log("1. wrap: approve + wrap (public amounts)");
 await send("alice", AUSD, erc20, "approve", [TOKEN, AU(2000)]);

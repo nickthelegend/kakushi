@@ -1,8 +1,8 @@
-# Privy in Kakushi Pay
+# Privy in Kakushi Confidential
 
-Kakushi Pay uses Privy for more than login. Four Privy features carry real weight in the product:
+Kakushi Confidential uses Privy for more than login. Four Privy features carry real weight in the product:
 
-| Privy feature | Where | What it does in Kakushi Pay |
+| Privy feature | Where | What it does in Kakushi Confidential |
 | --- | --- | --- |
 | Email / passkey login + **embedded wallet** | `src/lib/pay/privy-bridge.tsx` | Employer, employee and pay-link recipient sign in with an email or a passkey; an Ethereum embedded wallet is created on login (`createOnLogin: "users-without-wallets"`) on Monad testnet (10143). |
 | **Native gas sponsorship** (`sponsor: true`, EIP-7702 + paymaster) | `privy-bridge.tsx` `send()` | Every user transaction (approve, wrap, pay, createLink, claimLink, runPayroll, setOperator, unwrap) goes through `useSendTransaction(..., { sponsor: true })`. A pay-link recipient who has never held MON claims their money. `msg.sender` stays the user's address, so Kakushi input proofs (bound to the sender) still verify. |
@@ -16,7 +16,7 @@ Defense in depth for automated payroll: (1) on-chain, the operator can only act 
 
 `NEXT_PUBLIC_PRIVY_APP_ID` is unset, so:
 
-- every Kakushi Pay page shows a "Privy not configured" banner and offers the LOCAL ANVIL ONLY dev accounts (Alice, Bob, Carol) plus a "New guest account" (a fresh key kept in the browser, fork only);
+- every Kakushi Confidential page shows a "Privy not configured" banner and offers the LOCAL ANVIL ONLY dev accounts (Alice, Bob, Carol) plus a "New guest account" (a fresh key kept in the browser, fork only);
 - `@privy-io/react-auth` is not even bundled: `next.config.ts` aliases it to `src/lib/pay/privy-stub.ts` (types still come from the real package, so `tsc` checks the real Privy API);
 - the payroll operator is a dev key (anvil #7) and pay-link claims are submitted by a local sponsor relayer (`/api/sponsor`, anvil #8, only `claimLink`); `/api/faucet` gives fresh fork accounts gas and test AUSD. All three refuse to run unless `KAKUSHI_FHE_NETWORK=local`.
 
@@ -27,7 +27,7 @@ Defense in depth for automated payroll: (1) on-chain, the operator can only act 
 3. **Embedded wallets**: enable Ethereum embedded wallets. Native gas sponsorship requires **TEE execution**; new apps use it, older apps migrate per Privy's TEE migration guide.
 4. **Allowed origins** (App settings > Domains): add `http://localhost:3810` and your deployed origin.
 5. **Gas sponsorship** (Dashboard > Fee sponsorship): set up billing (prepaid credits; per the docs a saved payment method is only required for mainnets), turn on **Sponsor gas fees**, under **Supported chains** select **Monad Testnet**, and allow sponsored transactions **from the client** (the React SDK sends them).
-6. **Server wallet + policy** (needs Kakushi Pay deployed to Monad testnet, i.e. `contracts/deployments/testnet-apps.json` with `causd`, see `DEPLOY-LATER.md`):
+6. **Server wallet + policy** (needs Kakushi Confidential deployed to Monad testnet, i.e. `contracts/deployments/testnet-apps.json` with `causd`, see `DEPLOY-LATER.md`):
 
    ```bash
    cd app
@@ -67,4 +67,4 @@ None of the Privy code paths have run against Privy: they compile against the re
 
 - that `useSignTransaction` returns the serialized signed transaction (the fork path throws a clear error if it returns only a signature);
 - that sponsored server-wallet sends pass the policy (if Privy also asks the policy about an EIP-7702 authorization, add an `eth_sign7702Authorization` rule);
-- ERC-2612 permits are not used with Privy wallets on purpose: an EIP-7702-upgraded account has code, and tokens that check ERC-1271 first would reject a plain ECDSA permit, so Kakushi Pay sends approve + wrap, both sponsored.
+- ERC-2612 permits are not used with Privy wallets on purpose: an EIP-7702-upgraded account has code, and tokens that check ERC-1271 first would reject a plain ECDSA permit, so Kakushi Confidential sends approve + wrap, both sponsored.

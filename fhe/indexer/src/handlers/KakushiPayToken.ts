@@ -1,4 +1,4 @@
-// Kakushi Pay token events: wrap / unwrap (public amounts), confidential payments, pay links, payment
+// Kakushi Confidential token events: wrap / unwrap (public amounts), confidential payments, pay links, payment
 // requests, payroll.
 // Amounts of payments are euint64 ciphertext handles; they are stored as handles, never as numbers.
 import { indexer, type PayLink, type PayRequest, type PayrollRun, type Unwrap } from "envio";
