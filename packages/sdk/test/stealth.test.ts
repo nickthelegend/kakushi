@@ -14,6 +14,7 @@ import {
 } from "viem";
 import { privateKeyToAccount, publicKeyToAddress } from "viem/accounts";
 import {
+  FHE_CONFIDENTIAL_SELECTOR,
   NATIVE_TOKEN,
   STEALTH_KEYS_MESSAGE,
   buildRegisterKeysCalldata,
@@ -143,6 +144,26 @@ describe("metadata", () => {
     const md = encodeStealthMetadata({ viewTag: 1, token, amount: 5_000_000n });
     expect(md.length).toBe(2 + 57 * 2);
     expect(decodeStealthMetadata(md)).toEqual({ viewTag: 1, selector: "0xa9059cbb", kind: "erc20", token, amount: 5_000_000n });
+  });
+  it("StealthPay's transferFrom selector (0x23b872dd) decodes as erc20", () => {
+    const md = `0x01${"23b872dd"}${token.slice(2)}${numberToHex(7n, { size: 32 }).slice(2)}` as Hex;
+    expect(decodeStealthMetadata(md)).toMatchObject({ kind: "erc20", token, amount: 7n });
+  });
+  it("FHE layout: tag | 0xfe0000fe | confidential token | encrypted euint64 handle (never a number)", () => {
+    const ctoken = "0x1111111111111111111111111111111111111111" as Hex;
+    const handle = "0x9f2c3a0000000000000000000000000000000000000000000000000000000004" as Hex;
+    const md = encodeStealthMetadata({ viewTag: 0x2a, token: ctoken, encryptedAmount: handle });
+    expect(FHE_CONFIDENTIAL_SELECTOR).toBe("0xfe0000fe");
+    expect(md).toBe(`0x2afe0000fe${ctoken.slice(2)}${handle.slice(2)}`);
+    // the same 57 bytes ConfidentialStealthPay.metadataFor writes on-chain
+    expect(md.length).toBe(2 + 57 * 2);
+    const d = decodeStealthMetadata(md);
+    expect(d).toEqual({ viewTag: 0x2a, selector: "0xfe0000fe", kind: "confidential", token: ctoken, encryptedAmount: handle });
+    expect(d.amount).toBeUndefined();
+    expect(decodeStealthMetadata(encodeStealthMetadata({ viewTag: 1, token: ctoken, encryptedAmount: handle, dstChainId: 10143 })).dstChainId).toBe(10143n);
+    expect(() => encodeStealthMetadata({ viewTag: 1, token: ctoken, encryptedAmount: handle, amount: 1n })).toThrow();
+    expect(() => encodeStealthMetadata({ viewTag: 1, token: "native", encryptedAmount: handle })).toThrow();
+    expect(() => encodeStealthMetadata({ viewTag: 1, token: ctoken, encryptedAmount: "0x1234" })).toThrow();
   });
   it("tag-only and unknown selectors decode partially; bad input is rejected", () => {
     expect(decodeStealthMetadata("0x7f")).toEqual({ viewTag: 0x7f });

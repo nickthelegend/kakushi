@@ -18,6 +18,17 @@
 //   57      32    dstChainId (uint256, big-endian) - OPTIONAL Kakushi extension: the chain the
 //                 funds are (or will be) on when the payment was routed cross-chain
 // Metadata shorter than 57 bytes carries only what is present (e.g. just the view tag).
+// StealthPay.sol announces ERC-20 payments with 0x23b872dd (transferFrom); both selectors decode as "erc20".
+//
+// Kakushi Confidential (FHE) payments, "hide who AND how much" (fhe/contracts ConfidentialStealthPay):
+//   0       1     viewTag
+//   1       4     selector: 0xfe0000fe (FHE_CONFIDENTIAL_SELECTOR)
+//   5       20    token: the CONFIDENTIAL token (e.g. KakushiPayToken / cUSDC), not the underlying ERC-20
+//   25      32    encryptedAmount: the euint64 handle of the amount moved, a ciphertext reference, never a
+//                 number. The token lets the stealth address user-decrypt it (EIP-712 signed by the
+//                 stealth private key) through the Kakushi FHE gateway.
+//   57      32    dstChainId, optional as above
+// Decoded with kind "confidential", `encryptedAmount` set and `amount` left undefined.
 import { secp256k1 } from "@noble/curves/secp256k1";
 import {
   type Hex,
@@ -46,6 +57,10 @@ export const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as cons
 export const NATIVE_SELECTOR = "0xeeeeeeee" as const;
 /** ERC-20 transfer(address,uint256) selector, used as the metadata selector for token payments. */
 export const ERC20_TRANSFER_SELECTOR = "0xa9059cbb" as const;
+/** ERC-20 transferFrom selector: what StealthPay.sendToken writes; decoded as an ERC-20 payment too. */
+export const ERC20_TRANSFER_FROM_SELECTOR = "0x23b872dd" as const;
+/** Kakushi Confidential (FHE): the amount slot holds an encrypted euint64 handle (layout at the top). */
+export const FHE_CONFIDENTIAL_SELECTOR = "0xfe0000fe" as const;
 
 const N = secp256k1.CURVE.n;
 const Point = secp256k1.ProjectivePoint;
@@ -221,18 +236,22 @@ export function computeStealthPrivateKey(spendingKey: Hex, viewingKey: Hex, ephe
 
 export interface StealthMetadataInput {
   viewTag: number;
-  /** "native" (or NATIVE_TOKEN) for the native coin, else the ERC-20 address */
+  /** "native" (or NATIVE_TOKEN) for the native coin, else the ERC-20 (or, with encryptedAmount, the confidential token) address */
   token?: Hex | "native";
   amount?: bigint;
+  /** Kakushi Confidential: the euint64 handle (bytes32) of the encrypted amount; excludes `amount` */
+  encryptedAmount?: Hex;
   dstChainId?: bigint | number;
 }
 
 export interface StealthMetadata {
   viewTag: number;
   selector?: Hex;
-  kind?: "native" | "erc20" | "other";
+  kind?: "native" | "erc20" | "confidential" | "other";
   token?: Hex;
   amount?: bigint;
+  /** kind "confidential": the euint64 handle of the encrypted amount (decrypt it with the stealth key) */
+  encryptedAmount?: Hex;
   dstChainId?: bigint;
 }
 
@@ -246,6 +265,14 @@ export function encodeStealthMetadata(m: StealthMetadataInput): Hex {
   }
   const native = m.token === "native" || m.token.toLowerCase() === NATIVE_TOKEN.toLowerCase();
   if (!native && !isAddress(m.token, { strict: false })) throw new Error(`bad token ${m.token}`);
+  if (m.encryptedAmount !== undefined) {
+    if (native) throw new Error("an encrypted amount needs a confidential token");
+    if (m.amount !== undefined) throw new Error("pass amount or encryptedAmount, not both");
+    if (!/^0x[0-9a-fA-F]{64}$/.test(m.encryptedAmount)) throw new Error("encryptedAmount must be a 32-byte handle");
+    const parts: Hex[] = [tag, FHE_CONFIDENTIAL_SELECTOR, m.token as Hex, m.encryptedAmount];
+    if (m.dstChainId !== undefined) parts.push(numberToHex(BigInt(m.dstChainId), { size: 32 }));
+    return concat(parts).toLowerCase() as Hex;
+  }
   const amount = m.amount ?? 0n;
   if (amount < 0n || amount >= 2n ** 256n) throw new Error("amount out of range");
   const parts: Hex[] = [tag, native ? NATIVE_SELECTOR : ERC20_TRANSFER_SELECTOR, native ? NATIVE_TOKEN : (m.token as Hex), numberToHex(amount, { size: 32 })];
@@ -260,10 +287,15 @@ export function decodeStealthMetadata(metadata: Hex): StealthMetadata {
   const out: StealthMetadata = { viewTag: Number(BigInt(slice(metadata, 0, 1))) };
   if (n >= 5) {
     out.selector = slice(metadata, 1, 5);
-    out.kind = out.selector === NATIVE_SELECTOR ? "native" : out.selector === ERC20_TRANSFER_SELECTOR ? "erc20" : "other";
+    const sel = out.selector.toLowerCase();
+    out.kind =
+      sel === NATIVE_SELECTOR ? "native" : sel === ERC20_TRANSFER_SELECTOR || sel === ERC20_TRANSFER_FROM_SELECTOR ? "erc20" : sel === FHE_CONFIDENTIAL_SELECTOR ? "confidential" : "other";
   }
   if (n >= 25) out.token = getAddress(slice(metadata, 5, 25));
-  if (n >= 57) out.amount = BigInt(slice(metadata, 25, 57));
+  if (n >= 57) {
+    if (out.kind === "confidential") out.encryptedAmount = slice(metadata, 25, 57);
+    else out.amount = BigInt(slice(metadata, 25, 57));
+  }
   if (n >= 89) out.dstChainId = BigInt(slice(metadata, 57, 89));
   return out;
 }
@@ -318,7 +350,7 @@ export interface StealthMatch extends StealthMetadata {
   txHash: Hex;
   logIndex: number;
   stealthPrivateKey?: Hex;
-  /** balance of `token` (or native when no token is known), when `withBalances` is set */
+  /** balance of `token` (or native when no token is known or the amount is confidential), when `withBalances` is set */
   balance?: bigint;
 }
 
@@ -370,6 +402,7 @@ export async function scanAnnouncements(client: PublicClient, announcer: Hex, fr
     opts.onProgress?.(to);
   }
   if (opts.withBalances) {
+    // a confidential match's token balance is a ciphertext: its `balance` is the stealth address's native (gas) balance
     for (const m of out) m.balance = await stealthBalance(client, m.stealthAddress, m.kind === "erc20" ? m.token : undefined);
   }
   return out;
