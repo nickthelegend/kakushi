@@ -4,12 +4,15 @@
 > Monad. The ZK half (stealth addresses, shielded pool, private calls, private bridge) lives in
 > `../packages`. `fhe/` is its own pnpm workspace with its own lockfile; run its commands from here.
 
-**Confidential payments infrastructure for Monad.** Kakushi Confidential is a fully homomorphic encryption network
+**Confidential payments infrastructure for Monad.** Kakushi's FHE engine is a fully homomorphic encryption network
 built for Monad: balances and amounts stay encrypted on-chain while contracts still compute on them.
-**Kakushi Pay** is the product on top: real stablecoins (Agora AUSD, Circle USDC) whose every balance,
-payment, salary and pay link is a ciphertext. The chain sees who paid whom and when; never how much.
+**Kakushi Confidential** is the product on top: real stablecoins (Agora AUSD, Circle USDC) whose every balance,
+payment, salary and pay link is a ciphertext. The chain sees who paid whom and when; never how much. Pay a
+**private recipient** (Kakushi's ZK-side stealth addresses) and it no longer sees who either; see
+[One app, both engines](#one-app-both-engines).
+(Not to be confused with "Kakushi Pay", the ZK side's drop-in payment widget.)
 
-| Kakushi Pay | What happens on-chain |
+| Kakushi Confidential | What happens on-chain |
 |---|---|
 | Make AUSD private (one signature, gas sponsored) | `wrapWithAuthorization` (ERC-3009): a public deposit becomes an encrypted balance |
 | Pay a friend | `pay(to, encryptedAmount, proof, ref)`: both balances updated homomorphically |
@@ -93,7 +96,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | `KakushiACL` | `contracts/src/lib` | Persistent grants plus **transient** grants in EIP-1153 storage (free within a tx). |
 | `KakushiInputVerifier` | `contracts/src/lib` | k-of-n EIP-712 `InputAttestation(handle, user, contract)`: an input only works for the user and contract it was encrypted for. |
 | `KakushiDecryptionOracle` | `contracts/src/oracle` | Public reveals with **automatic callbacks**, k-of-n KMS signatures, Chainlink CRE `onReport`. |
-| `ConfidentialPayments` | `contracts/src/apps` | Kakushi Pay: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payment requests, encrypted payroll (operators relay only employer-signed EIP-712 batches, one payment per reference), gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
+| `ConfidentialPayments` | `contracts/src/apps` | Kakushi Confidential: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payment requests, encrypted payroll (operators relay only employer-signed EIP-712 batches, one payment per reference), gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
 | `KakushiRegistry` | `contracts/src/lib` | CREATE3 via CreateX: **the same address on every chain** (`0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7`). `KakushiConfig` reads it, which makes the integration one inheritance. |
 | kakushi-fhe-engine | `engine/` | Rust + axum over tfhe-rs 1.8.1: keygen, input validation, every op, select, random, decrypt. |
 | coprocessor | `coprocessor/` | Follows the executor's events and schedules the op graph in parallel, respecting handle dependencies. Gateway (inputs, sealed user decryption), KMS, metrics. |
@@ -101,9 +104,9 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | SDK | `sdk/` | `KakushiFheClient.encrypt / userDecrypt / waitForDecryption`. Encryptors: Zama `node-tfhe` (Node, pure JS, ~40 ms), the engine CLI, and `tfhe` WASM with a thread pool (browser). |
 | MetaMask plugin | `plugins/mm-kakushi/` | `mm kakushi …`: confidential trading for the MetaMask Agent Wallet (dark OTC, sealed bids, confidential USDC). |
 | Skills | `skills/` | Agent skills: write confidential contracts, use the SDK, operate the network. |
-| Kakushi Pay web | `app/` | `/pay` (send, pay links, reveal, cash out), `/pay/employer` (encrypted payroll, operator + scheduled runs), `/claim`, `/activity` (Envio), live Monad heartbeat; Privy (embedded wallet, gas sponsorship, server wallet + policy). Plus the playground, developer docs and metrics. |
-| Kakushi Pay mobile | `mobile/` | Expo app for Agora's bounty: Mera passkey accounts, AUSD faucet, gasless private wrap, encrypted sends and pay links, claim, reveal, cash out, settlement ladder. tfhe runs in a hidden WebView (Hermes has no WebAssembly). |
-| Indexer | `indexer/` | Envio HyperIndex over Kakushi Pay, the oracle and the executor: payment graph without amounts, link lifecycle, payroll runs, reveal latency, public TVL. |
+| Kakushi Confidential web | `app/` | `/pay` (send, pay links, reveal, cash out), `/pay/employer` (encrypted payroll, operator + scheduled runs), `/claim`, `/activity` (Envio), live Monad heartbeat; Privy (embedded wallet, gas sponsorship, server wallet + policy). Plus the playground, developer docs and metrics. |
+| Kakushi Confidential mobile | `mobile/` | Expo app for Agora's bounty: Mera passkey accounts, AUSD faucet, gasless private wrap, encrypted sends and pay links, claim, reveal, cash out, settlement ladder. tfhe runs in a hidden WebView (Hermes has no WebAssembly). |
+| Indexer | `indexer/` | Envio HyperIndex over Kakushi Confidential, the oracle and the executor: payment graph without amounts, link lifecycle, payroll runs, reveal latency, public TVL. |
 
 ### Decryption, three ways
 
@@ -167,7 +170,7 @@ tfhe-rs ciphertexts on a fork of Monad testnet (`node scripts/e2e-local.ts --del
 PASS  Sealed-bid auction               winner bob @ 1337; close -> callback 4950 ms; bob user-decrypted his bid = 1337; losing bids never decrypted
 PASS  Confidential USDC (any ERC-20)   bob sees 20 cUSDC, alice 30 cUSDC, carol refused; bob unwrapped 5 real USDC
 PASS  Dark OTC                         bob @3000 missed (nothing revealed), carol @3200 crossed at the maker's 3150
-PASS  Kakushi Pay on real AUSD           salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD
+PASS  Kakushi Confidential on real AUSD           salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD
 PASS  Chainlink CRE delivery           4/4 callbacks delivered by CRE reports through the KeystoneForwarder (KMS signatures re-verified on-chain)
 ```
 
@@ -244,7 +247,7 @@ Requirements: Node ≥ 22.18, pnpm 10, Foundry, Rust (stable), and the `cre` CLI
 pnpm install
 pnpm engine:build && mkdir -p engine/bin && cp engine/target/release/kakushi-fhe-engine engine/bin/
 pnpm contracts:test                                               # Solidity tests
-pnpm e2e                                                          # fork + engine + deploy + 4 scenarios (incl. Kakushi Pay on real AUSD)
+pnpm e2e                                                          # fork + engine + deploy + 4 scenarios (incl. Kakushi Confidential on real AUSD)
 pnpm e2e --deliver cre                                            # same, every callback through Chainlink CRE
 node scripts/e2e-local.ts --keep --deliver cre                    # keep the stack up for the app
 pnpm --filter @kakushi/fhe-app dev                                      # http://localhost:3810 (/pay, /pay/employer, /activity)
@@ -259,7 +262,7 @@ cd indexer && pnpm install && node scripts/configure.ts           # then envio s
 | kakushi-fhe-engine | 8899 |
 | coprocessor + gateway | 8890 |
 | local CRE runner | 8891 |
-| app (Kakushi Pay web) | 3810 |
+| app (Kakushi Confidential web) | 3810 |
 | indexer GraphQL (Hasura) / Postgres / Envio indexer | 8892 / 5442 / 9908 |
 
 These do not overlap the ZK side of the monorepo (anvils 18710-18714, app and services 3710-3715,
@@ -268,6 +271,25 @@ These do not overlap the ZK side of the monorepo (anvils 18710-18714, app and se
 Environment variables use the `KAKUSHI_FHE_` prefix (`KAKUSHI_FHE_NETWORK`, `KAKUSHI_FHE_GATEWAY_URL`,
 `KAKUSHI_FHE_RPC_URL`, `KAKUSHI_FHE_OFFLINE`, ...). Local state (engine keys, follower cursors) lives in
 `.kakushi-fhe/` (gitignored); signer keys in `.secrets/` (gitignored).
+
+### One app, both engines
+
+The Kakushi app (`../packages/app`) runs Kakushi Confidential at `/confidential` on the same local
+Monad fork as the ZK contracts (:18710), next to Send / Receive / Shield / Bridge:
+
+```bash
+# from the repository root, after pnpm stack:up && pnpm deploy:local
+node scripts/fhe-local.ts up       # FHE core + cUSDC/cAUSD over the fork's real USDC/AUSD + ConfidentialStealthPay,
+                                   # engine :8899 + gateway :8890 (PIDs in .stack/demo-pids), config/generated/fhe.local.json
+node scripts/fhe-stealth-e2e.ts    # wrap -> encrypted pay to a stealth address -> scan -> stealth-key reveal -> move -> reveal
+node scripts/fhe-local.ts down     # stops exactly the PIDs it started
+```
+
+`ConfidentialStealthPay` (`contracts/src/apps`) moves an encrypted amount to an ERC-5564 stealth address,
+forwards native gas to it and announces it on Kakushi's StealthAnnouncer with FHE metadata
+(`0xfe0000fe`, the confidential token, the encrypted amount's handle; documented in
+`packages/sdk/src/stealth.ts`). The recipient's inbox reveals the amount with the stealth private key and
+moves the encrypted balance to their main wallet without ever decrypting it.
 
 ### Use it in your contract
 
@@ -307,8 +329,8 @@ coprocessor/ TypeScript: op-graph scheduler, gateway, KMS, metrics
 cre/         Chainlink CRE workflow kakushi-fhe-decrypt-relay + local runner
 sdk/         TypeScript client (Node + browser)
 plugins/     mm-kakushi: MetaMask Agent Wallet plugin
-app/         Next.js: Kakushi Pay web (pay, payroll, claim, activity), playground, developers, metrics
-mobile/      Expo: Kakushi Pay mobile (Mera passkeys, AUSD)
+app/         Next.js: Kakushi Confidential web (pay, payroll, claim, activity), playground, developers, metrics
+mobile/      Expo: Kakushi Confidential mobile (Mera passkeys, AUSD)
 indexer/     Envio HyperIndex
 skills/      Agent skills
 scripts/     e2e-local.ts

@@ -12,6 +12,19 @@ import {KakushiErrors} from "../src/lib/KakushiErrors.sol";
 import {KakushiConfigStruct, KakushiType, externalEuint64, externalEbool, euint64} from "../src/lib/KakushiTypes.sol";
 import {KakushiAuction, KakushiVote, ConfidentialWrappedToken, KakushiDarkOTC} from "../src/examples/Examples.sol";
 import {IERC20Like} from "../src/apps/ConfidentialERC20Wrapper.sol";
+import {ConfidentialStealthPay, IERC5564AnnouncerLike} from "../src/apps/ConfidentialStealthPay.sol";
+
+/// Records the last ERC-5564 announcement (Kakushi's StealthAnnouncer emits the same fields).
+contract RecordingAnnouncer {
+    event Announcement(uint256 indexed schemeId, address indexed stealthAddress, address indexed caller, bytes ephemeralPubKey, bytes metadata);
+    bytes public lastMetadata;
+    address public lastStealth;
+    function announce(uint256 schemeId, address stealthAddress, bytes memory ephemeralPubKey, bytes memory metadata) external {
+        lastMetadata = metadata;
+        lastStealth = stealthAddress;
+        emit Announcement(schemeId, stealthAddress, msg.sender, ephemeralPubKey, metadata);
+    }
+}
 
 contract TestToken {
     mapping(address => uint256) public balanceOf;
@@ -292,7 +305,7 @@ contract KakushiFheTest is Test {
         assertTrue(open, "order stays open, its limit still secret");
     }
 
-    // ------------------------------------------------------------------ Kakushi Pay
+    // ------------------------------------------------------------------ Kakushi Confidential
 
     function _payToken() internal returns (KakushiPayToken c, TestToken usd) {
         usd = new TestToken();
@@ -507,5 +520,48 @@ contract KakushiFheTest is Test {
         c.wrap(room); // exactly up to it is fine
         vm.stopPrank();
         assertEq(usd.balanceOf(address(c)), type(uint64).max);
+    }
+
+    // ------------------------------------------------------------------ stealth + FHE
+
+    function test_StealthPayHidesWhoAndHowMuch() public {
+        (KakushiPayToken c,) = _payToken();
+        RecordingAnnouncer ann = new RecordingAnnouncer();
+        ConfidentialStealthPay router = new ConfidentialStealthPay(IERC5564AnnouncerLike(address(ann)));
+        address stealth = makeAddr("stealth");
+        bytes memory eph = abi.encodePacked(bytes1(0x02), bytes32(uint256(7)));
+        // the amount is encrypted for (user = router, contract = token): the token sees the router as caller
+        (bytes32 h, bytes memory p) = _input(KakushiType.EUINT64, address(router), address(c));
+
+        // without the one-time operator grant the router cannot move alice's balance
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        vm.expectRevert();
+        router.pay{value: 0.05 ether}(address(c), ConfidentialStealthPay.StealthRecipient(stealth, eph, bytes1(0x2a)), externalEuint64.wrap(h), p);
+
+        vm.prank(alice);
+        c.setOperator(address(router), uint48(block.timestamp + 1 days));
+        vm.prank(alice);
+        euint64 sent = router.pay{value: 0.05 ether}(address(c), ConfidentialStealthPay.StealthRecipient(stealth, eph, bytes1(0x2a)), externalEuint64.wrap(h), p);
+
+        assertEq(stealth.balance, 0.05 ether, "gas forwarded to the stealth address");
+        assertEq(ann.lastStealth(), stealth);
+        assertEq(ann.lastMetadata(), abi.encodePacked(bytes1(0x2a), bytes4(0xfe0000fe), address(c), euint64.unwrap(sent)), "FHE metadata");
+        // the stealth address (and the sender) may decrypt the amount and the new balance; nobody else
+        assertTrue(acl.isAllowed(euint64.unwrap(sent), stealth));
+        assertTrue(acl.isAllowed(euint64.unwrap(sent), alice));
+        assertFalse(acl.isAllowed(euint64.unwrap(sent), bob));
+        assertTrue(acl.isAllowed(euint64.unwrap(c.confidentialBalanceOf(stealth)), stealth));
+
+        // the stealth address moves its whole encrypted balance on without ever seeing a plaintext
+        euint64 bal = c.confidentialBalanceOf(stealth);
+        vm.prank(stealth);
+        c.confidentialTransfer(bob, bal);
+        assertTrue(acl.isAllowed(euint64.unwrap(c.confidentialBalanceOf(bob)), bob));
+
+        // a bad ephemeral key is refused before anything moves
+        vm.prank(alice);
+        vm.expectRevert(ConfidentialStealthPay.InvalidEphemeralPubKey.selector);
+        router.pay(address(c), ConfidentialStealthPay.StealthRecipient(stealth, hex"04", bytes1(0)), externalEuint64.wrap(h), p);
     }
 }

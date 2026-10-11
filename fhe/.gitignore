@@ -22,3 +22,4 @@ engine/bin/
 *.tsbuildinfo
 .cre_build_tmp.js
 binary.wasm
+contracts/deployments/hub-local.json
