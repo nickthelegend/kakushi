@@ -4,6 +4,12 @@ Kakushi is a fast Maker bridge for Monad, built as a competitor to Orbiter Finan
 
 Kakushi routes payments through competing Makers, with dispute proofs and Maker margin accounting on Monad. Local code and tests exist; sponsor integration and production readiness remain separate gates. See [PLAN](PLAN.md), [sponsor gaps](docs/SPONSOR-GAP.md), [deployment hold](docs/DEPLOY-LATER.md), and [submission checklist](SUBMISSION.md).
 
+## FHE (Kakushi Confidential)
+
+Kakushi is the privacy provider for Monad on two engines: ZK (stealth addresses, shielded pool, private calls, private bridge; `packages/`) hides *who*, and fully homomorphic encryption hides *how much*. The FHE half lives in [`fhe/`](fhe/README.md) (formerly Fhish, imported with its history): a native Zama tfhe-rs engine, a parallel coprocessor, k-of-n input attestation and KMS, the gateway, the `FHE.sol` / `KakushiExecutor` / `KakushiACL` / `KakushiInputVerifier` / `KakushiDecryptionOracle` contracts, `ConfidentialPayments` (Kakushi Pay), `@kakushi/fhe-sdk`, a Chainlink CRE decrypt relay, an Envio indexer, a web app, an Expo mobile app, the `mm kakushi` MetaMask plugin and agent skills. Any contract becomes confidential with `contract MyApp is KakushiConfig` and the Zama-compatible `FHE.*` API.
+
+`fhe/` is a separate pnpm workspace with its own lockfile (`cd fhe && pnpm install`); the root workspace does not include it. Its local ports (engine 8899, gateway 8890, CRE runner 8891, fork 18810, app 3810, indexer 8892/5442/9908) do not overlap the ZK stack's. CI runs its jobs as `fhe-*` in `.github/workflows/ci.yml`.
+
 ## Local runbook
 
 Use Node 22.18+ and pnpm 10.29.2, Foundry, and the repository-pinned Noir tooling. Run `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm contracts:test`, and `pnpm zk:test` sequentially. App gates are `pnpm --filter @kakushi/app typecheck` and `pnpm --filter @kakushi/app build`. Limit heavy builds to one at a time on this shared machine.
