@@ -152,7 +152,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24 }
       - run: pnpm install --frozen-lockfile   # standalone workspace (fhe/indexer/pnpm-workspace.yaml)
-      - run: pnpm configure                    # config.yaml from fhe/contracts/deployments/local*.json
+      # config.yaml + src/network.generated.ts are committed: `pnpm configure` reads token symbols from a
+      # live RPC, which CI does not have (it would fall back to the lowercase keys)
       - run: pnpm codegen
       - run: pnpm typecheck
       - run: pnpm test
