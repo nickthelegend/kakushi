@@ -1,0 +1,7 @@
+node_modules
+build/
+logs/
+.env
+.envio/types.d.ts
+*.res.js
+*.res.mjs

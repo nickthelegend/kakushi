@@ -1,0 +1,11 @@
+{
+  "schedule": "*/30 * * * * *",
+  "chainSelectorName": "monad-testnet",
+  "oracle": "0x6A70da54762fF8637B00bbe35d2FE396fBf1cF97",
+  "gatewayUrl": "http://127.0.0.1:8890",
+  "readAt": "latest",
+  "confidence": "LATEST",
+  "sweepMax": 8,
+  "maxWrites": 3,
+  "gasLimit": "600000"
+}

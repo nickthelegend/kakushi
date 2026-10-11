@@ -1,0 +1,26 @@
+# CRE workflow settings for fhish-decrypt-relay (one block per target in ../../project.yaml).
+# Config files are generated from contracts/deployments by `pnpm --filter @fhish/cre configure`.
+local-settings:
+  user-workflow:
+    workflow-name: "fhish-decrypt-relay"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.local.json"
+    secrets-path: ""
+
+staging-settings:
+  user-workflow:
+    workflow-name: "fhish-decrypt-relay"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.testnet.json"
+    secrets-path: ""
+
+production-settings:
+  user-workflow:
+    workflow-name: "fhish-decrypt-relay"
+    deployment-registry: "private"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.testnet.json"
+    secrets-path: ""

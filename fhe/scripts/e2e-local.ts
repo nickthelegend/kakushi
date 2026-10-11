@@ -1,0 +1,363 @@
+// End-to-end on a local Monad-testnet fork with REAL tfhe-rs ciphertexts.
+//   node scripts/e2e-local.ts [--keep] [--deliver cre]
+// Starts: anvil fork (:18810), fhish-engine (:8899), coprocessor+gateway (:8890). Stops them unless --keep.
+// --deliver cre: the coprocessor only signs results; every callback is delivered by the local CRE
+// runner (cre/local/runner.ts, :8891) through Chainlink's MockKeystoneForwarder -> oracle.onReport.
+import { spawn, execFileSync, type ChildProcess } from "node:child_process";
+import { readFileSync, openSync, mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { createPublicClient, createWalletClient, http, parseEventLogs, defineChain, type Hex, parseAbi, getContract, keccak256, toHex, parseSignature } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { FhishClient, waitForDecryption } from "../sdk/src/index.ts";
+import { trackByTags, type CommitTimeline } from "../sdk/src/monad.ts";
+import { nativeEncryptor } from "../sdk/src/node.ts";
+
+const ROOT = fileURLToPath(new URL("../", import.meta.url));
+const PORT = 18810;
+const RPC = `http://127.0.0.1:${PORT}`;
+const GATEWAY = "http://127.0.0.1:8890";
+const ENGINE_BIN = `${ROOT}engine/bin/fhish-engine`;
+const USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3"; // Circle USDC on Monad testnet
+const AUSD = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC"; // Agora AUSD on Monad testnet (6 dp, ERC-2612 + ERC-3009)
+const AUSD_FAUCET = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C"; // Agora's testnet faucet: requestFunds(address) -> 10,000 AUSD, 60 s global cooldown
+const keep = process.argv.includes("--keep");
+const viaCre = process.argv.join(" ").includes("--deliver cre");
+const CRE_FORWARDER = "0xB9F79d863261869B234c481D1f9A7af84AeAd192"; // Chainlink MockKeystoneForwarder on Monad testnet
+const procs: ChildProcess[] = [];
+const results: { name: string; pass: boolean; detail: string }[] = [];
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const say = (m: string) => console.log(`\n\x1b[1m${m}\x1b[0m`);
+// LOCAL ANVIL ONLY: Foundry's public dev keys
+const KEYS = {
+  alice: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+  bob: "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+  carol: "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+} as const;
+
+function start(name: string, cmd: string, args: string[], env: Record<string, string> = {}, cwd = ROOT) {
+  mkdirSync(`${ROOT}.stack`, { recursive: true });
+  const out = openSync(`${ROOT}.stack/${name}.log`, "w");
+  const p = spawn(cmd, args, { cwd, env: { ...process.env, ...env }, stdio: ["ignore", out, out] });
+  procs.push(p);
+  return p;
+}
+async function until(what: string, fn: () => Promise<boolean>, ms = 60_000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await fn().catch(() => false)) return;
+    await sleep(300);
+  }
+  throw new Error(`timeout: ${what}`);
+}
+
+const chain = defineChain({ id: 10143, name: "Monad testnet (local fork)", nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
+const pub = createPublicClient({ chain, transport: http(RPC) });
+const rpc = (method: string, params: unknown[]) => pub.request({ method: method as never, params: params as never });
+const art = (file: string, name: string) => JSON.parse(readFileSync(`${ROOT}contracts/out/${file}/${name}.json`, "utf8"));
+
+async function deployApp(file: string, name: string, args: unknown[], from: keyof typeof KEYS) {
+  const a = art(file, name);
+  const w = createWalletClient({ chain, account: privateKeyToAccount(KEYS[from]), transport: http(RPC) });
+  const hash = await w.deployContract({ abi: a.abi, bytecode: a.bytecode.object, args, chain, account: w.account });
+  const rc = await pub.waitForTransactionReceipt({ hash });
+  return { address: rc.contractAddress as Hex, abi: a.abi };
+}
+function wallet(k: keyof typeof KEYS) {
+  return createWalletClient({ chain, account: privateKeyToAccount(KEYS[k]), transport: http(RPC) });
+}
+async function send(k: keyof typeof KEYS, address: Hex, abi: any, functionName: string, args: unknown[]) {
+  const w = wallet(k);
+  const hash = await w.writeContract({ chain, account: w.account, address, abi, functionName, args, gas: 3_000_000n });
+  const rc = await pub.waitForTransactionReceipt({ hash });
+  if (rc.status !== "success") throw new Error(`${functionName} reverted`);
+  return rc;
+}
+
+
+/** 10,000 real AUSD from Agora's faucet (the fork runs its real code); skips its 60 s cooldown on the fork. */
+async function fundAusd(to: Hex) {
+  const faucet = parseAbi(["function requestFunds(address)"]);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await send("alice", AUSD_FAUCET, faucet, "requestFunds", [to]);
+      return;
+    } catch {
+      await rpc("evm_increaseTime", ["0x3d"]);
+      await rpc("evm_mine", []);
+    }
+  }
+  throw new Error("AUSD faucet refused");
+}
+
+async function main() {
+  const t0 = Date.now();
+  say("1 · local Monad-testnet fork, engine, deploy, coprocessor");
+  // --slots-in-an-epoch 1: the fork's `finalized` tag trails latest by 2 blocks, like Monad (~2-3)
+  // --retries/--fork-retry-backoff/--timeout: the fork lazily reads state from the upstream archive
+  // RPC; without retries a single reset connection panics anvil mid-demo
+  start("anvil", "anvil", ["--port", String(PORT), "--fork-url", process.env.MONAD_FORK_URL ?? "https://rpc-testnet.monadinfra.com", "--block-time", "1", "--slots-in-an-epoch", "1", "--prune-history", "300", "--retries", "12", "--fork-retry-backoff", "750", "--timeout", "60000", "--silent"]);
+  await until("anvil", async () => (await pub.getChainId()) === 10143);
+  const secrets = JSON.parse(readFileSync(`${ROOT}.secrets/signers.json`, "utf8"));
+  const reg = JSON.parse(readFileSync(`${ROOT}contracts/registry-address.json`, "utf8"));
+  // anvil dev keys carry real-testnet EIP-7702 delegations (sweeper bots): clear them on the fork
+  for (const k of Object.values(KEYS)) await rpc("anvil_setCode", [privateKeyToAccount(k).address, "0x"]);
+  for (const a of [reg.deployer, secrets.relayer.address, ...Object.values(KEYS).map((k) => privateKeyToAccount(k).address)]) {
+    await rpc("anvil_setBalance", [a, "0x56BC75E2D63100000"]);
+  }
+  await rpc("anvil_impersonateAccount", [reg.deployer]);
+  execFileSync("forge", ["script", "script/Deploy.s.sol", "--rpc-url", RPC, "--broadcast", "--unlocked", "--sender", reg.deployer], {
+    cwd: `${ROOT}contracts`,
+    stdio: ["ignore", "ignore", "inherit"],
+    env: {
+      ...process.env,
+      DEPLOYER: reg.deployer,
+      INPUT_SIGNERS: secrets.inputSigners.map((s: any) => s.address).join(","),
+      KMS_SIGNERS: secrets.kmsSigners.map((s: any) => s.address).join(","),
+      REGISTRY_SALT: reg.salt,
+      CRE_FORWARDER,
+      FHISH_NETWORK: "local",
+    },
+  });
+  const dep = JSON.parse(readFileSync(`${ROOT}contracts/deployments/local.json`, "utf8"));
+  if (dep.registry.toLowerCase() !== reg.registry.toLowerCase()) throw new Error("registry not at its CREATE3 address");
+  console.log(`  registry ${dep.registry} (same address on every chain) · executor ${dep.executor}`);
+  if (!(await fetch("http://127.0.0.1:8899/health").then((r) => r.ok).catch(() => false))) {
+    start("engine", ENGINE_BIN, ["serve", "--dir", ".fhish", "--port", "8899"]);
+    await until("engine", async () => (await fetch("http://127.0.0.1:8899/health")).ok);
+  }
+  start("coprocessor", "node", ["src/main.ts"], { FHISH_NETWORK: "local", RPC_URL: RPC, DELIVER: viaCre ? "cre" : "direct" }, `${ROOT}coprocessor`);
+  await until("gateway", async () => (await fetch(`${GATEWAY}/health`)).ok);
+  if (viaCre) {
+    start("cre-runner", "node", ["local/runner.ts"], { RPC_URL: RPC, GATEWAY_URL: GATEWAY, CRE_FROM_BLOCK: String(dep.deployBlock) }, `${ROOT}cre`);
+    await until("cre runner", async () => (await fetch("http://127.0.0.1:8891/health")).ok);
+    console.log(`  delivery: Chainlink CRE (local runner) through forwarder ${CRE_FORWARDER}`);
+  }
+
+  const fhish = new FhishClient({ gatewayUrl: GATEWAY, chainId: 10143, encryptor: nativeEncryptor(ENGINE_BIN), publicClient: pub as never });
+  const addr = (k: keyof typeof KEYS) => privateKeyToAccount(KEYS[k]).address;
+
+  // ---------------------------------------------------------------- sealed-bid auction
+  try {
+    say("2 · sealed-bid auction: three encrypted bids, only the winner is revealed");
+    const auction = await deployApp("Examples.sol", "FhishAuction", ["Genesis hanko #1", 30n], "alice");
+    const bids: [keyof typeof KEYS, bigint][] = [["alice", 420n], ["bob", 1337n], ["carol", 900n]];
+    for (const [who, amount] of bids) {
+      const enc = await fhish.encrypt("euint64", amount, auction.address, addr(who));
+      await send(who, auction.address, auction.abi, "bid", [enc.handle, enc.proof]);
+      console.log(`  ${who} bid (encrypt ${enc.ms.encrypt} ms, attest ${enc.ms.attest} ms) — the chain sees only ${enc.handle.slice(0, 18)}…`);
+    }
+    await rpc("evm_increaseTime", ["0x20"]);
+    await rpc("evm_mine", []);
+    const t = Date.now();
+    const rc = await send("carol", auction.address, auction.abi, "close", []);
+    const ev = parseEventLogs({ abi: parseAbi(["event DecryptionRequested(uint256 indexed requestId, address indexed requester, bytes32[] handles, bytes4 callback)"]), logs: rc.logs });
+    await waitForDecryption(pub as never, dep.oracle, ev[0]!.args.requestId);
+    const c = getContract({ address: auction.address, abi: auction.abi, client: pub });
+    const [winner, price] = [await c.read.winner(), await c.read.price()];
+    const ok = (winner as string).toLowerCase() === addr("bob").toLowerCase() && price === 1337n;
+    // bob decrypts his own bid (ACL), nobody else's
+    const mine = (await c.read.myBid({ account: addr("bob") })) as Hex;
+    const dec = await fhish.userDecrypt([mine], auction.address, wallet("bob") as never);
+    results.push({ name: "Sealed-bid auction", pass: ok && dec[mine.toLowerCase()] === 1337n, detail: `winner bob @ ${price}; close -> callback ${Date.now() - t} ms; bob user-decrypted his bid = ${dec[mine.toLowerCase()]}; losing bids never decrypted` });
+  } catch (e) {
+    results.push({ name: "Sealed-bid auction", pass: false, detail: (e as Error).message });
+  }
+
+  // ---------------------------------------------------------------- confidential USDC
+  try {
+    say("3 · confidential USDC: wrap real Monad USDC, encrypted transfer, decrypt balance, unwrap");
+    await rpc("anvil_dealERC20", [addr("alice"), USDC, "0x" + (100_000_000n).toString(16)]);
+    const cusdc = await deployApp("Examples.sol", "ConfidentialWrappedToken", [USDC, "Confidential USDC", "cUSDC"], "alice");
+    const erc = parseAbi(["function approve(address,uint256) returns (bool)", "function balanceOf(address) view returns (uint256)"]);
+    await send("alice", USDC, erc, "approve", [cusdc.address, 50_000_000n]);
+    await send("alice", cusdc.address, cusdc.abi, "wrap", [50_000_000n]);
+    const amt = await fhish.encrypt("euint64", 20_000_000n, cusdc.address, addr("alice"));
+    await send("alice", cusdc.address, cusdc.abi, "confidentialTransfer", [addr("bob"), amt.handle, amt.proof]);
+    const c = getContract({ address: cusdc.address, abi: cusdc.abi, client: pub });
+    const bobBal = (await c.read.confidentialBalanceOf([addr("bob")])) as Hex;
+    const aliceBal = (await c.read.confidentialBalanceOf([addr("alice")])) as Hex;
+    const b = await fhish.userDecrypt([bobBal], cusdc.address, wallet("bob") as never);
+    const a = await fhish.userDecrypt([aliceBal], cusdc.address, wallet("alice") as never);
+    // carol cannot read bob's balance
+    let carolBlocked = false;
+    await fhish.userDecrypt([bobBal], cusdc.address, wallet("carol") as never).catch(() => (carolBlocked = true));
+    const un = await fhish.encrypt("euint64", 5_000_000n, cusdc.address, addr("bob"));
+    const before = (await pub.readContract({ address: USDC, abi: erc, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
+    const rc = await send("bob", cusdc.address, cusdc.abi, "unwrap", [un.handle, un.proof]);
+    const ev = parseEventLogs({ abi: parseAbi(["event DecryptionRequested(uint256 indexed requestId, address indexed requester, bytes32[] handles, bytes4 callback)"]), logs: rc.logs });
+    await waitForDecryption(pub as never, dep.oracle, ev[0]!.args.requestId);
+    const after = (await pub.readContract({ address: USDC, abi: erc, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
+    const pass = b[bobBal.toLowerCase()] === 20_000_000n && a[aliceBal.toLowerCase()] === 30_000_000n && carolBlocked && after - before === 5_000_000n;
+    results.push({ name: "Confidential USDC (any ERC-20)", pass, detail: `bob sees 20 cUSDC, alice 30 cUSDC, carol refused; bob unwrapped 5 real USDC` });
+  } catch (e) {
+    results.push({ name: "Confidential USDC (any ERC-20)", pass: false, detail: (e as Error).message });
+  }
+
+  // ---------------------------------------------------------------- dark OTC
+  try {
+    say("4 · dark OTC: encrypted limits; a miss reveals nothing, a cross reveals the price");
+    const otc = await deployApp("Examples.sol", "FhishDarkOTC", [], "alice");
+    const ask = await fhish.encrypt("euint64", 3_150n, otc.address, addr("alice"));
+    await send("alice", otc.address, otc.abi, "post", ["WMON/USDC", 1000n, ask.handle, ask.proof]);
+    const low = await fhish.encrypt("euint64", 3_000n, otc.address, addr("bob"));
+    const r1 = await send("bob", otc.address, otc.abi, "take", [0n, low.handle, low.proof]);
+    const high = await fhish.encrypt("euint64", 3_200n, otc.address, addr("carol"));
+    const r2 = await send("carol", otc.address, otc.abi, "take", [0n, high.handle, high.proof]);
+    const reqAbi = parseAbi(["event DecryptionRequested(uint256 indexed requestId, address indexed requester, bytes32[] handles, bytes4 callback)"]);
+    for (const rc of [r1, r2]) await waitForDecryption(pub as never, dep.oracle, parseEventLogs({ abi: reqAbi, logs: rc.logs })[0]!.args.requestId);
+    const take2 = (await pub.readContract({ address: otc.address, abi: otc.abi, functionName: "takes", args: [parseEventLogs({ abi: reqAbi, logs: r2.logs })[0]!.args.requestId] })) as any[];
+    const take1 = (await pub.readContract({ address: otc.address, abi: otc.abi, functionName: "takes", args: [parseEventLogs({ abi: reqAbi, logs: r1.logs })[0]!.args.requestId] })) as any[];
+    results.push({ name: "Dark OTC", pass: take1[3] === false && take1[4] === 0n && take2[3] === true && take2[4] === 3150n, detail: `bob @3000 missed (nothing revealed), carol @3200 crossed at the maker's 3150` });
+  } catch (e) {
+    results.push({ name: "Dark OTC", pass: false, detail: (e as Error).message });
+  }
+
+
+  // ---------------------------------------------------------------- Fhish Pay on real AUSD
+  try {
+    say("5 · Fhish Pay on real Agora AUSD: gasless wrap, encrypted payroll, pay link to a new account, cash out");
+    const ladder = (tl: CommitTimeline) => `proposed ${tl.at.Proposed} ms · voted ${tl.at.Voted} ms · finalized ${tl.at.Finalized} ms`;
+    const settle = async (rc: { blockNumber: bigint }) => trackByTags(pub as never, rc.blockNumber, { pollMs: 50 });
+    await fundAusd(addr("alice")); // 10,000 AUSD from Agora's faucet
+    const pay = await deployApp("Examples.sol", "FhishPayToken", [AUSD, "Confidential AUSD", "cAUSD"], "alice");
+    const ausd = parseAbi(["function balanceOf(address) view returns (uint256)"]);
+
+    // gasless onboarding: alice signs an ERC-3009 authorization, carol (a sponsor) submits it
+    const nonce = keccak256(toHex(`fhish-wrap-${Date.now()}`));
+    const value = 5_000_000_000n; // 5,000 AUSD
+    const auth = await privateKeyToAccount(KEYS.alice).signTypedData({
+      domain: { name: "Agora Dollar", version: "1", chainId: 10143, verifyingContract: AUSD },
+      types: { ReceiveWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }] },
+      primaryType: "ReceiveWithAuthorization",
+      message: { from: addr("alice"), to: pay.address, value, validAfter: 0n, validBefore: BigInt(Math.floor(Date.now() / 1000) + 3600), nonce },
+    });
+    const sig = parseSignature(auth);
+    const w0 = await send("carol", pay.address, pay.abi, "wrapWithAuthorization", [addr("alice"), value, 0n, BigInt(Math.floor(Date.now() / 1000) + 3600), nonce, Number(sig.v), sig.r, sig.s]);
+    console.log(`  alice wrapped 5,000 AUSD with one signature; carol paid the gas · ${ladder(await settle(w0))}`);
+
+    // encrypted payroll, run by an operator (a server wallet in production)
+    const ops = "carol" as const;
+    await send("alice", pay.address, pay.abi, "setOperator", [addr(ops), Math.floor(Date.now() / 1000) + 86400]);
+    const salaries: [keyof typeof KEYS, bigint][] = [["bob", 3_200_000_000n], ["carol", 1_150_000_000n]];
+    const enc = [];
+    for (const [, amt] of salaries) enc.push(await fhish.encrypt("euint64", amt, pay.address, addr(ops)));
+    const staff = salaries.map(([w]) => addr(w));
+    const ref = toHex("2026-10", { size: 32 });
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+    // the employer signs the exact batch; the contract verifies it, so the operator only relays
+    const batchSig = await privateKeyToAccount(KEYS.alice).signTypedData({
+      domain: { name: "Fhish Payroll", version: "1", chainId: 10143, verifyingContract: pay.address },
+      types: { PayrollBatch: [{ name: "employer", type: "address" }, { name: "operator", type: "address" }, { name: "to", type: "address[]" }, { name: "amounts", type: "bytes32[]" }, { name: "ref", type: "bytes32" }, { name: "deadline", type: "uint256" }] },
+      primaryType: "PayrollBatch",
+      message: { employer: addr("alice"), operator: addr(ops), to: staff, amounts: enc.map((e) => e.handle), ref, deadline },
+    });
+    const pr = await send(ops, pay.address, pay.abi, "runPayrollFrom", [addr("alice"), staff, enc.map((e) => e.handle), enc.map((e) => e.proof), ref, deadline, batchSig]);
+    console.log(`  payroll: 2 encrypted salaries in one tx · ${ladder(await settle(pr))}`);
+
+    // pay link: bob sends 250 AUSD to someone with no account yet (cross-border, by link)
+    const linkKey = generatePrivateKey();
+    const linkAddr = privateKeyToAccount(linkKey).address;
+    const amt = await fhish.encrypt("euint64", 250_000_000n, pay.address, addr("bob"));
+    const lr = await send("bob", pay.address, pay.abi, "createLink", [amt.handle, amt.proof, linkAddr, BigInt(Math.floor(Date.now() / 1000) + 7 * 86400)]);
+    const linkId = (parseEventLogs({ abi: pay.abi, logs: lr.logs, eventName: "LinkCreated" })[0] as any).args.id as bigint;
+    const newcomer = privateKeyToAccount(generatePrivateKey()); // a brand-new account (e.g. created by a passkey)
+    const digest = (await pub.readContract({ address: pay.address, abi: pay.abi, functionName: "claimDigest", args: [linkId, newcomer.address] })) as Hex;
+    const claimSig = await privateKeyToAccount(linkKey).sign({ hash: digest });
+    const cr = await send("carol", pay.address, pay.abi, "claimLink", [linkId, newcomer.address, claimSig]); // sponsor submits
+    console.log(`  pay link #${linkId} claimed by a new account that never held gas · ${ladder(await settle(cr))}`);
+
+    // everyone reads only their own number
+    const c = getContract({ address: pay.address, abi: pay.abi, client: pub });
+    const bal = async (who: Hex) => (await c.read.confidentialBalanceOf([who])) as Hex;
+    const [hb, hc, ha, hn] = [await bal(addr("bob")), await bal(addr("carol")), await bal(addr("alice")), await bal(newcomer.address)];
+    const b = await fhish.userDecrypt([hb], pay.address, wallet("bob") as never);
+    const cc = await fhish.userDecrypt([hc], pay.address, wallet("carol") as never);
+    const a = await fhish.userDecrypt([ha], pay.address, wallet("alice") as never);
+    const nw = createWalletClient({ chain, account: newcomer, transport: http(RPC) });
+    const n = await fhish.userDecrypt([hn], pay.address, nw as never);
+    let peek = false;
+    await fhish.userDecrypt([hb], pay.address, wallet("carol") as never).catch(() => (peek = true));
+
+    // payment requests (encrypted invoices): carol asks bob for 75 AUSD; the newcomer is asked for more than it has
+    const rq = async (payer: Hex, amount: bigint, ref: string) => {
+      const e = await fhish.encrypt("euint64", amount, pay.address, addr("carol"));
+      const r = await send("carol", pay.address, pay.abi, "requestPayment", [payer, e.handle, e.proof, BigInt(Math.floor(Date.now() / 1000) + 86400), toHex(ref, { size: 32 })]);
+      return (parseEventLogs({ abi: pay.abi, logs: r.logs, eventName: "PaymentRequested" })[0] as any).args.id as bigint;
+    };
+    const carolBefore = (await fhish.userDecrypt([await bal(addr("carol"))], pay.address, wallet("carol") as never));
+    const rent = await rq(addr("bob"), 75_000_000n, "rent october");
+    const dueH = (await c.read.requestDue([rent])) as Hex;
+    const bobSees = (await fhish.userDecrypt([dueH], pay.address, wallet("bob") as never))[dueH.toLowerCase()];
+    await send("bob", pay.address, pay.abi, "payRequest", [rent]);
+    const leftH = (await c.read.requestDue([rent])) as Hex;
+    const left = (await fhish.userDecrypt([leftH], pay.address, wallet("carol") as never))[leftH.toLowerCase()];
+    const carolAfter = await fhish.userDecrypt([await bal(addr("carol"))], pay.address, wallet("carol") as never);
+    const big = await rq(newcomer.address, 10_000_000_000n, "too much");
+    await rpc("anvil_setBalance", [newcomer.address, "0x16345785D8A0000"]); // 0.1 MON for the newcomer's own tx
+    await createWalletClient({ chain, account: newcomer, transport: http(RPC) }).writeContract({ chain, account: newcomer, address: pay.address, abi: pay.abi, functionName: "payRequest", args: [big], gas: 1_500_000n }).then((h) => pub.waitForTransactionReceipt({ hash: h }));
+    const bigLeftH = (await c.read.requestDue([big])) as Hex;
+    const bigLeft = (await fhish.userDecrypt([bigLeftH], pay.address, nw as never))[bigLeftH.toLowerCase()];
+    const okRequests =
+      bobSees === 75_000_000n &&
+      left === 0n &&
+      Object.values(carolAfter)[0]! - Object.values(carolBefore)[0]! === 75_000_000n &&
+      bigLeft === 10_000_000_000n;
+    console.log(`  request #${rent}: bob saw 75 AUSD, paid it, carol +75, now owed ${left}; request #${big} for 10,000 to an account holding 250: nothing moved, still owed ${Number(bigLeft) / 1e6}`);
+
+    // bob cashes out 1,000 AUSD (only that amount is ever revealed)
+    const out = await fhish.encrypt("euint64", 1_000_000_000n, pay.address, addr("bob"));
+    const before = (await pub.readContract({ address: AUSD, abi: ausd, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
+    const ur = await send("bob", pay.address, pay.abi, "unwrap", [out.handle, out.proof]);
+    await waitForDecryption(pub as never, dep.oracle, (parseEventLogs({ abi: pay.abi, logs: ur.logs, eventName: "UnwrapRequested" })[0] as any).args.requestId as bigint);
+    const after = (await pub.readContract({ address: AUSD, abi: ausd, functionName: "balanceOf", args: [addr("bob")] })) as bigint;
+
+    const okBalances =
+      b[hb.toLowerCase()] === 3_200_000_000n - 250_000_000n &&
+      cc[hc.toLowerCase()] === 1_150_000_000n &&
+      a[ha.toLowerCase()] === 5_000_000_000n - 4_350_000_000n &&
+      n[hn.toLowerCase()] === 250_000_000n;
+    results.push({
+      name: "Fhish Pay on real AUSD",
+      pass: okBalances && okRequests && peek && after - before === 1_000_000_000n,
+      detail: `salaries 3,200 / 1,150 AUSD private; link 250 AUSD claimed by a new account; request paid (75) and an unaffordable one left open; carol refused bob's balance; bob cashed out 1,000 real AUSD`,
+    });
+  } catch (e) {
+    results.push({ name: "Fhish Pay on real AUSD", pass: false, detail: (e as Error).message.split("\n")[0]! });
+  }
+
+  if (viaCre) {
+    const ful = await pub.getLogs({ address: dep.oracle, event: parseAbi(["event DecryptionFulfilled(uint256 indexed requestId, uint256[] cleartexts, bool callbackOk, address via)"])[0], fromBlock: BigInt(dep.deployBlock) });
+    const viaFwd = ful.filter((l) => l.args.via?.toLowerCase() === CRE_FORWARDER.toLowerCase()).length;
+    results.push({ name: "Chainlink CRE delivery", pass: ful.length > 0 && viaFwd === ful.length, detail: `${viaFwd}/${ful.length} callbacks delivered by CRE reports through the KeystoneForwarder (KMS signatures re-verified on-chain)` });
+  }
+
+  if (keep) {
+    say("6 · deploying long-lived demo apps for the playground");
+    const auction = await deployApp("Examples.sol", "FhishAuction", ["Genesis hanko #2", 3600n], "alice");
+    const cusdc = await deployApp("Examples.sol", "ConfidentialWrappedToken", [USDC, "Confidential USDC", "cUSDC"], "alice");
+    const otc = await deployApp("Examples.sol", "FhishDarkOTC", [], "alice");
+    const causd = await deployApp("Examples.sol", "FhishPayToken", [AUSD, "Confidential AUSD", "cAUSD"], "alice");
+    for (const k of Object.values(KEYS)) {
+      await rpc("anvil_dealERC20", [privateKeyToAccount(k).address, USDC, "0x" + (1_000_000_000n).toString(16)]);
+      await fundAusd(privateKeyToAccount(k).address);
+    }
+    const apps = { auction: auction.address, cusdc: cusdc.address, otc: otc.address, usdc: USDC, causd: causd.address, ausd: AUSD };
+    (await import("node:fs")).writeFileSync(`${ROOT}contracts/deployments/local-apps.json`, JSON.stringify(apps, null, 2));
+    console.log("  playground apps:", JSON.stringify(apps));
+  }
+  const m = (await fhish.metrics()) as any;
+  say(`Fhish on Monad e2e (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+  for (const r of results) console.log(`${r.pass ? "\x1b[32mPASS\x1b[0m" : "\x1b[31mFAIL\x1b[0m"}  ${r.name.padEnd(32)} ${r.detail}`);
+  console.log("\nlatency (ms, real tfhe-rs on this machine):", JSON.stringify(m.latencyMs));
+  console.log("counts:", JSON.stringify(m.counts));
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    results.push({ name: "setup", pass: false, detail: (e as Error).message });
+  })
+  .finally(() => {
+    if (!keep) for (const p of procs) p.kill("SIGTERM");
+    process.exit(results.length > 0 && results.every((r) => r.pass) ? 0 : 1);
+  });

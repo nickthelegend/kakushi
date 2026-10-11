@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // @metamask/agent-wallet ships extensionless relative imports in its .d.ts: needs bundler resolution
+  "compilerOptions": { "module": "ESNext", "moduleResolution": "bundler" },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

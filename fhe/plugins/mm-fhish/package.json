@@ -1,0 +1,116 @@
+{
+  "name": "mm-fhish",
+  "version": "0.1.0",
+  "description": "MetaMask Agent Wallet plugin: confidential trading on Monad with Fhish FHE. Sealed bids, dark OTC orders with encrypted limit prices, and private stablecoin balances, from the mm CLI.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "oclif-plugin",
+    "metamask",
+    "agent-wallet",
+    "fhe",
+    "monad"
+  ],
+  "files": [
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "scripts": {
+    "build": "node build.mjs && oclif manifest",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts"
+  },
+  "oclif": {
+    "bin": "mm",
+    "commands": "./dist/commands",
+    "topicSeparator": " "
+  },
+  "mm": {
+    "schemaVersion": 1,
+    "minCliVersion": "^7.0.0",
+    "capabilities": [],
+    "commands": [
+      {
+        "id": "fhish:status",
+        "capabilities": [
+          "wallet-read"
+        ],
+        "dataAccess": [
+          "accounts"
+        ]
+      },
+      {
+        "id": "fhish:otc:orders",
+        "capabilities": [],
+        "dataAccess": []
+      },
+      {
+        "id": "fhish:otc:post",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts"
+        ]
+      },
+      {
+        "id": "fhish:otc:take",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts"
+        ]
+      },
+      {
+        "id": "fhish:auction:bid",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts"
+        ]
+      },
+      {
+        "id": "fhish:cusdc:send",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts"
+        ]
+      },
+      {
+        "id": "fhish:cusdc:balance",
+        "capabilities": [
+          "wallet-read",
+          "wallet-submit"
+        ],
+        "dataAccess": [
+          "accounts",
+          "balances"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "node-tfhe": "1.8.1",
+    "viem": "^2.38.0"
+  },
+  "peerDependencies": {
+    "@metamask/agent-wallet": "^7.0.0"
+  },
+  "devDependencies": {
+    "@fhish/sdk": "workspace:*",
+    "@metamask/agent-sdk": "7.1.0",
+    "@metamask/agent-wallet": "7.1.0",
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.25.0",
+    "oclif": "^4",
+    "typescript": "^5.9.3"
+  }
+}

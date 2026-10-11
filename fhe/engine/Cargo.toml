@@ -1,0 +1,22 @@
+[package]
+name = "fhish-engine"
+version = "0.1.0"
+edition = "2021"
+license = "BSD-3-Clause-Clear"
+description = "Fhish FHE engine: native multi-threaded Zama tfhe-rs for the Monad coprocessor (keygen, input expansion, homomorphic ops, decryption) plus a local encryption CLI."
+
+[dependencies]
+tfhe = { version = "=1.8.1", features = ["integer"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+hex = "0.4"
+anyhow = "1"
+sha3 = "0.10"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 16
