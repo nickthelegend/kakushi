@@ -15,7 +15,20 @@ packages/cre/workflows/*/binary.wasm
 .env
 .env.*
 config/generated/*.local.json
-# fhe/ stays out, except the SDK the app links (@kakushi/fhe-sdk: TypeScript source)
-fhe/*
-!fhe/sdk/
+# fhe/ stays out except fhe/sdk (the app links @kakushi/fhe-sdk as TypeScript source). Listed
+# explicitly: a negation inside an ignored folder is not honoured by every ignore parser.
+fhe/.kakushi-fhe/
+fhe/.secrets/
+fhe/.stack/
+fhe/app/
+fhe/contracts/
+fhe/coprocessor/
+fhe/cre/
+fhe/docs/
+fhe/engine/
+fhe/indexer/
+fhe/mobile/
+fhe/plugins/
+fhe/scripts/
+fhe/skills/
 fhe/sdk/test/
