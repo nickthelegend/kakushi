@@ -28,7 +28,13 @@ function port(acct: typeof alice): Port {
 
 let up = false;
 before(async () => {
-  up = await fetch("http://127.0.0.1:8890/health").then((r) => r.ok).catch(() => false);
+  // fhe/'s own stack: its fork on :18810 AND a gateway on :8890. The gateway alone is not enough: on
+  // the Kakushi hub fork (scripts/fhe-local.ts) the same port serves another deployment.
+  const gw = await fetch("http://127.0.0.1:8890/health").then((r) => r.ok).catch(() => false);
+  const fork = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }) })
+    .then((r) => r.ok)
+    .catch(() => false);
+  up = gw && fork;
 });
 
 test("dark OTC through the plugin: hidden ask, hidden bid, cross reveals only the maker's price", async (t) => {
