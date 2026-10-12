@@ -13,7 +13,7 @@ interface IKakushiRegistry {
 ///         Kakushi deployment from KakushiRegistry, which lives at the SAME address on every chain
 ///         (CREATE3 via CreateX), so the same source works on Monad testnet, mainnet and local forks.
 abstract contract KakushiConfig {
-    address internal constant KAKUSHI_FHE_REGISTRY = 0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7;
+    address internal constant KAKUSHI_FHE_REGISTRY = 0x0047D047510cd9201470c7Eb85cE0FdF69d7De90;
 
     constructor() {
         FHE.setConfig(IKakushiRegistry(KAKUSHI_FHE_REGISTRY).config());

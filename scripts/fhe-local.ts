@@ -14,9 +14,13 @@
 // .stack/demo-pids as "fhe-engine <pid>" / "fhe-gateway <pid>". `down` stops exactly those PIDs.
 // Re-running `up` reuses a live deployment and live services.
 //
-// LOCAL FORK ONLY: anvil cheat RPCs fund accounts and impersonate the registry's CREATE3 deployer
-// (KakushiConfig hard-codes the registry address, so the registry must come from that deployer).
-// Apps are deployed from anvil's public dev key #9. Keys stay in fhe/.secrets and fhe/.kakushi-fhe.
+// LOCAL FORK ONLY: anvil cheat RPCs fund accounts. The FHE core must come from the registry's CREATE3
+// deployer (KakushiConfig hard-codes the registry address), which is the Kakushi testnet deployer
+// 0x2c76…C24C (fhe/contracts/registry-address.json). When DEPLOYER_PK for that address is in the
+// environment (`set -a; . ./.env.testnet; set +a`), forge signs with it on the fork (read from the
+// environment, never put on a command line); otherwise the fork impersonates the deployer, so the
+// local stack needs no testnet key. Apps are deployed from anvil's public dev key #9. Keys stay in
+// fhe/.secrets and fhe/.kakushi-fhe.
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -180,13 +184,17 @@ async function up() {
     deployBlock = same ? prev.deployBlock : Number(await pub.getBlockNumber());
     log(`core already on the fork: registry ${core.registry}, executor ${core.executor}${same ? "" : " (not ours: following from now)"}`);
   } else {
-    log("deploying the FHE core (registry via CreateX CREATE3, executor, ACL, input verifier, oracle)");
-    await rpc("anvil_impersonateAccount", [reg.deployer]);
-    execFileSync("forge", ["script", "script/Deploy.s.sol", "--rpc-url", RPC, "--broadcast", "--unlocked", "--sender", reg.deployer], {
+    const pk = process.env.DEPLOYER_PK as Hex | undefined;
+    const signs = Boolean(pk && /^0x[0-9a-fA-F]{64}$/.test(pk) && privateKeyToAccount(pk).address.toLowerCase() === String(reg.deployer).toLowerCase());
+    log(`deploying the FHE core (registry via CreateX CREATE3, executor, ACL, input verifier, oracle) as ${reg.deployer} (${signs ? "signed with DEPLOYER_PK" : "impersonated on the fork"})`);
+    if (!signs) await rpc("anvil_impersonateAccount", [reg.deployer]);
+    const env: Record<string, string | undefined> = { ...process.env };
+    if (!signs) delete env.DEPLOYER_PK; // a key for another address would fail the script's DEPLOYER check
+    execFileSync("forge", ["script", "script/Deploy.s.sol", "--rpc-url", RPC, "--broadcast", ...(signs ? [] : ["--unlocked"]), "--sender", reg.deployer], {
       cwd: `${FHE}contracts`,
       stdio: ["ignore", "ignore", "inherit"],
       env: {
-        ...process.env,
+        ...env,
         DEPLOYER: reg.deployer,
         INPUT_SIGNERS: secrets.inputSigners.map((s: { address: string }) => s.address).join(","),
         KMS_SIGNERS: secrets.kmsSigners.map((s: { address: string }) => s.address).join(","),
@@ -195,7 +203,7 @@ async function up() {
         KAKUSHI_FHE_NETWORK: NETWORK,
       },
     });
-    await rpc("anvil_stopImpersonatingAccount", [reg.deployer]);
+    if (!signs) await rpc("anvil_stopImpersonatingAccount", [reg.deployer]);
     const d = JSON.parse(readFileSync(CORE_JSON, "utf8"));
     if (d.registry.toLowerCase() !== reg.registry.toLowerCase()) throw new Error("registry not at its CREATE3 address");
     core = { registry: d.registry, acl: d.acl, executor: d.executor, inputVerifier: d.inputVerifier, oracle: d.oracle, creForwarder: d.creForwarder };

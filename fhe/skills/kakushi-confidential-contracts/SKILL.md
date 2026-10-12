@@ -19,7 +19,7 @@ import {KakushiConfig} from "@kakushi/fhe/KakushiConfig.sol";
 contract MyApp is KakushiConfig, MyBase { ... }   // KakushiConfig FIRST
 ```
 
-`KakushiConfig` reads the deployment from KakushiRegistry at `0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7`,
+`KakushiConfig` reads the deployment from KakushiRegistry at `0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`,
 the same address on every chain (CREATE3). **List it first** in the inheritance list: base
 constructors run left to right, and FHE calls in a later base's constructor need the config loaded.
 Without the registry use `KakushiConfigManual(KakushiConfigStruct(...))`.

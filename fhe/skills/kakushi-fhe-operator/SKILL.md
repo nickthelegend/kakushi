@@ -28,9 +28,10 @@ contract ──► KakushiDecryptionOracle.requestDecryption ──► KMS (decr
 cd contracts
 DEPLOYER=<deployer> INPUT_SIGNERS=a,b,c KMS_SIGNERS=x,y,z REGISTRY_SALT=<salt from registry-address.json> \
 KAKUSHI_FHE_NETWORK=testnet CRE_FORWARDER=0xB9F79d863261869B234c481D1f9A7af84AeAd192 \
-forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast --private-key $DEPLOYER_PK
+DEPLOYER_PK=… forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast --sender <deployer>
+# (the script reads DEPLOYER_PK from the environment; keep keys off the command line)
 ```
-The registry lands at `0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7` only if the deployer and salt match
+The registry lands at `0x0047D047510cd9201470c7Eb85cE0FdF69d7De90` only if the deployer and salt match
 `contracts/registry-address.json` (CreateX guarded CREATE3).
 
 ## Chainlink CRE delivery

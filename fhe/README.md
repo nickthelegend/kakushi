@@ -97,7 +97,7 @@ Honest limits are in [Trust model](#trust-model) and [DEPLOY-LATER.md](DEPLOY-LA
 | `KakushiInputVerifier` | `contracts/src/lib` | k-of-n EIP-712 `InputAttestation(handle, user, contract)`: an input only works for the user and contract it was encrypted for. |
 | `KakushiDecryptionOracle` | `contracts/src/oracle` | Public reveals with **automatic callbacks**, k-of-n KMS signatures, Chainlink CRE `onReport`. |
 | `ConfidentialPayments` | `contracts/src/apps` | Kakushi Confidential: private pay with references, pay links claimable by a one-time key (front-run-proof, refundable), encrypted payment requests, encrypted payroll (operators relay only employer-signed EIP-712 batches, one payment per reference), gasless onboarding via ERC-2612 / ERC-3009. Wraps any ERC-20 (AUSD, USDC). |
-| `KakushiRegistry` | `contracts/src/lib` | CREATE3 via CreateX: **the same address on every chain** (`0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7`). `KakushiConfig` reads it, which makes the integration one inheritance. |
+| `KakushiRegistry` | `contracts/src/lib` | CREATE3 via CreateX: **the same address on every chain** (`0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`). `KakushiConfig` reads it, which makes the integration one inheritance. |
 | kakushi-fhe-engine | `engine/` | Rust + axum over tfhe-rs 1.8.1: keygen, input validation, every op, select, random, decrypt. |
 | coprocessor | `coprocessor/` | Follows the executor's events and schedules the op graph in parallel, respecting handle dependencies. Gateway (inputs, sealed user decryption), KMS, metrics. |
 | CRE workflow | `cre/` | `kakushi-fhe-decrypt-relay`: log trigger per request + cron sweep, HTTP fetch with DON consensus, `writeReport` to the oracle. |

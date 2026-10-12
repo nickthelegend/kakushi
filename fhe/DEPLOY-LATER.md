@@ -7,15 +7,30 @@ Monad testnet transaction has been sent. Each step names who must do it.
 
 | # | Action | Why |
 |---|---|---|
-| 1 | Fund the deployer `0x844bBB648B6e3214452c774D3495dC1bD1295a86` with ~3 MON on Monad testnet | Registry (CREATE3) + executor, ACL, input verifier, oracle, demo apps |
-| 2 | Fund the relayer `0x74056a101AaD54F43d6721705c1BAA87993CbF16` with ~2 MON | Direct `fulfill` path (fallback to CRE) |
+| 1 | Fund the Kakushi deployer `0x2c76aA36C88E89734223A5Cf0c54697782B9C24C` on Monad testnet (the root `scripts/deploy-testnet.ts --dry-run` prints the cost) | Registry (CREATE3) + executor, ACL, input verifier, oracle, Kakushi Confidential apps |
+| 2 | Fund the FHE relayer in `.secrets/signers.testnet.json` (`relayer.address`) with ~1 MON, or run the coprocessor with `DELIVER=cre` | Direct `fulfill` path (fallback to CRE) |
 | 3 | `cre login` (browser) | `cre workflow simulate --broadcast` for the Chainlink bounty |
 | 4 | Say "go" | Coordinator rule: no testnet transactions before that |
 
-Keys live in `.secrets/` (gitignored, mode 600): `deployer.json`, `signers.json` (3 input signers,
-3 KMS signers, relayer).
+The registry address is CreateX's CREATE3 address for the deployer's guarded salt
+(`[deployer][0x00]["kakushi.fhe"]`, see `contracts/registry-address.json`):
+
+| | deployer | registry |
+|---|---|---|
+| current | `0x2c76aA36C88E89734223A5Cf0c54697782B9C24C` (Kakushi deployer, `DEPLOYER_PK` in the root `.env.testnet`) | **`0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`** |
+| before 2026-10-12 | `0x844bBB648B6e3214452c774D3495dC1bD1295a86` (Fhish deployer) | `0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7` (never deployed on testnet) |
+
+`KakushiConfig.KAKUSHI_FHE_REGISTRY` hard-codes it; `test_RegistryIsCreate3AddressOfKakushiDeployer` re-derives it.
+Testnet signer keys live in `.secrets/signers.testnet.json` (gitignored, mode 600): 3 input signers, 3 KMS
+signers, the FHE relayer. `scripts/deploy-testnet.ts` creates the file if it is missing. The local fork keeps
+using `.secrets/signers.json`.
 
 ## 1. Contracts on Monad testnet (10143)
+
+The root orchestrator does steps 1 (core + apps) for the whole stack:
+`node scripts/deploy-testnet.ts --dry-run` (default; simulates on throwaway forks), then `--broadcast`.
+It writes `contracts/deployments/testnet.json` (core) and the root `config/generated/fhe.testnet.json` (core +
+apps). By hand, the core alone:
 
 Pick the CRE forwarder. The oracle stores it as an immutable, so this choice is final per deployment:
 
@@ -27,18 +42,19 @@ Pick the CRE forwarder. The oracle stores it as an immutable, so this choice is 
   workflow and `cre account access` approval.
 
 ```bash
+set -a; . ../.env.testnet; set +a        # DEPLOYER_PK: read by the script from the environment
 cd contracts
-DEPLOYER=0x844bBB648B6e3214452c774D3495dC1bD1295a86 \
-INPUT_SIGNERS=$(jq -r '[.inputSigners[].address]|join(",")' ../.secrets/signers.json) \
-KMS_SIGNERS=$(jq -r '[.kmsSigners[].address]|join(",")' ../.secrets/signers.json) \
+DEPLOYER=0x2c76aA36C88E89734223A5Cf0c54697782B9C24C \
+INPUT_SIGNERS=$(jq -r '[.inputSigners[].address]|join(",")' ../.secrets/signers.testnet.json) \
+KMS_SIGNERS=$(jq -r '[.kmsSigners[].address]|join(",")' ../.secrets/signers.testnet.json) \
 INPUT_THRESHOLD=2 KMS_THRESHOLD=2 \
 CRE_FORWARDER=0xB9F79d863261869B234c481D1f9A7af84AeAd192 \
 REGISTRY_SALT=$(jq -r .salt registry-address.json) KAKUSHI_FHE_NETWORK=testnet \
-forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast \
-  --private-key $(jq -r ".[0].private_key" ../.secrets/deployer.json) --slow
+forge script script/Deploy.s.sol --rpc-url https://testnet-rpc.monad.xyz --broadcast --slow \
+  --sender 0x2c76aA36C88E89734223A5Cf0c54697782B9C24C
 ```
 
-Check: `deployments/testnet.json` has `registry == 0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7`.
+Check: `deployments/testnet.json` has `registry == 0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`.
 Verify on MonadVision/Sourcify (`forge verify-contract --verifier sourcify --chain 10143 …`).
 Then deploy the apps with the same calls `scripts/e2e-local.ts --keep` makes, and write
 `deployments/testnet-apps.json`:
@@ -52,7 +68,7 @@ AUSD (60 s global cooldown); Circle's faucet gives testnet USDC.
 
 ```bash
 engine/bin/kakushi-fhe-engine serve --dir .kakushi-fhe --port 8899           # same keys as local: .kakushi-fhe/keys
-KAKUSHI_FHE_NETWORK=testnet RPC_URL=https://testnet-rpc.monad.xyz DELIVER=both \
+KAKUSHI_FHE_NETWORK=testnet KAKUSHI_FHE_SECRETS=.secrets/signers.testnet.json RPC_URL=https://testnet-rpc.monad.xyz DELIVER=both \
   node coprocessor/src/main.ts                                   # gateway :8890
 ```
 

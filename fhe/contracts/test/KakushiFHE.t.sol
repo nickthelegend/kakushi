@@ -56,7 +56,7 @@ contract Caller {
 }
 
 contract KakushiFheTest is Test {
-    address constant REGISTRY = 0xEc4A6767F7884712C0B19ada05F9C98e5fd341E7;
+    address constant REGISTRY = 0x0047D047510cd9201470c7Eb85cE0FdF69d7De90;
     uint256[3] inKeys = [uint256(0xA11), 0xA12, 0xA13];
     uint256[3] kmsKeys = [uint256(0xB11), 0xB12, 0xB13];
     address owner = makeAddr("owner");
@@ -135,6 +135,21 @@ contract KakushiFheTest is Test {
         bytes32 h = bytes32(uint256(0x1203));
         vm.expectRevert(abi.encodeWithSelector(KakushiErrors.NotAllowed.selector, h, address(this)));
         acl.allow(h, alice);
+    }
+
+    /// The hard-coded registry is CreateX's CREATE3 address for the Kakushi deployer and the
+    /// "kakushi.fhe" guarded salt (registry-address.json): guardedSalt = keccak256(abi.encode(bytes32(deployer), salt)),
+    /// proxy = CREATE2(CreateX, guardedSalt, CREATE3 proxy initcode), registry = CREATE(proxy, nonce 1).
+    function test_RegistryIsCreate3AddressOfKakushiDeployer() public pure {
+        address createX = 0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed;
+        address deployer = 0x2c76aA36C88E89734223A5Cf0c54697782B9C24C;
+        bytes32 salt = bytes32(abi.encodePacked(deployer, hex"00", bytes11("kakushi.fhe")));
+        bytes32 guarded = keccak256(abi.encode(bytes32(uint256(uint160(deployer))), salt));
+        bytes32 proxyHash = 0x21c35dbe1b344a2488cf3321d6ce542f8e9f305544ff09e4993a62319a497c1f;
+        address proxy = address(uint160(uint256(keccak256(abi.encodePacked(hex"ff", createX, guarded, proxyHash)))));
+        address registry = address(uint160(uint256(keccak256(abi.encodePacked(hex"d694", proxy, hex"01")))));
+        assertEq(registry, REGISTRY);
+        assertEq(registry, 0x0047D047510cd9201470c7Eb85cE0FdF69d7De90);
     }
 
     function test_HandlesAreDeterministicAndTyped() public {

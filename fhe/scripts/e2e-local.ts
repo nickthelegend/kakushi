@@ -109,7 +109,7 @@ async function main() {
     cwd: `${ROOT}contracts`,
     stdio: ["ignore", "ignore", "inherit"],
     env: {
-      ...process.env,
+      ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== "DEPLOYER_PK")), // impersonated: no key
       DEPLOYER: reg.deployer,
       INPUT_SIGNERS: secrets.inputSigners.map((s: any) => s.address).join(","),
       KMS_SIGNERS: secrets.kmsSigners.map((s: any) => s.address).join(","),

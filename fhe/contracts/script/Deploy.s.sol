@@ -13,8 +13,10 @@ interface ICreateX {
 }
 
 /// Deploys Kakushi on one chain. The registry goes to its CREATE3 address (same on every chain).
-/// env: DEPLOYER (address, broadcasts; locally impersonated), INPUT_SIGNERS, KMS_SIGNERS (comma lists),
-///      INPUT_THRESHOLD, KMS_THRESHOLD, CRE_FORWARDER (optional), REGISTRY_SALT, KAKUSHI_FHE_NETWORK
+/// env: DEPLOYER (address), DEPLOYER_PK (optional: sign with this key, read from the environment so it
+///      never appears on a command line; without it the script broadcasts as DEPLOYER, which a local
+///      fork impersonates), INPUT_SIGNERS, KMS_SIGNERS (comma lists), INPUT_THRESHOLD, KMS_THRESHOLD,
+///      CRE_FORWARDER (optional), REGISTRY_SALT, KAKUSHI_FHE_NETWORK
 contract Deploy is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
@@ -27,8 +29,14 @@ contract Deploy is Script {
         address forwarder = vm.envOr("CRE_FORWARDER", address(0));
         bytes32 salt = vm.envBytes32("REGISTRY_SALT");
         string memory network = vm.envOr("KAKUSHI_FHE_NETWORK", string("local"));
+        uint256 pk = vm.envOr("DEPLOYER_PK", uint256(0));
+        if (pk != 0) require(vm.addr(pk) == deployer, "DEPLOYER_PK is not DEPLOYER");
+        // CreateX treats a salt whose first 20 bytes are not msg.sender as unguarded: the registry would
+        // silently land elsewhere and KakushiConfig (which hard-codes the address) would not find it
+        require(address(bytes20(salt)) == deployer, "REGISTRY_SALT is not guarded for DEPLOYER");
 
-        vm.startBroadcast(deployer);
+        if (pk != 0) vm.startBroadcast(pk);
+        else vm.startBroadcast(deployer);
         KakushiInputVerifier iv = new KakushiInputVerifier(deployer, inputSigners, inputK);
         KakushiExecutor ex = new KakushiExecutor(iv);
         KakushiDecryptionOracle oracle = new KakushiDecryptionOracle(ex.acl(), forwarder, deployer, kmsSigners, kmsK);
