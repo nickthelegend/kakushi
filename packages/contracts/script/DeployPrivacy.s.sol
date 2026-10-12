@@ -27,8 +27,12 @@ import {ShieldedWithdrawVerifier} from "../src/verifiers/ShieldedWithdrawVerifie
 /// Run it AFTER script/Deploy.s.sol: it merges a `privacy` object into deployments/<network>/<chainId>.json
 /// (Deploy.s.sol rewrites that file, so re-run this one after it).
 ///
+/// KAKUSHI_SKIP_CURATED_POOLS=true skips the curated pools (the testnet deploy opens small pools through
+/// the factory instead, scripts/deploy-testnet.ts); unset, the local behaviour is unchanged.
+///
 ///   forge script script/DeployPrivacy.s.sol --rpc-url $RPC --broadcast
-///   (env: DEPLOYER_PK, KAKUSHI_NETWORK, optional SHIELDED_VERIFIER, KAKUSHI_DEPLOYMENTS_DIR)
+///   (env: DEPLOYER_PK, KAKUSHI_NETWORK, optional SHIELDED_VERIFIER, KAKUSHI_DEPLOYMENTS_DIR,
+///    KAKUSHI_SKIP_CURATED_POOLS)
 contract DeployPrivacy is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
     uint64 constant MONAD_TESTNET = 10143;
@@ -50,6 +54,7 @@ contract DeployPrivacy is Script {
         string network; // "local" | "testnet"
         string dir; // deployments root
         address verifier; // reuse when it has code, else deploy a new ShieldedWithdrawVerifier
+        bool skipCuratedPools; // factory only (testnet: small pools are created through it afterwards)
     }
 
     function run() external {
@@ -58,7 +63,8 @@ contract DeployPrivacy is Script {
                 deployerPk: vm.envUint("DEPLOYER_PK"),
                 network: vm.envOr("KAKUSHI_NETWORK", string("local")),
                 dir: vm.envOr("KAKUSHI_DEPLOYMENTS_DIR", string("deployments")),
-                verifier: vm.envOr("SHIELDED_VERIFIER", address(0))
+                verifier: vm.envOr("SHIELDED_VERIFIER", address(0)),
+                skipCuratedPools: vm.envOr("KAKUSHI_SKIP_CURATED_POOLS", false)
             })
         );
     }
@@ -93,7 +99,7 @@ contract DeployPrivacy is Script {
             abi.encodePacked(type(KakushiPoolFactory).creationCode, abi.encode(IVerifier(o.verifier)))
         );
 
-        PoolSpec[] memory specs = poolSpecs(block.chainid);
+        PoolSpec[] memory specs = c.skipCuratedPools ? new PoolSpec[](0) : poolSpecs(block.chainid);
         address[] memory pools = new address[](specs.length);
         for (uint256 i; i < specs.length; i++) {
             if (specs[i].token != address(0) && specs[i].token.code.length == 0) {

@@ -21,7 +21,7 @@ interface ICreateX {
 ///   KAKUSHI_ROLE=hub   -> Monad: EBC, MDC, AttestationOracle, verifiers, DisputeModule + routers
 ///   KAKUSHI_ROLE=spoke -> Sepolia / Base Sepolia / Arbitrum Sepolia / OP Sepolia: PayoutRouter + SourceRouter only
 /// Routers go through CreateX with a deployer-guarded salt, so they have the SAME address on
-/// every chain. Writes deployments/<chainId>.json.
+/// every chain. Writes deployments/<network>/<chainId>.json (root: KAKUSHI_DEPLOYMENTS_DIR).
 ///
 ///   forge script script/Deploy.s.sol --rpc-url $RPC --broadcast   (env: DEPLOYER_PK, KAKUSHI_ROLE, ...)
 contract Deploy is Script {
@@ -38,7 +38,10 @@ contract Deploy is Script {
         string memory role = vm.envOr("KAKUSHI_ROLE", string("spoke"));
         string memory network = vm.envOr("KAKUSHI_NETWORK", string("local"));
         _validateRelease(role, network);
-        string memory path = string.concat("deployments/", network, "/", vm.toString(block.chainid), ".json");
+        // KAKUSHI_DEPLOYMENTS_DIR: records root (default deployments/; scripts/deploy-testnet.ts points
+        // simulations and fork rehearsals at a scratch folder under it)
+        string memory dir = vm.envOr("KAKUSHI_DEPLOYMENTS_DIR", string("deployments"));
+        string memory path = string.concat(dir, "/", network, "/", vm.toString(block.chainid), ".json");
         string memory obj = "deployment";
 
         vm.startBroadcast(pk);

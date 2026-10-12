@@ -35,7 +35,7 @@ contract DeployPrivacyTest is Test {
 
     // explicit config instead of env vars: env is process-global and DeployGuardTest mutates it
     function _cfg(string memory network, address verifier) internal pure returns (DeployPrivacy.Config memory) {
-        return DeployPrivacy.Config({deployerPk: 1, network: network, dir: DIR, verifier: verifier});
+        return DeployPrivacy.Config({deployerPk: 1, network: network, dir: DIR, verifier: verifier, skipCuratedPools: false});
     }
 
     function _clean() internal {
@@ -116,5 +116,27 @@ contract DeployPrivacyTest is Test {
         assertEq(stealthPay[0], stealthPay[1], "same StealthPay address on hub and spoke");
         assertTrue(factories[0] != address(0) && factories[1] != address(0));
         _clean();
+    }
+
+    /// KAKUSHI_SKIP_CURATED_POOLS (testnet): stealth contracts and the factory, no curated pools.
+    function test_SkipCuratedPoolsDeploysFactoryOnly() public {
+        // own folder: tests in a suite run in parallel and the other test removes DIR
+        string memory dir = "deployments/.privacy-test-skip";
+        if (vm.exists(dir)) vm.removeDir(dir, true);
+        vm.etch(CREATEX, address(new TestCreateX()).code);
+        vm.chainId(10143);
+        string memory path = string.concat(dir, "/testnet/10143.json");
+        vm.createDir(string.concat(dir, "/testnet"), true);
+        vm.writeFile(path, '{"chainId":10143}');
+        DeployPrivacy.Config memory c = _cfg("testnet", address(0));
+        c.dir = dir;
+        c.skipCuratedPools = true;
+        script.deploy(c);
+        string memory json = vm.readFile(path);
+        KakushiPoolFactory factory = KakushiPoolFactory(vm.parseJsonAddress(json, ".privacy.poolFactory"));
+        assertGt(address(factory).code.length, 0, "factory deployed");
+        assertEq(factory.poolCount(), 0);
+        assertFalse(vm.keyExistsJson(json, '.privacy.pools["MON-1"]'), "no curated pools");
+        vm.removeDir(dir, true);
     }
 }
