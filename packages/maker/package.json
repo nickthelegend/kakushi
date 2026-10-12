@@ -16,5 +16,10 @@
     "@kakushi/sdk": "workspace:*",
     "viem": "^2.38.0"
   },
-  "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4", "@types/node": "^22.20.1" }
+  "devDependencies": {
+    "@privy-io/node": "0.35.0",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
 }
