@@ -1,0 +1,52 @@
+{
+  "network": "testnet",
+  "chainId": 10143,
+  "rpc": "https://testnet-rpc.monad.xyz",
+  "deployBlock": 70457106,
+  "core": {
+    "registry": "0x0047D047510cd9201470c7Eb85cE0FdF69d7De90",
+    "acl": "0x8bF5C374132Ebe1903a2D649B38CA8498Bd19eDD",
+    "executor": "0x632871F641F89ef095eE721c49B1F75b95471010",
+    "inputVerifier": "0x48447Aa38500d09cfAfd7512fc25d8D0cfd73764",
+    "oracle": "0x572B783e22659fA8E3A10e09b93f09c92CcC4a7d",
+    "creForwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192"
+  },
+  "tokens": [
+    {
+      "key": "cUSDC",
+      "name": "Confidential USDC",
+      "symbol": "cUSDC",
+      "underlying": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+      "underlyingSymbol": "USDC",
+      "decimals": 6,
+      "address": "0x18567b9fa61E7322f8d4111c7606107C7eEb55a1"
+    },
+    {
+      "key": "cAUSD",
+      "name": "Confidential AUSD",
+      "symbol": "cAUSD",
+      "underlying": "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC",
+      "underlyingSymbol": "AUSD",
+      "decimals": 6,
+      "address": "0x215032585515b2d55aB53Cb1b088deC0f75E4c77"
+    }
+  ],
+  "stealthPay": "0x0b1fffD49Ccd2BcBDe14359C9435185A1607F7C6",
+  "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
+  "gateway": null,
+  "todo": "TODO: host the FHE engine + coprocessor gateway (fhe/DEPLOY-LATER.md section 2) and set KAKUSHI_FHE_GATEWAY_URL on the app; until then the app shows Kakushi Confidential as not live",
+  "inputThreshold": 2,
+  "kmsThreshold": 2,
+  "inputSigners": [
+    "0x9Ab38Fa4A7Bbf299eFFe3B8eB1B0eee6151B6b7d",
+    "0xbAc995B06cb5aa80E9eA02c93F19C52D77b83f40",
+    "0x7cf53D3c2440688199E6d52005Ae512500ccB70b"
+  ],
+  "kmsSigners": [
+    "0x9B07099c3d110e8e423152a819f6D6A01ecAC909",
+    "0x3a60FdC9faB449AF8817F0Ff2F094d43F9C7659F",
+    "0x0aD70255512fbaa6A0b49285E2F86124F2956fE9"
+  ],
+  "fheRelayer": "0xD211a3359462A73DbC36DafBF92eA7EA57CB9Ddc",
+  "deployedAt": "2026-10-12T17:28:45.349Z"
+}

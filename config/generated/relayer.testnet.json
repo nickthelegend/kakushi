@@ -1,0 +1,18 @@
+{
+  "relayer": "0x62BDAe5619f3a144A947dAFB33ee7a1d23156613",
+  "note": "RELAYER_KEY from .env.testnet; RELAYER_CONFIG=config/generated/relayer.testnet.json. minFee = 10% of the denomination (placeholder: below the ~2.4M-gas withdraw cost on Monad and Sepolia).",
+  "pools": [
+    {
+      "chainId": 10143,
+      "pool": "0x5f859405D69F24385C0Cf2297a6b2D4c91be2950",
+      "minFee": "10000000000000000",
+      "label": "MON-0.1"
+    },
+    {
+      "chainId": 10143,
+      "pool": "0xD1f5598c3A5e6250D2f6448bD5e2D9e3d3954E2B",
+      "minFee": "100000",
+      "label": "USDC-1"
+    }
+  ]
+}

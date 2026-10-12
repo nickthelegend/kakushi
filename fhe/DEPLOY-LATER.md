@@ -1,7 +1,14 @@
 # Deploy later (held until the owner funds and says go)
 
-Nothing in this file has been run. Kakushi Confidential (FHE) is proven on a **local fork** of Monad testnet only; no
-Monad testnet transaction has been sent. Each step names who must do it.
+**Section 1 (contracts) ran on Monad testnet on 2026-10-12** from the Kakushi deployer through the root
+`scripts/deploy-testnet.ts`; all contracts are verified on Sourcify. Registry `0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`,
+executor `0x632871F641F89ef095eE721c49B1F75b95471010`, ACL `0x8bF5C374132Ebe1903a2D649B38CA8498Bd19eDD`, input verifier
+`0x48447Aa38500d09cfAfd7512fc25d8D0cfd73764` (2-of-3), decryption oracle `0x572B783e22659fA8E3A10e09b93f09c92CcC4a7d`
+(2-of-3 KMS, CRE forwarder = Chainlink's MockKeystoneForwarder, the `cre workflow simulate --broadcast` path), cUSDC
+`0x18567b9fa61E7322f8d4111c7606107C7eEb55a1`, cAUSD `0x215032585515b2d55aB53Cb1b088deC0f75E4c77`, ConfidentialStealthPay
+`0x0b1fffD49Ccd2BcBDe14359C9435185A1607F7C6` (records: `contracts/deployments/testnet.json`, `testnet-apps.json`, root
+`config/generated/fhe.testnet.json`). Sections 2-5 (engine/gateway hosting, CRE, app, sponsors) are still to do; the
+FHE relayer in `.secrets/signers.testnet.json` is unfunded. Each step names who must do it.
 
 ## 0. Owner actions first
 

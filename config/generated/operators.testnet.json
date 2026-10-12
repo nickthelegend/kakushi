@@ -1,0 +1,45 @@
+{
+  "note": "Public addresses only. Keys: .env.testnet (gitignored).",
+  "deployer": "0x2c76aA36C88E89734223A5Cf0c54697782B9C24C",
+  "creWorkflowOwner": "0x4d9e1a826a6DBE986EF8997E57464A2a3443DAb2",
+  "creForwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
+  "relayer": {
+    "address": "0x62BDAe5619f3a144A947dAFB33ee7a1d23156613",
+    "env": "RELAYER_KEY",
+    "config": "config/generated/relayer.testnet.json"
+  },
+  "watchtower": {
+    "address": "0xef8ba36C31bafe18aAA1b38788740e852448aF93",
+    "env": "WATCHTOWER_KEY",
+    "disputeBondWei": "50000000000000000",
+    "fundedMon": "1.5",
+    "reserveRule": "each bond is MON value: the watchtower serializes its txs and spaces bonds >= 3 blocks / 1.2 s (WATCHTOWER_VALUE_SPACING_BLOCKS, default 3 on testnet) so every bond can use Monad's emptying exception"
+  },
+  "makers": [
+    {
+      "name": "Maker 1",
+      "address": "0xa99c2cA996baBE6b74030302AfeD456cad4DBb5B",
+      "env": "MAKER_KEY_1"
+    },
+    {
+      "name": "Maker 2",
+      "address": "0xF98FE16d90B079AF9e99219a00B42c3279d0D819",
+      "env": "MAKER_KEY_2",
+      "active": false
+    }
+  ],
+  "fhe": {
+    "registry": "0x0047D047510cd9201470c7Eb85cE0FdF69d7De90",
+    "relayer": "0xD211a3359462A73DbC36DafBF92eA7EA57CB9Ddc",
+    "secrets": "fhe/.secrets/signers.testnet.json"
+  },
+  "liveBalancesAtDeploy": {
+    "monadTestnet": {
+      "deployer": "12",
+      "maker1": "0",
+      "maker2": "0",
+      "relayer": "0",
+      "watchtower": "0"
+    }
+  }
+}
