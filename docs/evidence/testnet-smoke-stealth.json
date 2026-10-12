@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-12T17:38:17.654Z",
+  "chainId": 10143,
+  "from": "0x2c76aA36C88E89734223A5Cf0c54697782B9C24C",
+  "steps": [
+    {
+      "step": "stealth send 0.01 MON",
+      "hash": "0x7181caa525a2f22f73cba6d07f5a402a6ecd20794077cb98d7584de9033b8505",
+      "block": "70459068",
+      "receiptMs": 431,
+      "syncReceipt": true,
+      "gasLimit": "110394",
+      "costMON": "0.0123862068",
+      "txpool": {
+        "status": "tracked"
+      },
+      "commit": {
+        "Proposed": 431,
+        "Voted": 725,
+        "Finalized": 1020,
+        "Verified": 1933
+      }
+    },
+    {
+      "step": "scan",
+      "stealthAddress": "0x54b7da530C68e48667ADaEa343f52FA9f25f58d7",
+      "balance": "10000000000000000",
+      "keyControls": true
+    }
+  ]
+}

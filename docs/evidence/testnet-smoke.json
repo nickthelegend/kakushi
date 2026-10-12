@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-12T17:37:14.221Z",
+  "chainId": 10143,
+  "from": "0x2c76aA36C88E89734223A5Cf0c54697782B9C24C",
+  "steps": [
+    {
+      "step": "register stealth meta-address",
+      "hash": "0x90fbbf16166f1942106c21f24aeb2f0a90f3a2c0d52dbf27bf37f414b66e20cd",
+      "block": "70458541",
+      "receiptMs": 443,
+      "syncReceipt": true,
+      "gasLimit": "135743",
+      "costMON": "0.0152303646",
+      "txpool": {
+        "status": "tracked"
+      },
+      "commit": "commit tracking failed: block 70458541 did not reach Finalized"
+    },
+    {
+      "step": "stealth send 0.01 MON",
+      "hash": "0xa5f3326d22b70b15ebec605f5d09c4a6050258c956d54ef30f970334f0167dfe",
+      "block": "70458612",
+      "receiptMs": 528,
+      "syncReceipt": true,
+      "gasLimit": "110394",
+      "costMON": "0.0123862068",
+      "txpool": {
+        "status": "tracked"
+      },
+      "commit": "commit tracking failed: block 70458612 did not reach Finalized"
+    },
+    {
+      "step": "scan",
+      "stealthAddress": "0x85566E37eF5E138E7092d45fC70cEf2C6436D141",
+      "balance": "10000000000000000",
+      "keyControls": true
+    },
+    {
+      "step": "shield 0.1 MON (pool deposit)",
+      "hash": "0x94531ecb05ab522f0cbdd1d6d0411188fd29e3e46bad0adb863406ef2245a32a",
+      "block": "70458688",
+      "receiptMs": 632,
+      "syncReceipt": true,
+      "gasLimit": "537110",
+      "costMON": "0.060263742",
+      "txpool": {
+        "status": "tracked"
+      },
+      "commit": "commit tracking failed: block 70458688 did not reach Finalized"
+    },
+    {
+      "step": "withdraw to fresh address (proof 456 ms)",
+      "hash": "0x5ad430ff2f7eea02551543cca518374ba13212d4297c7f4689e611d3c8b633ca",
+      "block": "70458796",
+      "receiptMs": 555,
+      "syncReceipt": true,
+      "gasLimit": "6221528",
+      "costMON": "0.6980554416",
+      "txpool": {
+        "status": "tracked"
+      },
+      "commit": "commit tracking failed: block 70458796 did not reach Finalized"
+    },
+    {
+      "step": "fresh balance",
+      "fresh": "0xbCe2B0540A6646D94b1D29007009ea0916580F6c",
+      "balance": "100000000000000000",
+      "proofMs": 456
+    }
+  ]
+}
