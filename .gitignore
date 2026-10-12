@@ -23,8 +23,13 @@ generated/
 .cre/
 packages/indexer/generated/
 packages/contracts/deployments/local/
+# scratch records of scripts/deploy-testnet.ts simulations / fork rehearsals and forge tests
+packages/contracts/deployments/.*/
 packages/contracts/broadcast/
 
+# config/generated: local records stay out; the *.testnet.json files (public addresses only, written by
+# scripts/deploy-testnet.ts --broadcast) are meant to be committed: Vercel reads them at runtime
+!config/generated/
 config/generated/*.local.json
 
 packages/cre/workflows/*/binary.wasm

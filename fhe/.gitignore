@@ -23,3 +23,7 @@ engine/bin/
 .cre_build_tmp.js
 binary.wasm
 contracts/deployments/hub-local.json
+# scratch core records of the root scripts/deploy-testnet.ts (simulation, fork rehearsal, preflight)
+contracts/deployments/testnet-dryrun*.json
+contracts/deployments/testnet-rehearsal*.json
+contracts/deployments/*-preflight.json
