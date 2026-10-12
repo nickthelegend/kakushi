@@ -20,40 +20,67 @@ interface ICreateX {
 contract Deploy is Script {
     ICreateX constant CREATEX = ICreateX(0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed);
 
+    struct Cfg {
+        address deployer;
+        uint256 pk;
+        address[] inputSigners;
+        address[] kmsSigners;
+        uint256 inputK;
+        uint256 kmsK;
+        address forwarder;
+        bytes32 salt;
+        string network;
+    }
+
+    struct Out {
+        KakushiInputVerifier iv;
+        KakushiExecutor ex;
+        KakushiDecryptionOracle oracle;
+        address registry;
+    }
+
     function run() external {
-        address deployer = vm.envAddress("DEPLOYER");
-        address[] memory inputSigners = vm.envAddress("INPUT_SIGNERS", ",");
-        address[] memory kmsSigners = vm.envAddress("KMS_SIGNERS", ",");
-        uint256 inputK = vm.envOr("INPUT_THRESHOLD", uint256(2));
-        uint256 kmsK = vm.envOr("KMS_THRESHOLD", uint256(2));
-        address forwarder = vm.envOr("CRE_FORWARDER", address(0));
-        bytes32 salt = vm.envBytes32("REGISTRY_SALT");
-        string memory network = vm.envOr("KAKUSHI_FHE_NETWORK", string("local"));
-        uint256 pk = vm.envOr("DEPLOYER_PK", uint256(0));
-        if (pk != 0) require(vm.addr(pk) == deployer, "DEPLOYER_PK is not DEPLOYER");
+        Cfg memory c;
+        c.deployer = vm.envAddress("DEPLOYER");
+        c.inputSigners = vm.envAddress("INPUT_SIGNERS", ",");
+        c.kmsSigners = vm.envAddress("KMS_SIGNERS", ",");
+        c.inputK = vm.envOr("INPUT_THRESHOLD", uint256(2));
+        c.kmsK = vm.envOr("KMS_THRESHOLD", uint256(2));
+        c.forwarder = vm.envOr("CRE_FORWARDER", address(0));
+        c.salt = vm.envBytes32("REGISTRY_SALT");
+        c.network = vm.envOr("KAKUSHI_FHE_NETWORK", string("local"));
+        c.pk = vm.envOr("DEPLOYER_PK", uint256(0));
+        if (c.pk != 0) require(vm.addr(c.pk) == c.deployer, "DEPLOYER_PK is not DEPLOYER");
         // CreateX treats a salt whose first 20 bytes are not msg.sender as unguarded: the registry would
         // silently land elsewhere and KakushiConfig (which hard-codes the address) would not find it
-        require(address(bytes20(salt)) == deployer, "REGISTRY_SALT is not guarded for DEPLOYER");
+        require(address(bytes20(c.salt)) == c.deployer, "REGISTRY_SALT is not guarded for DEPLOYER");
 
-        if (pk != 0) vm.startBroadcast(pk);
-        else vm.startBroadcast(deployer);
-        KakushiInputVerifier iv = new KakushiInputVerifier(deployer, inputSigners, inputK);
-        KakushiExecutor ex = new KakushiExecutor(iv);
-        KakushiDecryptionOracle oracle = new KakushiDecryptionOracle(ex.acl(), forwarder, deployer, kmsSigners, kmsK);
-        address registry = CREATEX.deployCreate3(salt, abi.encodePacked(type(KakushiRegistry).creationCode, abi.encode(deployer)));
-        KakushiRegistry(registry).setConfig(KakushiConfigStruct(address(ex.acl()), address(ex), address(iv), address(oracle)));
+        if (c.pk != 0) vm.startBroadcast(c.pk);
+        else vm.startBroadcast(c.deployer);
+        Out memory o = _deploy(c);
         vm.stopBroadcast();
+        _write(c, o);
+    }
 
-        string memory o = "d";
-        vm.serializeAddress(o, "registry", registry);
-        vm.serializeAddress(o, "acl", address(ex.acl()));
-        vm.serializeAddress(o, "executor", address(ex));
-        vm.serializeAddress(o, "inputVerifier", address(iv));
-        vm.serializeAddress(o, "oracle", address(oracle));
-        vm.serializeAddress(o, "creForwarder", forwarder);
-        vm.serializeUint(o, "chainId", block.chainid);
-        string memory json = vm.serializeUint(o, "deployBlock", block.number);
-        vm.writeJson(json, string.concat("deployments/", network, ".json"));
-        console2.log("registry", registry);
+    function _deploy(Cfg memory c) internal returns (Out memory o) {
+        o.iv = new KakushiInputVerifier(c.deployer, c.inputSigners, c.inputK);
+        o.ex = new KakushiExecutor(o.iv);
+        o.oracle = new KakushiDecryptionOracle(o.ex.acl(), c.forwarder, c.deployer, c.kmsSigners, c.kmsK);
+        o.registry = CREATEX.deployCreate3(c.salt, abi.encodePacked(type(KakushiRegistry).creationCode, abi.encode(c.deployer)));
+        KakushiRegistry(o.registry).setConfig(KakushiConfigStruct(address(o.ex.acl()), address(o.ex), address(o.iv), address(o.oracle)));
+    }
+
+    function _write(Cfg memory c, Out memory o) internal {
+        string memory k = "d";
+        vm.serializeAddress(k, "registry", o.registry);
+        vm.serializeAddress(k, "acl", address(o.ex.acl()));
+        vm.serializeAddress(k, "executor", address(o.ex));
+        vm.serializeAddress(k, "inputVerifier", address(o.iv));
+        vm.serializeAddress(k, "oracle", address(o.oracle));
+        vm.serializeAddress(k, "creForwarder", c.forwarder);
+        vm.serializeUint(k, "chainId", block.chainid);
+        string memory json = vm.serializeUint(k, "deployBlock", block.number);
+        vm.writeJson(json, string.concat("deployments/", c.network, ".json"));
+        console2.log("registry", o.registry);
     }
 }
