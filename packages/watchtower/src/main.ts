@@ -15,6 +15,7 @@ import { prove } from "@kakushi/attest-core/prover";
 import { EvmAdapter, type IncomingPayment } from "@kakushi/adapters";
 import { blockBefore, disputeModuleAbi, errText, findPayout, findSourcePayments, prepareDispute, type SourcePayment } from "@kakushi/sdk";
 import { kakushiFromDisk } from "@kakushi/sdk/node";
+import { TxSpacer } from "./spacing.ts";
 
 const k = kakushiFromDisk();
 const key = process.env.WATCHTOWER_KEY as Hex | undefined;
@@ -34,6 +35,10 @@ db.exec(`CREATE TABLE IF NOT EXISTS watched (
 
 const log = (m: string) => console.log(`[watchtower] ${m}`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Monad reserve rule (src/spacing.ts): bonds are MON value; on testnet each bond waits >= 3 blocks
+// and >= 1.2 s after this account's previous tx. WATCHTOWER_VALUE_SPACING_BLOCKS overrides (0 = off).
+const spacingBlocks = BigInt(process.env.WATCHTOWER_VALUE_SPACING_BLOCKS ?? (k.network === "testnet" ? "3" : "0"));
+const spacer = new TxSpacer({ blocks: spacingBlocks, ms: spacingBlocks > 0n ? 1200 : 0, blockNumber: () => k.hub.getBlockNumber({ cacheTime: 0 }) });
 const adapters = Object.fromEntries(k.chains.map((c) => [c.chainId, new EvmAdapter(k, c.key)]));
 
 type Row = { srcRef: string; maker: string; srcChainId: number; txHash: string; logIndex: number; sender: string; token: string; gross: string; recipient: string; blockNumber: string; timestamp: number; via: string; status: string; note: string | null; disputeKey: string | null; openTx: string | null; proveTx: string | null; proofMs: number | null; updatedAt: number };
@@ -118,14 +123,17 @@ async function drive(r: Row) {
   }
   const hub = k.hub;
   const dm = k.d.hub.disputeModule;
-  const send = async (data: Hex, value = 0n) => {
-    const gas = ((await hub.estimateGas({ account, to: dm, data, value })) * 12n) / 10n;
-    const w = (await import("@kakushi/sdk")).walletClient("monadTestnet", account, k.network);
-    const hash = await w.sendTransaction({ chain: w.chain, account, to: dm, data, value, gas });
-    const rc = await hub.waitForTransactionReceipt({ hash });
-    if (rc.status !== "success") throw new Error(`tx reverted ${hash}`);
-    return hash;
-  };
+  const send = async (data: Hex, value = 0n) =>
+    (
+      await spacer.run(value, async () => {
+        const gas = ((await hub.estimateGas({ account, to: dm, data, value })) * 12n) / 10n;
+        const w = (await import("@kakushi/sdk")).walletClient("monadTestnet", account, k.network);
+        const hash = await w.sendTransaction({ chain: w.chain, account, to: dm, data, value, gas });
+        const rc = await hub.waitForTransactionReceipt({ hash });
+        if (rc.status !== "success") throw new Error(`tx reverted ${hash}`);
+        return { hash, blockNumber: rc.blockNumber };
+      })
+    ).hash;
   const dkey = (await hub.readContract({ address: dm, abi: disputeModuleAbi, functionName: "disputeKeyOf", args: [r.srcRef as Hex, p.maker] })) as Hex;
   const d = await k.dispute(dkey);
   let openTx = r.openTx;
