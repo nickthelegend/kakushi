@@ -325,11 +325,17 @@ function Withdraw() {
         ) : (
           <input aria-label="Recipient" value={recipient} onChange={(e) => setRecipient(e.target.value.trim())} placeholder={mode === "pay" ? "st:eth:0x… or registered wallet" : "0x… a fresh wallet"} className={cn(inputCls, "mt-3 font-mono text-[14px]")} />
         )}
-        {relayer ? (
+        {relayable && pool ? (
           <label className="mt-3 flex items-center gap-2 text-[13px] text-ui-muted">
             <input type="checkbox" checked={useRelayer} onChange={(e) => setUseRelayer(e.target.checked)} className="accent-[#2f47f5]" />
-            Gasless via relayer{relayable && pool ? ` · fee ${formatUnits(relayFee, pool.decimals)} ${pool.symbol}` : pool && relayFee >= 0n ? ` · gas (${formatUnits(relayFee, pool.decimals)} ${pool.symbol}) is more than this note` : pool ? " · not for this pool" : ""}
+            Gasless via relayer · fee {formatUnits(relayFee, pool.decimals)} {pool.symbol}
           </label>
+        ) : relayer && pool && pc ? (
+          <p className="mt-3 text-[13px] text-ui-muted">
+            {relayFee >= 0n
+              ? `Gasless isn't available for this pool on ${pc.chain.shortName} today: the proof costs more gas than the note. You'll withdraw from your wallet.`
+              : `Gasless isn't available for this pool. You'll withdraw from your wallet.`}
+          </p>
         ) : null}
       </Well>
       <div className="mt-3">
