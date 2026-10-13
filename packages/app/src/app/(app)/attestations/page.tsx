@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { DataTable, PanelCard } from "@kakushi/ui";
 import { CHAIN_LIST, deployedChains } from "@kakushi/config";
 import { readWindows, windowCount } from "@kakushi/sdk";
@@ -30,10 +30,15 @@ export default function AttestationsPage() {
         lagError = "Indexed lag unavailable; onchain windows are shown below.";
       }
     }
-    return { n, ws: ws.reverse(), covered, indexedLag, lagError };
+    // newest first by when the window ends (ids are per-submission, so they interleave chains)
+    const sorted = [...ws].sort((a, b) => (Number(b.toTime) - Number(a.toTime)) || (b.id > a.id ? 1 : -1));
+    return { n, ws: sorted, covered, indexedLag, lagError };
   }, [k, cfg, chains]);
   const { data, error, loading } = usePoll(k ? load : null, 3000, [k, cfg]);
   const now = Math.floor(Date.now() / 1000);
+  const [showEmpty, setShowEmpty] = useState(false);
+  const empty = data?.ws.filter((w) => w.leafCount === 0).length ?? 0;
+  const rows = (data?.ws ?? []).filter((w) => showEmpty || w.leafCount > 0);
   return (
     <div>
       <ArtBanner src="/art/attest-banner.webp" position="50% 55%" />
@@ -61,22 +66,40 @@ export default function AttestationsPage() {
           );
         })}
       </div>
-      <PanelCard title="Recent windows" subtitle="The latest 60 commitments, newest first">
+      <p className="mb-6 px-1 text-[13px] text-ui-muted">Windows with Kakushi activity are attested within about a minute. Quiet ranges are batched every 2 hours to save gas, so lag can read up to 2 h.</p>
+      <PanelCard
+        title="Recent windows"
+        subtitle={empty ? (
+          <span>
+            Newest first. {empty} empty {empty === 1 ? "window" : "windows"} (no payments) {showEmpty ? "shown" : "hidden"}.{" "}
+            <button type="button" onClick={() => setShowEmpty((v) => !v)} className="text-ui-lime-text hover:underline">{showEmpty ? "Hide" : "Show"}</button>
+          </span>
+        ) : "Newest first"}
+      >
         <DataTable
           caption="Attestation windows"
           loading={loading && !data}
           loadingRows={6}
-          rows={data?.ws ?? []}
+          rows={rows}
           rowKey={(w) => String(w.id)}
-          empty={<p className="py-12 text-center text-[15px] text-ui-muted">{error ? "Windows appear here once the oracle can be read." : k ? "No windows yet. Start the attester (pnpm --filter @kakushi/cre local, or cre workflow simulate)." : "Windows appear once the hub is deployed and reachable."}</p>}
+          empty={<p className="py-12 text-center text-[15px] text-ui-muted">{error ? "Windows appear here once the oracle can be read." : data?.ws.length ? "No payments in the latest windows." : k ? "No windows yet. Start the attester (pnpm --filter @kakushi/cre local, or cre workflow simulate)." : "Windows appear once the hub is deployed and reachable."}</p>}
           columns={[
-            { key: "id", header: "#", render: (w) => <span className="ui-figure text-ui-muted">{w.id}</span> },
-            { key: "chain", header: "Chain", render: (w) => <ChainName chainId={Number(w.chainId)} size={24} /> },
-            { key: "kind", header: "Kind", render: (w) => (w.kind === 2 ? <Pill tone="indigo">Payouts</Pill> : <Pill>Source</Pill>) },
+            { key: "id", header: "#", hideBelow: "sm", render: (w) => <span className="ui-figure text-ui-muted">{w.id}</span> },
+            {
+              key: "chain",
+              header: "Chain",
+              render: (w) => (
+                <span className="flex flex-col items-start gap-1 sm:flex-row sm:items-center">
+                  <ChainName chainId={Number(w.chainId)} size={20} />
+                  <span className="sm:hidden">{w.kind === 2 ? <Pill tone="indigo">Payouts</Pill> : <Pill>Source</Pill>}</span>
+                </span>
+              ),
+            },
+            { key: "kind", header: "Kind", hideBelow: "sm", render: (w) => (w.kind === 2 ? <Pill tone="indigo">Payouts</Pill> : <Pill>Source</Pill>) },
             { key: "blocks", header: "Blocks", hideBelow: "md", render: (w) => <span className="ui-figure font-mono text-[13px]">{w.fromBlock.toString()}–{w.toBlock.toString()}</span> },
-            { key: "leaves", header: "Leaves", align: "right", render: (w) => <span className="ui-figure">{w.leafCount}</span> },
+            { key: "leaves", header: "Payments", align: "right", render: (w) => <span className="ui-figure">{w.leafCount}</span> },
             { key: "root", header: "Root", hideBelow: "lg", render: (w) => <span className="font-mono text-[13px] text-ui-muted">0x{w.root.toString(16).slice(0, 10)}…</span> },
-            { key: "ends", header: "Ends", align: "right", render: (w) => <span className="text-ui-muted">{ago(w.toTime)}</span> },
+            { key: "ends", header: "Ends", align: "right", render: (w) => <span className="whitespace-nowrap text-ui-muted">{ago(w.toTime)}</span> },
           ]}
         />
       </PanelCard>
