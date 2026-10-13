@@ -20,7 +20,7 @@ export function Chains() {
   const stats = [
     { value: "1", label: "SDK call to go private" },
     { value: String(KEYS.length - pending.length), label: "chains live, one hub" },
-    { value: "0", label: "custodians" },
+    { value: "0", label: "custodians on the ZK side" },
     { value: "15–30 s", label: "private bridge, Sepolia to Monad" },
   ];
   return (

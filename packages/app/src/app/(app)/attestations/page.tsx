@@ -44,8 +44,8 @@ export default function AttestationsPage() {
       <ArtBanner src="/art/attest-banner.webp" position="50% 55%" />
       <PageHead
         title="Attestations"
-        sub="Chainlink CRE commits every Maker payout and source payment in each block window as a sorted Poseidon2 root on the Monad hub. Payout windows are block-contiguous, so a missing payout can be proven absent."
-        right={cfg?.network === "local" ? <Pill tone="warn">Local CRE runner · same workflow, not a DON</Pill> : <Pill tone="indigo">Chainlink CRE</Pill>}
+        sub="Kakushi's attester runs the Chainlink CRE workflow logic and commits each block window of Maker payouts and source payments as one root on the Monad hub. Windows leave no gaps, so a missing payout can be proven."
+        right={cfg?.network === "local" ? <Pill tone="warn">Local CRE runner · same workflow, not a DON</Pill> : <Pill tone="indigo">CRE workflow · Kakushi runner, not a DON</Pill>}
       />
       {!k && runtimeError && <Notice tone="warn" title="The hub is not reachable">{runtimeError}</Notice>}
       {data?.lagError && <Notice tone="warn">{data.lagError}</Notice>}

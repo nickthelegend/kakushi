@@ -156,7 +156,7 @@ function BalanceTab({ token }: { token: ConfidentialToken }) {
       const s = await signer();
       if (mode === "in") {
         const rc = await wrap(env, s, token, value, setBusy);
-        setDone({ headline: `${fmt(value, token.decimals)} ${token.underlyingSymbol} is now private`, sub: "From here on, only you can see how much you hold", details: [`Tx ${short(rc.transactionHash, 6)}`, "The deposit is public; every move after it is encrypted"] });
+        setDone({ headline: `${fmt(value, token.decimals)} ${token.underlyingSymbol} is now private`, sub: "Hidden on chain from here on. Your signature reveals it in the app", details: [`Tx ${short(rc.transactionHash, 6)}`, "The deposit is public; every move after it is encrypted"] });
       } else {
         const out = await unwrap(env, s, token, value, setBusy);
         setDone({
@@ -273,7 +273,7 @@ function PayTab({ token }: { token: ConfidentialToken }) {
         });
       } else {
         const r = await payEncrypted(env, s, token, to.trim() as Hex, value, stringToHex("kakushi", { size: 32 }), setBusy);
-        setDone({ headline: `Sent ${fmt(value, token.decimals)} ${token.symbol}`, sub: `Only you and ${short(to.trim())} can see how much`, details: [`Tx ${short(r.receipt.transactionHash, 6)}`, ...(r.sent ? [`On-chain amount: ciphertext ${short(r.sent, 8)}`] : [])] });
+        setDone({ headline: `Sent ${fmt(value, token.decimals)} ${token.symbol}`, sub: `The amount is encrypted on chain. ${short(to.trim())} reveals it with a signature`, details: [`Tx ${short(r.receipt.transactionHash, 6)}`, ...(r.sent ? [`On-chain amount: ciphertext ${short(r.sent, 8)}`] : [])] });
       }
     } catch (e) {
       setErr(errText(e));
@@ -417,7 +417,7 @@ function ClaimCard({ claim }: { claim: { token: Hex; id: bigint; key: Hex } }) {
       <Well>
         <div className="flex items-center gap-2 text-[13px] text-ui-muted"><Gift size={14} /> Pay link #{claim.id.toString()}</div>
         <div className="serif mt-2 text-[26px] leading-tight">{done ? "Claimed to your private balance" : state === "Open" ? `Someone sent you ${token.symbol}` : state ? `This link is ${state.toLowerCase()}` : "Checking the link…"}</div>
-        <div className="mt-1 text-[13px] text-ui-muted">{done ? "Reveal it on the Balance tab" : "The amount stays hidden; only you can reveal it after claiming"}</div>
+        <div className="mt-1 text-[13px] text-ui-muted">{done ? "Reveal it on the Balance tab" : "The amount stays hidden on chain; reveal it after claiming"}</div>
         {!done && state === "Open" ? (
           <div className="mt-4">{w.address ? <PrimaryButton size="lg" block loading={busy} onClick={go}>Claim</PrimaryButton> : <ConnectButton block large />}</div>
         ) : null}
@@ -486,7 +486,7 @@ export default function ConfidentialPage() {
         <ul className="mt-2 grid gap-1.5 leading-relaxed">
           <li>Amounts are encrypted in your browser (FHE). The contract adds and subtracts them without ever decrypting.</li>
           <li>Private recipient also sends to a fresh one-time address, so nobody sees who got paid.</li>
-          <li>Only you can reveal your balance. Cash out reveals only the amount you take out.</li>
+          <li>Only your signature unlocks your balance in the app; today one Kakushi-run engine holds the network key. Cash out reveals only the amount you take out.</li>
           {!isolated() ? <li>This browser encrypts on one thread, so it takes a little longer.</li> : null}
         </ul>
       </details>

@@ -24,7 +24,7 @@ export const MORE = [
   { key: "claim", label: "Claim", href: "/disputes", icon: <Gavel />, description: "A Maker didn't pay? Prove it" },
   { key: "explorer", label: "Explorer", href: "/explorer", icon: <Compass />, description: "Bridge transfers" },
   { key: "market", label: "Makers", href: "/market", icon: <BarChart3 />, description: "Routes and liquidity" },
-  { key: "attestations", label: "Attestations", href: "/attestations", icon: <ShieldCheck />, description: "Chainlink CRE windows" },
+  { key: "attestations", label: "Attestations", href: "/attestations", icon: <ShieldCheck />, description: "CRE workflow windows" },
   { key: "docs", label: "Docs", href: "https://github.com/nickthelegend/kakushi#readme", icon: <BookOpen />, description: "How Kakushi works" },
   { key: "github", label: "GitHub", href: "https://github.com/nickthelegend/kakushi", icon: <GitBranch />, description: "Open source, MIT" },
 ];

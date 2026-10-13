@@ -29,7 +29,7 @@ export function ProductPreview() {
     { t: "Paid on Sepolia", s: "25.009001 USDC to Maker B", tag: "0.0 s", tone: "neutral" as const },
     { t: "The hub classifies it", s: "Maker B owes you 24.93 USDC on Monad", tag: "rules", tone: "teal" as const },
     { t: "Paid out on Monad", s: "Through the PayoutRouter", tag: "~20 s", tone: "lime" as const },
-    { t: "Attested by Chainlink CRE", s: "In a contiguous block window", tag: "CRE", tone: "purple" as const },
+    { t: "Attested by the CRE workflow", s: "In a contiguous block window", tag: "CRE", tone: "purple" as const },
   ];
   return (
     <div className="grid gap-4 rounded-[28px] bg-ui-surface-1/50 p-3 ring-1 ring-white/6 sm:p-4 lg:grid-cols-[minmax(0,1fr)_400px]">

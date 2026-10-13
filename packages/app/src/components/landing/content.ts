@@ -22,7 +22,7 @@ export const hero = {
   primary: "Open app",
   secondary: "Add privacy to your app",
   line: "Private payments, a shielded pool and a private bridge, on Monad.",
-  trust: ["Proofs made in your browser", "No custodian, no mixer operator", "Monad first, every chain next"],
+  trust: ["Proofs made in your browser", "No custodian on the ZK side", "Monad first, every chain next"],
 };
 
 export const sponsors = {
@@ -45,16 +45,16 @@ export const how = {
 export const proof = {
   eyebrow: "Safe by design",
   heading: ["If a Maker fails,", "its margin pays you."],
-  sub: "Every Maker posts margin on Monad before it can quote. Chainlink CRE commits each payout to the hub, so a missing one can be proven with a zero-knowledge proof, in your browser, and Monad pays you from that margin in the same transaction.",
+  sub: "Every Maker posts margin on Monad before it can quote. Kakushi's attester runs the Chainlink CRE workflow and commits each payout to the hub, so a missing one can be proven with a zero-knowledge proof, in your browser, and Monad pays you from that margin in the same transaction.",
   stats: [
     { value: 0.6, suffix: " s", decimals: 1, label: "Monad finality for the hub" },
     { value: 100, suffix: "%", decimals: 0, label: "of what you sent, back from margin" },
-    { value: 0, decimals: 0, label: "operators you have to trust" },
+    { value: 1, decimals: 0, label: "transaction to prove and get paid" },
   ],
   flow: [
     { title: "You pay 12.009001 USDC", body: "To a Maker on Sepolia. The hub says it owes you 11.94 USDC on Monad within 20 s.", tag: "0 s" },
     { title: "The deadline passes", body: "No compliant payout. The Watchtower notices, or you do.", tag: "20 s" },
-    { title: "Chainlink CRE attests", body: "Every payout of the block windows around the deadline, as one root each, contiguous.", tag: "CRE" },
+    { title: "The attester commits", body: "Kakushi's attester runs the CRE workflow: every payout around the deadline, one root per window.", tag: "CRE" },
     { title: "Noir proves, Monad slashes", body: "The proof shows your payment exists and no payout does. Margin pays you 12.009001 USDC.", tag: "1 tx" },
   ],
   maker: {
@@ -152,7 +152,7 @@ export const faq = {
   items: [
     { q: "What does a stealth address hide?", a: "Who gets paid. Each payment goes to a fresh address derived from the recipient's meta-address; only their viewing key can find it. The amount and sender are still public." },
     { q: "What does the pool hide?", a: "The link between a deposit and a withdrawal. You deposit a fixed amount with a commitment and later withdraw with a zero-knowledge proof that you own one of the deposits, without saying which." },
-    { q: "Who can see my keys?", a: "Nobody. Your stealth keys are derived from a signature in your own wallet, and proofs are generated in your browser." },
+    { q: "Who can see my keys?", a: "Nobody sees your stealth keys: they come from a signature in your wallet, and proofs run in your browser. For FHE, one Kakushi-run engine holds the network key today." },
     { q: "Why a relayer?", a: "A fresh address has no gas. The relayer submits the withdrawal and takes a fee from it, so the new address never touches your old one." },
     { q: "Which chains?", a: "Monad testnet and Sepolia today. Base, Arbitrum and OP Sepolia are awaiting testnet funding. The private bridge moves funds between live chains to stealth addresses." },
     { q: "What about compliance?", a: "Pools are fixed-size and every proof is public on chain. A compliance gate for Cleanverse checks is built into the bridge and switches on once Cleanverse onboarding is done." },
@@ -176,7 +176,7 @@ export const engines = {
   sub: "Use either one, or both in the same transaction.",
   cards: [
     { key: "zk", engine: "Zero knowledge · Noir", title: "Hide who", items: ["One-time stealth addresses", "A shielded pool for any token", "Private calls into any contract", "A private bridge across chains"] },
-    { key: "fhe", engine: "Fully homomorphic · tfhe-rs", title: "Hide how much", items: ["Encrypted balances and payments", "Contracts compute on ciphertexts", "Encrypted payroll, requests, pay links", "Reveal only to whoever you allow"] },
+    { key: "fhe", engine: "Fully homomorphic · tfhe-rs", title: "Hide how much", items: ["Encrypted balances and payments", "Contracts compute on ciphertexts", "Encrypted payroll, requests, pay links", "Today one Kakushi-run engine holds the key"] },
     { key: "both", engine: "ZK + FHE", title: "Hide everything", items: ["An encrypted amount to a stealth address", "Nobody sees the parties or the amount", "The recipient reveals it with one key", "Settles on Monad in under a second"] },
   ],
 } as const;

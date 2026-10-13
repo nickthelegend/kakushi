@@ -40,7 +40,7 @@ export function Footer() {
       <Shell className="grid gap-10 md:grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,0.6fr))]">
         <div className="grid content-start gap-4">
           <Logo height={30} />
-          <p className="max-w-[40ch] text-[14px] leading-relaxed text-ui-muted">Privacy for Monad, with a private bridge. Disputes settle on Monad; every payout is attested by Chainlink CRE and missing ones are proven in Noir. Built for Monad Metropolis 2026.</p>
+          <p className="max-w-[40ch] text-[14px] leading-relaxed text-ui-muted">Privacy for Monad, with a private bridge. Disputes settle on Monad; Kakushi's attester runs the Chainlink CRE workflow on every payout, and missing ones are proven in Noir. Built for Monad Metropolis 2026.</p>
         </div>
         <nav aria-label="Product" className="grid content-start gap-2 text-[15px]">
           <p className="mb-1 text-[13px] font-medium text-ui-muted uppercase">Product</p>

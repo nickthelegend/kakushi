@@ -122,8 +122,8 @@ export default function TxPage({ params }: { params: Promise<{ chainId: string; 
                 last={!(overdue || lateOrWrong || v.watch?.disputeKey || (v.dispute && v.dispute.status !== 0))}
                 state={attested || slashed || coversDeadline ? "done" : "active"}
                 icon={<ShieldCheck className="size-4" />}
-                title={attested ? "Attested by Chainlink CRE" : coversDeadline ? "CRE attestation covers the deadline" : "Waiting for the CRE attestation"}
-                tag={network === "local" ? <Pill tone="warn">local CRE runner</Pill> : <Pill tone="indigo">Chainlink CRE</Pill>}
+                title={attested ? "Attested by the CRE workflow" : coversDeadline ? "CRE attestation covers the deadline" : "Waiting for the CRE attestation"}
+                tag={network === "local" ? <Pill tone="warn">local CRE runner</Pill> : <Pill tone="indigo">CRE workflow · Kakushi runner</Pill>}
               >
                 <div>{chainById(c.obligationChainId).shortName} payouts attested up to {v.coveredUntil ? new Date(Number(v.coveredUntil) * 1000).toLocaleTimeString() : "…"}.</div>
               </Step>

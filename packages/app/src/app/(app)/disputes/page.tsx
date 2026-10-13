@@ -105,7 +105,7 @@ function DisputeYourself() {
 
   return (
     <PanelCard title="Prove it yourself" subtitle="In your browser, with Noir" badge={<Pill tone="indigo">UltraHonk</Pill>}>
-      <p className="max-w-[70ch] text-[15px] leading-[1.5] text-ui-muted">Your browser rebuilds the CRE-attested windows from chain data, checks their roots, and proves that your payment exists and no compliant payout does. Nobody has to trust you, or anyone else.</p>
+      <p className="max-w-[70ch] text-[15px] leading-[1.5] text-ui-muted">Your browser rebuilds the CRE-attested windows from chain data, checks their roots, and proves that your payment exists and no compliant payout does.</p>
       <div className="mt-5 grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_110px_auto]">
         <select aria-label="Source chain" disabled={!!stage} value={chainId} onChange={(e) => { clearCheckedTransfer(); setChainId(Number(e.target.value)); }} className={fieldCls}>
           {(cfg?.deployments ? deployedChains(cfg.deployments) : CHAIN_LIST).map((c) => <option key={c.chainId} value={c.chainId}>{c.shortName}</option>)}
