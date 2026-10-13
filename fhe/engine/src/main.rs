@@ -4,7 +4,8 @@
 //! symbolic graph of operations over 32-byte handles. This engine materializes that graph with
 //! REAL Zama tfhe-rs ciphertexts, natively and multi-threaded:
 //!
-//!   serve   HTTP API on 127.0.0.1 (only the TS coprocessor talks to it)
+//!   serve   HTTP API on 127.0.0.1 (only the TS coprocessor talks to it; --host / KAKUSHI_FHE_ENGINE_HOST
+//!           overrides it, e.g. "::" on a host's private network, never a public interface)
 //!   keygen  create the network keyset (client key = the secret decryption root)
 //!   encrypt client-side encryption for Node tooling: a CompactCiphertextList under the public key
 //!
@@ -301,7 +302,7 @@ fn parse_u64(s: &str) -> Result<u64> {
     }
 }
 
-async fn serve(dir: PathBuf, port: u16) -> Result<()> {
+async fn serve(dir: PathBuf, host: String, port: u16) -> Result<()> {
     let keys = load_or_generate(&dir.join("keys"))?;
     let engine = Arc::new(Engine { keys, dir: dir.clone(), cache: Mutex::new(HashMap::new()) });
     let app = Router::new()
@@ -316,8 +317,8 @@ async fn serve(dir: PathBuf, port: u16) -> Result<()> {
         .route("/rand", post(rand))
         .route("/decrypt", post(decrypt))
         .with_state(engine);
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await?;
-    eprintln!("[engine] tfhe-rs 1.8.1 listening on 127.0.0.1:{port}");
+    let listener = tokio::net::TcpListener::bind((host.as_str(), port)).await?;
+    eprintln!("[engine] tfhe-rs 1.8.1 listening on {host} port {port}");
     axum::serve(listener, app).await?;
     Ok(())
 }
@@ -481,7 +482,8 @@ fn main() -> Result<()> {
     match cmd {
         "serve" => {
             let port: u16 = arg(&args, "--port").unwrap_or("8899").parse()?;
-            tokio::runtime::Runtime::new()?.block_on(serve(dir, port))
+            let host = arg(&args, "--host").map(str::to_owned).or_else(|| std::env::var("KAKUSHI_FHE_ENGINE_HOST").ok()).unwrap_or_else(|| "127.0.0.1".into());
+            tokio::runtime::Runtime::new()?.block_on(serve(dir, host, port))
         }
         "keygen" => {
             load_or_generate(&dir.join("keys"))?;
@@ -506,7 +508,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         _ => {
-            eprintln!("usage: kakushi-fhe-engine serve|keygen|encrypt [--dir .kakushi-fhe] [--port 8899] [--pk f --type 3 --value n]");
+            eprintln!("usage: kakushi-fhe-engine serve|keygen|encrypt [--dir .kakushi-fhe] [--host 127.0.0.1] [--port 8899] [--pk f --type 3 --value n]");
             Ok(())
         }
     }
