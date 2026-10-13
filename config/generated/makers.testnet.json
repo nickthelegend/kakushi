@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "name": "Maker 1",
+    "address": "0xa99c2cA996baBE6b74030302AfeD456cad4DBb5B",
+    "url": "https://maker1-production.up.railway.app",
+    "routes": "USDC Sepolia<->Monad, max 1 USDC"
+  }
+]

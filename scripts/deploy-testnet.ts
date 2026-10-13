@@ -721,9 +721,12 @@ async function margin(c: Ctx, role: "maker1" | "maker2", hub: HubDeployment, tar
 
 let maker1Active = false;
 let maker2Active = false;
+/** false when this run did not reach the Monad maker step (--chains sepolia, --skip-makers): keep the recorded Makers */
+let makersEvaluated = false;
 
 /** maker1: USDC Sepolia <-> Monad; maker2: native ETH Sepolia <-> Base Sepolia if its USDC covers the priced margin */
 async function makersHub(c: Ctx) {
+  makersEvaluated = true;
   const hub = readJson<HubDeployment>(recordPath("monadTestnet"))!;
   const u = (x: string) => parseUnits(x, 6);
   const e = (x: string) => parseUnits(x, 18);
@@ -846,10 +849,19 @@ function writeOutputs(liveBalances: Record<string, Record<string, bigint>>) {
   const hub = readJson<HubDeployment>(recordPath("monadTestnet"));
   const maker2Live = maker2Active;
   // only Makers whose routes are registered (none with --skip-makers)
-  const makers = [
-    ...(maker1Active ? [{ name: "Maker 1", address: EXPECTED.maker1, url: "https://REPLACE-maker1", todo: "TODO: hosting not decided; set the public HTTPS URL of maker1's node (packages/maker, MAKER_KEY_1)", routes: `USDC Sepolia<->Monad, max ${MAKER1.maxUsdc} USDC` }] : []),
-    ...(maker2Live ? [{ name: "Maker 2", address: EXPECTED.maker2, url: "https://REPLACE-maker2", todo: "TODO: hosting not decided; set the public HTTPS URL of maker2's node (packages/maker, MAKER_KEY_2)", routes: `ETH Sepolia<->Base Sepolia, max ${MAKER2.maxEth} ETH` }] : []),
-  ];
+  type MakerRow = { name: string; address: string; url: string; todo?: string; routes: string };
+  const recorded = readJson<MakerRow[]>(`${OUT_DIR}/makers.testnet.json`) ?? [];
+  // a hosted node's URL, once recorded, survives re-runs
+  const hosted = (address: string, row: MakerRow): MakerRow => {
+    const prev = recorded.find((m) => m.address.toLowerCase() === address.toLowerCase());
+    return prev && !prev.url.includes("REPLACE") ? { ...row, url: prev.url, todo: undefined } : row;
+  };
+  const makers = makersEvaluated
+    ? [
+        ...(maker1Active ? [hosted(EXPECTED.maker1, { name: "Maker 1", address: EXPECTED.maker1, url: "https://REPLACE-maker1", todo: "TODO: set the public HTTPS URL of maker1's node (packages/maker, MAKER_KEY_1)", routes: `USDC Sepolia<->Monad, max ${MAKER1.maxUsdc} USDC` })] : []),
+        ...(maker2Live ? [hosted(EXPECTED.maker2, { name: "Maker 2", address: EXPECTED.maker2, url: "https://REPLACE-maker2", todo: "TODO: set the public HTTPS URL of maker2's node (packages/maker, MAKER_KEY_2)", routes: `ETH Sepolia<->Base Sepolia, max ${MAKER2.maxEth} ETH` })] : []),
+      ]
+    : recorded;
   writeJson(`${OUT_DIR}/makers.testnet.json`, makers);
 
   // relayer pools: every factory pool this run opened (RELAYER_CONFIG=config/generated/relayer.testnet.json)
