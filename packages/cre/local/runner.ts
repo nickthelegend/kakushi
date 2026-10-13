@@ -46,6 +46,7 @@ const READ_BUDGET = 15; // CRE's EVM reads per execution
 // longer span per window (KAKUSHI_ATTEST_MAX_BLOCKS), paging eth_getLogs 100 blocks at a time. With
 // the default 100 it keeps the CRE workflow's exact limits.
 const SPAN = BigInt(process.env.KAKUSHI_ATTEST_MAX_BLOCKS ?? "100");
+const PAGE_CONCURRENCY = Number(process.env.KAKUSHI_ATTEST_PAGE_CONCURRENCY ?? "4"); // public RPCs rate-limit bursts
 const BLOCK_BUDGET = SPAN > MAX_BLOCKS ? 200 : READ_BUDGET; // distinct log blocks whose timestamps are read
 // A range with no Kakushi logs is attested only once it is this old (seconds); 0 = every tick.
 // Activity is attested on the next tick either way.
@@ -84,6 +85,7 @@ async function deliver(windows: AttestWindow[], label: string): Promise<Hex> {
     data,
     gas, // Monad charges the gas LIMIT: estimate + 15%
   });
+  if (process.env.KAKUSHI_ATTEST_VERBOSE) console.log(`[attest] ${label}: ${windows.length} window(s), gas limit ${gas}, tx ${hash}`);
   const rc = await hub.waitForTransactionReceipt({ hash });
   // the mock forwarder swallows receiver reverts: check ReportProcessed.result and the count
   for (const l of rc.logs) {
@@ -120,9 +122,9 @@ async function attestChain(chainId: number): Promise<void> {
   const chunks: { from: bigint; to: bigint }[] = [];
   for (let b = range.from; b <= range.to; b += MAX_BLOCKS) chunks.push({ from: b, to: b + MAX_BLOCKS - 1n < range.to ? b + MAX_BLOCKS - 1n : range.to });
   for (const f of windowLogFilters(cfg)) {
-    for (let i = 0; i < chunks.length; i += 8) {
+    for (let i = 0; i < chunks.length; i += PAGE_CONCURRENCY) {
       const pages = await Promise.all(
-        chunks.slice(i, i + 8).map((ch) => {
+        chunks.slice(i, i + PAGE_CONCURRENCY).map((ch) => {
           reads += 1;
           return client.request({
             method: "eth_getLogs",
@@ -187,7 +189,9 @@ async function tick(): Promise<void> {
       try {
         await attestChain(c.chainId);
       } catch (e) {
-        status[c.chainId]!.error = (e as Error).message.split("\n")[0];
+        // viem keeps the RPC's own reason in `details` (rate limit, range cap…): keep it visible
+        const err = e as Error & { details?: string };
+        status[c.chainId]!.error = [err.message.split("\n")[0], err.details].filter(Boolean).join(": ").slice(0, 300);
         console.error(`[attest] ${c.shortName}: ${status[c.chainId]!.error}`);
       }
     }
