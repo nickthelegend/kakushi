@@ -1,6 +1,6 @@
 "use client";
 
-import { AppFrame, IconSquareButton, KakushiMark, Logo, Menu, SecondaryButton, StatusPill, TopNav } from "@kakushi/ui";
+import { AppFrame, cn, IconSquareButton, KakushiMark, Logo, Menu, SecondaryButton, StatusPill, TopNav } from "@kakushi/ui";
 import { ArrowLeftRight, BarChart3, BookOpen, CodeXml, Compass, Gavel, GitBranch, Globe, Inbox, Lock, LogOut, Send, Shield, ShieldCheck, Star, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -62,7 +62,7 @@ export function NetworkPill({ className }: { className?: string }) {
     ? `Monad block ${pulse.finalized.toLocaleString()} finalized. Proposed to Finalized ${secs(pulse.finalMs) ?? "measuring"}, to Verified ${secs(pulse.verifiedMs) ?? "measuring"} (live, monadNewHeads)`
     : undefined;
   return (
-    <span title={title} className={`inline-flex h-11 items-center gap-2.5 rounded-full bg-ui-surface-1 pr-5 pl-4 text-[15px] font-medium whitespace-nowrap ${className ?? ""}`}>
+    <span title={title} className={cn("inline-flex h-11 items-center gap-2.5 rounded-full bg-ui-surface-1 pr-5 pl-4 text-[15px] font-medium whitespace-nowrap", className)}>
       <span aria-hidden className="relative grid size-2.5 place-items-center">
         {live ? <span className="absolute size-2.5 animate-ping rounded-full bg-ui-lime-button/60 motion-reduce:animate-none" /> : null}
         <span className={`size-2 rounded-full ${live ? "bg-ui-lime-button" : "bg-ui-muted"}`} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Logo, PrimaryButton, TopNav } from "@kakushi/ui";
-import { CircleHelp, CodeXml, FileCheck2, Network, Route, Scale, Tag, Users } from "lucide-react";
+import { ArrowRight, CircleHelp, CodeXml, FileCheck2, Network, Route, Scale, Tag, Users } from "lucide-react";
 import Link from "next/link";
 import { NetworkPill } from "@/components/AppShell";
 import { nav } from "./content";
@@ -20,8 +20,8 @@ const ICONS: Record<string, React.ReactNode> = {
 /** The landing's top bar (ref E's TopNav): wordmark, section links, network, and the lime CTA. */
 export function LandingNav() {
   const cta = (
-    <PrimaryButton asChild size="sm" iconRight={<CodeXml />}>
-      <Link href="/developers">Add privacy</Link>
+    <PrimaryButton asChild size="sm" iconRight={<ArrowRight />}>
+      <Link href="/send">Open app</Link>
     </PrimaryButton>
   );
   return (
@@ -37,16 +37,21 @@ export function LandingNav() {
         <>
           <NetworkPill className="hidden xl:inline-flex" />
           <Button asChild variant="outline" size="sm" className="hidden border-white/70 bg-transparent hover:bg-white/10 lg:inline-flex">
-            <Link href="/send">Open app</Link>
+            <Link href="/developers">Add privacy</Link>
           </Button>
           {cta}
         </>
       }
       compactActions={cta}
       sheetFooter={
-        <PrimaryButton asChild size="lg" block iconRight={<CodeXml />}>
-          <Link href="/developers">Add privacy</Link>
-        </PrimaryButton>
+        <>
+          <PrimaryButton asChild size="lg" block iconRight={<ArrowRight />}>
+            <Link href="/send">Open app</Link>
+          </PrimaryButton>
+          <Button asChild variant="outline" size="lg" block className="border-white/70 bg-transparent hover:bg-white/10">
+            <Link href="/developers">Add privacy to your app</Link>
+          </Button>
+        </>
       }
     />
   );
