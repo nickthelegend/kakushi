@@ -1,8 +1,8 @@
 "use client";
 
 import { CopyButton, Menu, PrimaryButton, cn } from "@kakushi/ui";
-import { ArrowDownToLine, Check, ChevronDown, Eye, EyeOff, Gift, Link2, Lock, LockOpen, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ChevronDown, Eye, EyeOff, Gift, Link2, Lock, LockOpen, Send } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { formatEther, formatUnits, isAddress, parseUnits, stringToHex, type Hex } from "viem";
 import { readStealthMetaAddress } from "@kakushi/sdk";
 import { ConnectButton } from "@/components/AppShell";
@@ -49,11 +49,12 @@ function TokenPicker({ tokens, value, onChange }: { tokens: ConfidentialToken[];
   );
 }
 
+/** A small two-way toggle inside a well (Make private / Cash out, Private recipient / Address). */
 function Segments<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   return (
-    <div className="flex gap-1">
+    <div className="inline-flex gap-0.5 rounded-full bg-white/[0.04] p-0.5">
       {options.map((o) => (
-        <button key={o.id} type="button" onClick={() => onChange(o.id)} className={cn("rounded-full px-4 py-1.5 text-[14px] font-medium", value === o.id ? "bg-ui-surface-2" : "text-ui-muted hover:text-ui-text")}>
+        <button key={o.id} type="button" aria-pressed={value === o.id} onClick={() => onChange(o.id)} className={cn("rounded-full px-3 py-1 text-[13px] font-medium transition-colors", value === o.id ? "bg-ui-surface-3 text-ui-text" : "text-ui-muted hover:text-ui-text")}>
           {o.label}
         </button>
       ))}
@@ -61,8 +62,49 @@ function Segments<T extends string>({ value, options, onChange }: { value: T; op
   );
 }
 
+type TabId = "balance" | "pay" | "link";
+const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
+  { id: "balance", label: "Balance", icon: <Lock size={14} /> },
+  { id: "pay", label: "Pay", icon: <Send size={14} /> },
+  { id: "link", label: "Link", icon: <Link2 size={14} /> },
+];
+
+/** The card's main switch: one clear selected state, so it never reads like the toggles inside. */
+function TabBar({ value, onChange }: { value: TabId; onChange: (v: TabId) => void }) {
+  return (
+    <div role="tablist" aria-label="Confidential" className="flex min-w-0 flex-1 gap-1">
+      {TABS.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={value === t.id}
+          onClick={() => onChange(t.id)}
+          className={cn("inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[14px] font-medium transition-colors sm:px-4", value === t.id ? "bg-[#2f47f5] text-white" : "text-ui-muted hover:bg-white/[0.04] hover:text-ui-text")}
+        >
+          <span aria-hidden className="hidden sm:inline-flex">{t.icon}</span>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Caption({ children }: { children: ReactNode }) {
+  return <div className="flex items-center justify-between gap-3 text-[13px] text-ui-muted">{children}</div>;
+}
+
+function AmountInput({ label, value, onChange, unit, size = 40 }: { label: string; value: string; onChange: (v: string) => void; unit: string; size?: number }) {
+  return (
+    <div className="mt-3 flex items-baseline gap-2">
+      <input aria-label={label} inputMode="decimal" placeholder="0" value={value} onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ""))} style={{ fontSize: size }} className="ui-figure min-w-0 flex-1 bg-transparent font-medium tracking-[-0.03em] outline-none placeholder:text-ui-dim" />
+      <span className="text-[17px] font-semibold">{unit}</span>
+    </div>
+  );
+}
+
 function encDetail() {
-  return lastEncryption.ms ? <span>Encrypted in this tab in {lastEncryption.ms} ms ({lastEncryption.threads ? "WASM thread pool" : "single-threaded WASM"})</span> : null;
+  return lastEncryption.ms ? <span>Encrypted in your browser in {lastEncryption.ms} ms</span> : null;
 }
 
 // ------------------------------------------------------------------ Balance: make private, reveal, cash out
@@ -114,13 +156,13 @@ function BalanceTab({ token }: { token: ConfidentialToken }) {
       const s = await signer();
       if (mode === "in") {
         const rc = await wrap(env, s, token, value, setBusy);
-        setDone({ headline: `${fmt(value, token.decimals)} ${token.underlyingSymbol} is now private`, sub: "From here on, only you can see how much you hold", details: [`Wrap tx ${short(rc.transactionHash, 6)}`, `The deposit itself is public; every later move is encrypted`] });
+        setDone({ headline: `${fmt(value, token.decimals)} ${token.underlyingSymbol} is now private`, sub: "From here on, only you can see how much you hold", details: [`Tx ${short(rc.transactionHash, 6)}`, "The deposit is public; every move after it is encrypted"] });
       } else {
         const out = await unwrap(env, s, token, value, setBusy);
         setDone({
           headline: out.released > 0n ? `Cashed out ${fmt(out.released, token.decimals)} ${token.underlyingSymbol}` : "Nothing cashed out",
           sub: out.released > 0n ? "Only this amount was ever revealed" : "Your private balance was lower than that amount",
-          details: [`Cash-out tx ${short(out.receipt.transactionHash, 6)}`, `Decryption request #${out.requestId} (k-of-n KMS callback)`],
+          details: [`Tx ${short(out.receipt.transactionHash, 6)}`, `Decryption request #${out.requestId}`],
         });
       }
       setPriv(null);
@@ -131,36 +173,41 @@ function BalanceTab({ token }: { token: ConfidentialToken }) {
     }
   }
 
+  const fill = mode === "in" ? pub : priv;
+  const unit = mode === "in" ? token.underlyingSymbol : token.symbol;
+
   return (
     <>
       <Well>
-        <div className="flex items-center justify-between text-[13px] text-ui-muted">
+        <Caption>
           <span>Private balance</span>
           {w.address ? (
-            <button type="button" onClick={doReveal} disabled={revealing} className="inline-flex items-center gap-1.5 hover:text-ui-text disabled:opacity-50">
-              {priv === null ? <Eye size={14} /> : <EyeOff size={14} />} {revealing ? "Revealing" : priv === null ? "Reveal" : "Refresh"}
+            <button type="button" onClick={doReveal} disabled={revealing} className="inline-flex h-7 items-center gap-1.5 rounded-full bg-ui-surface-2 px-3 font-medium text-ui-text hover:bg-ui-surface-3 disabled:opacity-60">
+              {priv === null ? <Eye size={14} /> : <EyeOff size={14} />} {revealing ? "Revealing…" : priv === null ? "Reveal" : "Refresh"}
             </button>
           ) : null}
-        </div>
+        </Caption>
         <div className="mt-2 flex items-baseline gap-2">
-          <span className="ui-figure text-[40px] font-medium tracking-[-0.03em]">{priv === null ? "••••••" : fmt(priv, token.decimals)}</span>
+          <span className={cn("ui-figure text-[40px] font-medium tracking-[-0.03em]", priv === null && "text-ui-dim")}>{priv === null ? "••••••" : fmt(priv, token.decimals)}</span>
           <span className="text-[17px] font-semibold">{token.symbol}</span>
         </div>
-        <div className="mt-1 text-[13px] text-ui-muted">{priv === null ? "Encrypted on-chain. Reveal asks your wallet for one signature." : "Decrypted for this tab only"}{pub !== null ? ` · Public ${token.underlyingSymbol} ${fmt(pub, token.decimals)}` : ""}</div>
+        <div className="mt-1 text-[13px] text-ui-muted">{!w.address ? "Connect a wallet to see yours" : priv === null ? "Hidden on-chain. Reveal takes one signature." : "Visible in this tab only"}</div>
       </Well>
       <Well className="mt-2">
-        <div className="flex items-center justify-between">
+        <Caption>
           <Segments value={mode} onChange={(m) => { setMode(m); setDone(null); }} options={[{ id: "in", label: "Make private" }, { id: "out", label: "Cash out" }]} />
-        </div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <input aria-label={`Amount of ${mode === "in" ? token.underlyingSymbol : token.symbol}`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} className="ui-figure min-w-0 flex-1 bg-transparent text-[34px] font-medium tracking-[-0.03em] outline-none" />
-          <span className="text-[15px] font-semibold">{mode === "in" ? token.underlyingSymbol : token.symbol}</span>
-        </div>
+          {fill !== null ? (
+            <button type="button" onClick={() => setAmount(formatUnits(fill, token.decimals))} className="ui-figure hover:text-ui-text">
+              {mode === "in" ? token.underlyingSymbol : "Private"} {fmt(fill, token.decimals)} <span className="ml-1 font-semibold text-ui-lime-text">Max</span>
+            </button>
+          ) : null}
+        </Caption>
+        <AmountInput label={`Amount of ${unit}`} value={amount} onChange={setAmount} unit={unit} />
       </Well>
       <div className="mt-3">
         {w.address ? (
           <PrimaryButton size="lg" block icon={mode === "in" ? <Lock /> : <LockOpen />} className="h-[58px] text-[17px]" disabled={!value || !!busy} loading={!!busy} onClick={act}>
-            {busy ?? (mode === "in" ? `Make ${token.underlyingSymbol} private` : "Cash out")}
+            {busy ?? (mode === "in" ? `Make ${token.underlyingSymbol} private` : `Cash out to ${token.underlyingSymbol}`)}
           </PrimaryButton>
         ) : (
           <ConnectButton block large />
@@ -222,11 +269,11 @@ function PayTab({ token }: { token: ConfidentialToken }) {
         setDone({
           headline: `Sent ${fmt(value, token.decimals)} ${token.symbol}`,
           sub: "Nobody else can see who got it or how much",
-          details: [`One-time address ${short(r.stealthAddress, 6)}`, `Includes ${formatEther(r.gas)} MON so they can move it`, `Announced with FHE metadata (0xfe0000fe)`, `Tx ${short(r.receipt.transactionHash, 6)}`],
+          details: [`Tx ${short(r.receipt.transactionHash, 6)}`, `One-time address ${short(r.stealthAddress, 6)}`, `Includes ${formatEther(r.gas)} MON so they can move it`],
         });
       } else {
         const r = await payEncrypted(env, s, token, to.trim() as Hex, value, stringToHex("kakushi", { size: 32 }), setBusy);
-        setDone({ headline: `Sent ${fmt(value, token.decimals)} ${token.symbol}`, sub: `Only you and ${short(to.trim())} can see how much`, details: [`Tx ${short(r.receipt.transactionHash, 6)}`, ...(r.sent ? [`Amount on-chain: ciphertext ${short(r.sent, 8)}`] : [])] });
+        setDone({ headline: `Sent ${fmt(value, token.decimals)} ${token.symbol}`, sub: `Only you and ${short(to.trim())} can see how much`, details: [`Tx ${short(r.receipt.transactionHash, 6)}`, ...(r.sent ? [`On-chain amount: ciphertext ${short(r.sent, 8)}`] : [])] });
       }
     } catch (e) {
       setErr(errText(e));
@@ -238,19 +285,18 @@ function PayTab({ token }: { token: ConfidentialToken }) {
   return (
     <>
       <Well>
-        <div className="flex items-center justify-between text-[13px] text-ui-muted">
+        <Caption>
           <Segments value={privateTo ? "p" : "a"} onChange={(v) => { setPrivateTo(v === "p"); setDone(null); }} options={[{ id: "p", label: "Private recipient" }, { id: "a", label: "Address" }]} />
-          {privateTo && meta ? <span className="inline-flex items-center gap-1 text-[#c4d0ff]"><Check size={13} /> {resolved && "via" in resolved && resolved.via === "registry" ? "Found" : "Meta-address"}</span> : null}
-        </div>
-        <input aria-label={privateTo ? "Recipient meta-address or wallet" : "Recipient address"} value={to} onChange={(e) => setTo(e.target.value.trim())} placeholder={privateTo ? "st:eth:0x… or 0x wallet" : "0x… wallet"} className={cn(inputCls, "mt-3 font-mono text-[14px]")} />
-        {resolved && "error" in resolved ? <p className="mt-2 text-[13px] text-ui-warn">{resolved.error}</p> : null}
+          {privateTo && meta ? <span className="inline-flex items-center gap-1 text-[#c4d0ff]"><Check size={13} /> {resolved && "via" in resolved && resolved.via === "registry" ? "Private receiving on" : "Meta-address"}</span> : null}
+        </Caption>
+        <input aria-label={privateTo ? "Recipient meta-address or wallet" : "Recipient address"} value={to} onChange={(e) => setTo(e.target.value.trim())} placeholder={privateTo ? "Wallet (0x…) or meta-address (st:eth:0x…)" : "Wallet address (0x…)"} className={cn(inputCls, "mt-3 rounded-full bg-ui-surface-2 px-4 py-3 font-mono text-[13px]")} />
+        <p className={cn("mt-2 px-1 text-[13px]", resolved && "error" in resolved ? "text-ui-warn" : "text-ui-muted")}>
+          {resolved && "error" in resolved ? resolved.error : privateTo ? "Hides who gets paid and how much" : "Hides how much; the recipient is public"}
+        </p>
       </Well>
       <Well className="mt-2">
-        <div className="text-[13px] text-ui-muted">Amount, encrypted before it leaves this tab</div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <input aria-label={`Amount of ${token.symbol}`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} className="ui-figure min-w-0 flex-1 bg-transparent text-[40px] font-medium tracking-[-0.03em] outline-none" />
-          <span className="text-[17px] font-semibold">{token.symbol}</span>
-        </div>
+        <Caption><span>Amount</span><span className="inline-flex items-center gap-1"><Lock size={12} /> Encrypted in your browser</span></Caption>
+        <AmountInput label={`Amount of ${token.symbol}`} value={amount} onChange={setAmount} unit={token.symbol} />
       </Well>
       <div className="mt-3">
         {w.address ? (
@@ -297,15 +343,14 @@ function LinkTab({ token }: { token: ConfidentialToken }) {
   return (
     <>
       <Well>
-        <div className="text-[13px] text-ui-muted">Amount, encrypted and held until someone opens the link</div>
-        <div className="mt-3 flex items-baseline gap-2">
-          <input aria-label={`Amount of ${token.symbol}`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} className="ui-figure min-w-0 flex-1 bg-transparent text-[40px] font-medium tracking-[-0.03em] outline-none" />
-          <span className="text-[17px] font-semibold">{token.symbol}</span>
-        </div>
-        <details className="mt-2 text-[13px] text-ui-muted">
-          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">Expires in {days || "7"} days</summary>
-          <input aria-label="Days until the link expires" inputMode="decimal" value={days} onChange={(e) => setDays(e.target.value.replace(/[^0-9.]/g, ""))} className={cn(inputCls, "mt-2 rounded-full bg-ui-surface-2 px-4 py-2")} />
-        </details>
+        <Caption><span>Amount</span><span className="inline-flex items-center gap-1"><Lock size={12} /> Held encrypted until claimed</span></Caption>
+        <AmountInput label={`Amount of ${token.symbol}`} value={amount} onChange={setAmount} unit={token.symbol} />
+      </Well>
+      <Well className="mt-2 py-3.5">
+        <Caption>
+          <span>Expires in</span>
+          <Segments value={days} onChange={setDays} options={[{ id: "1", label: "1 day" }, { id: "7", label: "7 days" }, { id: "30", label: "30 days" }]} />
+        </Caption>
       </Well>
       <div className="mt-3">
         {w.address ? (
@@ -320,8 +365,16 @@ function LinkTab({ token }: { token: ConfidentialToken }) {
       {link ? (
         <Done
           headline="Pay link ready"
-          sub={<span className="inline-flex items-center gap-2">Anyone with it can claim {fmt(value ?? 0n, token.decimals)} {token.symbol} <CopyButton value={link.url} label="pay link" /></span>}
-          details={<><span>{link.url.slice(0, 64)}…</span><span>Link #{link.id.toString()} · tx {short(link.tx, 6)}</span><span>The key is in the part after #, which browsers never send to a server</span>{encDetail()}</>}
+          sub={
+            <>
+              <span>Anyone with this link can claim it. Share it privately.</span>
+              <span className="mt-3 flex items-center gap-2 rounded-full bg-[#04060f]/80 py-1.5 pr-1.5 pl-4 ring-1 ring-white/[0.06]">
+                <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-ui-text">{link.url}</span>
+                <CopyButton value={link.url} label="pay link" />
+              </span>
+            </>
+          }
+          details={<><span>Link #{link.id.toString()} · tx {short(link.tx, 6)}</span><span>The key sits after the #, which browsers never send to a server</span>{encDetail()}</>}
         />
       ) : null}
     </>
@@ -364,7 +417,7 @@ function ClaimCard({ claim }: { claim: { token: Hex; id: bigint; key: Hex } }) {
       <Well>
         <div className="flex items-center gap-2 text-[13px] text-ui-muted"><Gift size={14} /> Pay link #{claim.id.toString()}</div>
         <div className="serif mt-2 text-[26px] leading-tight">{done ? "Claimed to your private balance" : state === "Open" ? `Someone sent you ${token.symbol}` : state ? `This link is ${state.toLowerCase()}` : "Checking the link…"}</div>
-        <div className="mt-1 text-[13px] text-ui-muted">{done ? "Reveal it on the Balance tab" : "The amount is encrypted; only you will see it after claiming"}</div>
+        <div className="mt-1 text-[13px] text-ui-muted">{done ? "Reveal it on the Balance tab" : "The amount stays hidden; only you can reveal it after claiming"}</div>
         {!done && state === "Open" ? (
           <div className="mt-4">{w.address ? <PrimaryButton size="lg" block loading={busy} onClick={go}>Claim</PrimaryButton> : <ConnectButton block large />}</div>
         ) : null}
@@ -378,7 +431,7 @@ function ClaimCard({ claim }: { claim: { token: Hex; id: bigint; key: Hex } }) {
 
 export default function ConfidentialPage() {
   const { env, ready } = useConfidential();
-  const [tab, setTab] = useState<"balance" | "pay" | "link">("balance");
+  const [tab, setTab] = useState<TabId>("balance");
   const [tokenAddr, setTokenAddr] = useState<Hex | null>(null);
   const [claim, setClaim] = useState<ReturnType<typeof parsePayLinkFragment>>(null);
   useEffect(() => setClaim(parsePayLinkFragment(location.hash)), []);
@@ -398,7 +451,20 @@ export default function ConfidentialPage() {
 
   const title = <ScreenTitle title="Hide how much" pill={<><Lock size={13} /> Kakushi Confidential</>} />;
   if (ready && !env) return <div className="mx-auto max-w-[500px] pt-[6vh]">{title}<NotLive /></div>;
-  if (!env) return null;
+  if (!env)
+    return (
+      <div className="mx-auto w-full max-w-[500px] pt-6 pb-20 sm:pt-[5vh]">
+        {title}
+        <GlassCard>
+          <div aria-busy className="grid gap-2" aria-label="Loading">
+            <div className="h-9 w-56 animate-pulse rounded-full bg-white/[0.04]" />
+            <div className="h-[140px] animate-pulse rounded-[22px] bg-[#04060f]/80" />
+            <div className="h-[118px] animate-pulse rounded-[22px] bg-[#04060f]/80" />
+            <div className="mt-1 h-[58px] animate-pulse rounded-full bg-white/[0.04]" />
+          </div>
+        </GlassCard>
+      </div>
+    );
   const tokens = env.cfg.tokens;
   const token = tokens.find((t) => t.address === tokenAddr) ?? tokens[0]!;
 
@@ -407,21 +473,22 @@ export default function ConfidentialPage() {
       {title}
       {claim ? <ClaimCard claim={claim} /> : null}
       <GlassCard>
-        <div className="flex items-center justify-between px-1.5 pt-1 pb-3">
-          <Segments value={tab} onChange={setTab} options={[{ id: "balance", label: "Balance" }, { id: "pay", label: "Pay" }, { id: "link", label: "Link" }]} />
+        <div className="flex items-center justify-between gap-2 px-1 pt-1 pb-3">
+          <TabBar value={tab} onChange={setTab} />
           <TokenPicker tokens={tokens} value={token} onChange={(t) => setTokenAddr(t.address)} />
         </div>
         {tab === "balance" ? <BalanceTab key={token.address} token={token} /> : tab === "pay" ? <PayTab key={token.address} token={token} /> : <LinkTab key={token.address} token={token} />}
       </GlassCard>
-      <details className="mt-4 px-2 text-[13px] text-ui-muted">
-        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">How it works</summary>
-        <div className="mt-2 grid gap-1.5 leading-relaxed">
-          <span>Amounts are encrypted with fully homomorphic encryption (Zama tfhe-rs) in this tab, then the contract adds and subtracts them without decrypting.</span>
-          <span>Private recipient adds Kakushi&rsquo;s stealth addresses: a fresh one-time address per payment, so the chain sees neither who nor how much.</span>
-          <span>Only you can reveal your balance: one signature, the value comes back sealed to this tab.</span>
-          <span>Cash out reveals only the amount you take out. <ArrowDownToLine size={12} className="inline" /></span>
-          {!isolated() ? <span>This browser encrypts single-threaded (no cross-origin isolation), so encryption takes a little longer.</span> : null}
-        </div>
+      <details className="group mt-4 px-3 text-[13px] text-ui-muted">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 hover:text-ui-text [&::-webkit-details-marker]:hidden">
+          How it works <ChevronDown size={13} className="transition-transform group-open:rotate-180" />
+        </summary>
+        <ul className="mt-2 grid gap-1.5 leading-relaxed">
+          <li>Amounts are encrypted in your browser (FHE). The contract adds and subtracts them without ever decrypting.</li>
+          <li>Private recipient also sends to a fresh one-time address, so nobody sees who got paid.</li>
+          <li>Only you can reveal your balance. Cash out reveals only the amount you take out.</li>
+          {!isolated() ? <li>This browser encrypts on one thread, so it takes a little longer.</li> : null}
+        </ul>
       </details>
     </div>
   );
