@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import Link from "next/link";
-import { zeroAddress, type Hex } from "viem";
+import { formatUnits, zeroAddress, type Hex } from "viem";
 import { CHAINS } from "@kakushi/config";
 import type { PairInfo } from "@kakushi/sdk";
 import { DataTable, PanelCard, PrimaryButton, cn } from "@kakushi/ui";
@@ -10,6 +10,11 @@ import { Store } from "lucide-react";
 import { Amount, Empty, Loading, Notice, PageHead, Pill, Route, Stat, readError, short , ArtBanner } from "@/components/kit";
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
+
+/** Margin in USDC with two decimals, so 1.5 never reads as 1. */
+const num2 = (v: bigint) => Number(formatUnits(v, 6)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** Milliseconds as seconds: "14 s", or "0.8 s" under ten. */
+const secs = (ms: number) => `${ms >= 10_000 ? Math.round(ms / 1000) : (ms / 1000).toFixed(1)} s`;
 
 interface RouteStats { pairId: string; observedSources: number; fills: number; refunds: number; p50LatencyMs: number | null }
 
@@ -139,9 +144,9 @@ export function MakerMarket() {
               badge={m.online === null ? <Pill>No endpoint</Pill> : m.online ? (m.paused ? <Pill tone="warn">Paused</Pill> : <Pill tone="ok">Online</Pill>) : <Pill tone="bad">Offline</Pill>}
             >
               <div className="mt-1 grid grid-cols-2 gap-2 md:grid-cols-4">
-                <Stat label="Margin" value={<Amount value={m.margin} decimals={6} max={0} />} sub={m.required === null ? "price stale" : <>needs <Amount value={m.required} decimals={6} max={0} /></>} />
+                <Stat label="Margin" value={<>{num2(m.margin)}<span className="ml-1 text-[14px] text-ui-muted">USDC</span></>} sub={m.required === null ? "price stale" : `needs ${num2(m.required)} USDC`} />
                 <Stat label="Fills" value={m.fills ?? "—"} sub={m.refunds === null ? "history unavailable" : `${m.refunds} refunds`} />
-                <Stat label="p50 payout" value={m.p50 === null ? "—" : `${m.p50} ms`} sub={m.indexed ? "source → payout" : "submit → receipt"} />
+                <Stat label="p50 payout" value={m.p50 === null ? "—" : secs(m.p50)} sub={m.indexed ? "source → payout" : "submit → receipt"} />
                 <Stat label="Slashed" value={m.slashed ?? "—"} sub={`${m.openDisputes} open disputes`} />
               </div>
               {covered !== null && (
@@ -167,7 +172,7 @@ export function MakerMarket() {
                       <span className="ui-figure text-ui-muted">
                         {Number(p.tradingFeeBps) / 100}% + <Amount value={p.withholdingFee} decimals={native ? 18 : 6} /> · max <Amount value={p.maxAmount} decimals={native ? 18 : 6} />
                       </span>
-                      {stats && <span className="w-full text-[12px] text-ui-muted">{stats.fills} fills · {stats.refunds} refunds · {stats.observedSources} source payments{stats.p50LatencyMs === null ? "" : ` · p50 ${stats.p50LatencyMs} ms`}</span>}
+                      {stats && <span className="w-full text-[12px] text-ui-muted">{stats.fills} fills · {stats.refunds} refunds · {stats.observedSources} source payments{stats.p50LatencyMs === null ? "" : ` · p50 ${secs(stats.p50LatencyMs)}`}</span>}
                     </div>
                   );
                 })}
