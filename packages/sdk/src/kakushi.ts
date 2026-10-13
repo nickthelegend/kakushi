@@ -1,5 +1,5 @@
 // The Kakushi client: one object holding the deployments and per-chain clients.
-import { type Hex, type PublicClient, isAddress, zeroAddress } from "viem";
+import { BaseError, ContractFunctionRevertedError, type Hex, type PublicClient, isAddress, zeroAddress } from "viem";
 import { CHAINS, type ChainConfig, type ChainKey, CHAIN_LIST, type Network, chainById, deployedChains } from "@kakushi/config";
 import type { Deployments, SpokeDeployment } from "@kakushi/config/deployments";
 import { type ChainAttestConfig, encodeGross, splitCode } from "@kakushi/attest-core";
@@ -156,11 +156,20 @@ export class Kakushi {
       this.hub.readContract({ address: this.d.hub.mdc, abi: mdcAbi, functionName: "margin", args: [maker, token] }) as Promise<bigint>,
       this.hub.readContract({ address: this.d.hub.mdc, abi: mdcAbi, functionName: "openDisputes", args: [maker] }) as Promise<bigint>,
     ]);
+    // MDC.required reverts when a priced pair's feed is stale: that (and only that) is "stale", and
+    // withdrawals are blocked (fail safe). A transient RPC error from a load-balanced node is retried,
+    // so it is never reported as a stale price.
     let required: bigint | null = null;
-    try {
-      required = (await this.hub.readContract({ address: this.d.hub.mdc, abi: mdcAbi, functionName: "required", args: [maker, token] })) as bigint;
-    } catch {
-      required = null; // stale price feed: withdrawals are blocked (fail safe)
+    for (let attempt = 1; ; attempt++) {
+      try {
+        required = (await this.hub.readContract({ address: this.d.hub.mdc, abi: mdcAbi, functionName: "required", args: [maker, token] })) as bigint;
+        break;
+      } catch (e) {
+        const reverted = e instanceof BaseError && e.walk((x) => x instanceof ContractFunctionRevertedError) instanceof ContractFunctionRevertedError;
+        if (reverted) break;
+        if (attempt >= 3) throw e;
+        await new Promise((r) => setTimeout(r, 250 * attempt));
+      }
     }
     return { margin, required, openDisputes };
   }

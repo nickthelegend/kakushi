@@ -103,3 +103,93 @@ This is a lot of breadth with impressive scaffolding, but the central promises a
     - Add a one-line explainer and an "Open app" button to the mobile hero.
     - Stack the compare table and the attestations rows on narrow screens.
     - Add one bridge delivery to a stealth address as evidence.
+
+
+---
+
+## Re-judge after the fixes (a fresh judge, same prompt, 13 Oct 2026 ~21:00 IST)
+
+Scores moved from 58 to 64 for the track, from 59 to 65 for Privy, and from 66 to 74 for Chainlink CRE. The verdict, verbatim:
+
+# Kakushi: judge review (Monad Metropolis, T4)
+
+Checked on 13 Oct 2026, using the live app (desktop, 1440x900 and 390x844), the public GitHub repo, MonadVision, Sepolia Etherscan and PORTAL-COPY.md. I did not log in or sign anything.
+
+## 1. Scores
+
+| Main-track criterion (20% each) | Score | Reason |
+|---|---|---|
+| Product quality | 6 | The UI is polished and the stealth-recipient lookup works live. But the bridge quotes nothing ("price feed stale"), pages disagree about the same transfer's status, and the finality pill can't be seen below 1536 px. |
+| Technical excellence | 7 | The Noir/UltraHonk verifier works on chain, there is a real CRE SDK workflow, and the contracts I sampled are verified (Full Match). Against that, the FHE key sits in one hosted engine, attestations go through a mock forwarder, and a withdraw costs 6.2M gas. |
+| Monad integration | 6 | It is deployed on Monad and uses `eth_sendRawTransactionSync` and `monadNewHeads`. But the Monad shielded pool is uneconomic: a 0.1 MON withdraw paid a 0.698 MON fee. Gasless withdrawal only makes sense on Sepolia. |
+| Track fit (T4) | 6 | It fits "Trust" as privacy infrastructure, but it has no identity or AI angle beyond the stealth registry. |
+| Innovation | 7 | Combining ZK and FHE in one transaction, and slashing a bridge Maker with a ZK proof checked against CRE windows, are good ideas. Each part exists elsewhere already (Umbra, Tornado, Zama, Orbiter). |
+| **Weighted total** | **64 / 100** | |
+
+| Bounty | Meets requirement /40 | Technical /30 | Monad /20 | Innovation /10 | Total |
+|---|---|---|---|---|---|
+| Privy | 27 | 19 | 12 | 7 | **65** |
+| Chainlink CRE | 32 | 21 | 13 | 8 | **74** |
+
+- **Privy:** It goes beyond login: `privy-setup.ts` creates a server wallet with a default-deny policy through `@privy-io/node`. But the live Maker 1 (`0xa99c…Bb5B`) does not use it. The only on-chain evidence is one infinite `USDC.approve` from a separate wallet (`0x8d1D…4f63`). The refusal exists only as JSON.
+- **CRE:** `attest-workflow.ts` uses the `@chainlink/cre-sdk` CronCapability, EVM reads and `writeReport`, and a `cre workflow simulate` log exists. But the simulated window had 0 leaves and txHash `0x000…`. Every live window is written by Kakushi's own runner (`0x4d9e…DAb2`) through MockKeystoneForwarder, not by CRE.
+
+## 2. Claims I could not verify
+
+- **"Receipt in 431 ms, Finalized at 1,020 ms."** The tx `0x7181…8505` exists: SendNative, 0.01 MON, with a fee of 0.0124 MON, so the fee is larger than the payment. The timings come only from the team's own JSON. I could not see them in the app, because the finality pill is `hidden 2xl:inline-flex`.
+- **"Full confidential flow, 8/8."** `testnet-fhe.json` has no transaction hashes. All I could confirm is that ConfidentialStealthPay and cUSDC (named "KakushiPayToken" on MonadVision) were last active about 1h40m before my check.
+- **ZK slashing "7.009 USDC, 725 ms".** This ran on a local fork only. DisputeModule `0xE701…` was last seen at deployment, so no dispute has ever been filed on testnet.
+- **"44 contracts verified."** I spot-checked 3 (DisputeModule, ConfidentialStealthPay, cUSDC), and all were Full Match. I did not check the other 41.
+- **Privy refusal ("policy violation").** This exists only in `testnet-privy.json`, which is unverifiable by nature.
+- **"Private calls into any contract" and the "permissionless any-token factory".** No transaction is given, and I found no pool opened by a third party.
+- **Withdraw cost.** The portal says about 0.7 MON. The README and SUBMISSION.md say about 0.9 MON. On chain it was 0.698 MON. The docs contradict each other.
+- **Gasless withdraw.** It is real on Sepolia (`0x0288…`): `0x839c…` was never funded and got 0.0009 ETH, and the relayer took 10%. But that pool has exactly 1 deposit (block 11906271, from the deployer `0x2c76…`) and 1 withdraw (block 11906272). The anonymity set is 1 and the link is trivial. The Monad pool is the same: 2 transactions, both from `0x2c76…`.
+
+## 3. Broken or confusing steps
+
+- **/bridge:** The first load quoted 0.97 USDC from Maker 1. Every later load (desktop and mobile) said "No Maker can take this transfer right now (price feed stale)". The headline flow is down.
+- **One transfer, three statuses:** The 0.509 USDC Monad→Sepolia transfer shows "Completed, 23.0 s" on /explorer, but "Paid late" on /bridge and /disputes.
+- **Maker margin disagrees across pages:** The landing page says "1.5 USDC, required 1.1". /market says "Margin 1, needs 1, 100%".
+- **/explorer contradicts the portal:** It shows a 5 USDC "Monad → refund" as "Not paid in time" (20h ago). The portal says no Maker has failed to pay. /market caps transfers at 1 USDC, and /disputes has no case for this transfer.
+- **/confidential overclaims:** "How it works" says "Only you can reveal your balance". That is false while one hosted engine holds the FHE key.
+- **/attestations overclaims:** It says "Chainlink CRE commits every Maker payout". The team's own copy says the attestations come from Kakushi's runner, not a DON.
+- **The bridge is not private:** The bridge payout `0x7bd8…` paid the sender's own public wallet `0x2c76…`. /explorer publicly lists the sender's address, which is odd for a privacy product.
+- **/send:** Entering an unregistered 0x address shows "hasn't turned on private receiving", with no next step.
+- **"Monad → refund":** Visitors see this route label, and it is jargon.
+
+## 4. Dense or ugly screens
+
+- **/attestations, desktop:** An AI-art banner pushes the data below the fold. "5630 s lag" is shown twice, and in raw seconds.
+- **/market, desktop:** "Margin 1 / needs 1" has no units, and "p50 payout 14000 ms" should be written in seconds.
+- **Landing, 390 px:** The subtitle and CTAs stay invisible for about 3 s (badge blurred), and there are long empty gaps between sections.
+- **/explorer, 390 px:** The route column is just two coin icons, with no time or sender shown, followed by a large empty area below.
+- **Connect menu, desktop:** The Privy option's description is cut off ("Disputes on M…").
+
+## 5. First 60 seconds
+
+- **What lands:** "Make anything private", "ZK hides who, FHE hides how much", clean app tabs (Send, Receive, Shield, Confidential, Bridge), and a live Maker card read from Monad.
+- **What confuses:**
+  - Four products plus a bridge, a market, disputes and attestations is a lot to take in at once.
+  - Nothing can be done without a wallet, and there is no demo video or read-only walkthrough.
+  - The only live-looking flow (the bridge) says no Maker is available.
+  - The "live finality" header is invisible on a normal laptop.
+
+## 6. The reason I'd vote no
+
+It is a privacy product where every live privacy demo has an anonymity set of one, all from the deployer's wallet. The bridge pays the sender's public address. The FHE key and the "CRE" attestations are both held by the team. The shielded pool costs 7x the note on Monad. It is impressive breadth, but no privacy is actually demonstrated on Monad, and the UI claims more than the team's own caveats allow.
+
+## 7. Top 10 fixes, ordered by impact on the score
+
+1. Fix the bridge's stale price feed, and add a health check so a judge never sees "No Maker can take this transfer".
+2. Produce real unlinkability on Monad: several deposits from distinct wallets into one pool, then a relayed withdraw to a fresh address. Link it as the main transaction.
+3. Run one bridge delivery to a stealth address live, so the "private bridge" claim has a transaction behind it.
+4. Change the UI wording to match the trust model:
+   - /confidential: "Only you can reveal your balance" is not true.
+   - /attestations: say "Kakushi runner using CRE logic", not that Chainlink CRE commits the payouts.
+   - Landing: the "0 custodians" claim ignores the hosted FHE key.
+5. Use one status source for the explorer, bridge and disputes pages. Reconcile the margin figures, and explain the 5 USDC "Not paid in time" (or file and slash it on testnet, which would be the best evidence there could be).
+6. Show the finality pill at all widths. It is the main Monad selling point and sits behind `2xl` now.
+7. Route the live Maker 1 through the Privy policy wallet. For extra Privy credit, add a second feature such as embedded-wallet signing for stealth keys.
+8. Lower the Monad withdraw cost or batch withdraws. Otherwise, stop presenting the Monad shield as usable.
+9. Add a no-wallet demo mode or a 90-second video on the landing page, and fix the 3-second hero fade on mobile.
+10. Put full tx hashes in every evidence JSON (FHE 8/8, smoke), and make the 0.7 vs 0.9 MON figure consistent across the portal copy, README and SUBMISSION.md.
