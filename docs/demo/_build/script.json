@@ -129,6 +129,68 @@
    "id": "q5",
    "part": "pitch",
    "text": "The vision: privacy as a plugin. Any Monad wallet or payment app adds one component, and its users get private payments by default."
+  },
+  {
+   "id": "h1",
+   "part": "pitch2",
+   "text": "What if your salary showed up on a public ledger, for anyone to read? On Monad today, it does."
+  },
+  {
+   "id": "h2",
+   "part": "pitch2",
+   "text": "Kakushi comes from builders who think a payment on a public chain shouldn't publish your salary, your customers, or your balance."
+  },
+  {
+   "id": "h3",
+   "part": "pitch2",
+   "text": "Every Monad payment shows who paid, who got paid, and how much. Payroll, merchants and OTC desks can't work like that."
+  },
+  {
+   "id": "h4",
+   "part": "pitch2",
+   "text": "Why now? Monad's sub-second finality makes private payments practical, and payment apps are launching on it right now."
+  },
+  {
+   "id": "h5",
+   "part": "pitch2",
+   "text": "Kakushi does three things. Hide who. Hide how much. Add it to any app."
+  },
+  {
+   "id": "h6",
+   "part": "pitch2",
+   "text": "It's live on testnet: 44 verified contracts, a stealth receipt in 431 milliseconds and finality in about a second, the full FHE flow on chain, a Monad to Sepolia bridge, and a six-deposit pool our team seeded.",
+   "say": "It's live on testnet: forty-four verified contracts, a stealth receipt in four hundred thirty-one milliseconds and finality in about a second, the full F H E flow on chain, a Monad to Sepolia bridge, and a six-deposit pool our team seeded."
+  },
+  {
+   "id": "h7",
+   "part": "pitch2",
+   "text": "It's for Monad wallets, payment apps and payroll apps, and they add it with a drop-in widget and an SDK."
+  },
+  {
+   "id": "h8",
+   "part": "pitch2",
+   "text": "Kakushi. The privacy provider for Monad: ZK hides who, FHE hides how much.",
+   "say": "Kakushi. The privacy provider for Monad: Z K hides who, F H E hides how much."
+  },
+  {
+   "id": "r1",
+   "part": "promo",
+   "text": "Every payment on Monad is public. Kakushi makes it private."
+  },
+  {
+   "id": "r2",
+   "part": "promo",
+   "text": "Stealth sends, and a shielded pool with gasless withdrawals."
+  },
+  {
+   "id": "r3",
+   "part": "promo",
+   "text": "Encrypted balances and payments, and a private bridge to Sepolia."
+  },
+  {
+   "id": "r4",
+   "part": "promo",
+   "text": "Live on Monad testnet. Kakushi: the privacy provider for Monad."
   }
  ]
 }

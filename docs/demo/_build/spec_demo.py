@@ -14,8 +14,9 @@ clips = [
  dict(src=T3, **{"in": 58.7, "out": 84.0}, speed=4, tag="live-sepolia", step="2 · Proving in the browser", **R),
  dict(src=T3, **{"in": 84.0, "out": 88.6}, tag="live-sepolia", step="2 · Gasless via the relayer", badges=[{"text": "Proof made in 7.3 s", "sub": "relayer fee 0.0001 ETH (10%)"}], **R),
  dict(src=T3, **{"in": 120.4, "out": 139.4}, speed=2, tag="live-both", step="3 · Bridge, delivered privately", **R),
- dict(src=T3, **{"in": 139.4, "out": 146.6}, tag="live-both", step="3 · Bridge: Monad source", badges=[{"text": "3 Monad receipts ≈ 0.7–1.0 s", "sub": "approve, pay, announce", "from": 2.0}], **R),
- dict(src=T3, **{"in": 146.6, "out": 160.4}, speed=4, tag="live-both", step="3 · Waiting for Maker 1", **R),
+ dict(src=T3, **{"in": 139.4, "out": 145.1}, tag="live-both", step="3 · Bridge: Monad source", badges=[{"text": "3 Monad receipts ≈ 0.7–1.0 s", "sub": "approve, pay, announce", "from": 2.0}], **R),
+ dict(src=T3, **{"in": 145.1, "out": 146.6}, tag="live-both", step="3 · Bridge: Monad source", tagY=700, cap="bottom"),
+ dict(src=T3, **{"in": 146.6, "out": 160.4}, speed=4, tag="live-both", step="3 · Waiting for Maker 1", tagY=700, cap="bottom"),
  dict(src=T3, **{"in": 160.4, "out": 166.4}, tag="live-both", step="3 · Paid on Sepolia", tagY=700, badges=[{"text": "0.44955 USDC in 11 s", "sub": "to a one-time stealth address"}]),
  dict(src=T3, **{"in": 390.0, "out": 399.0}, speed=2, tag="live-monad", step="4 · Confidential (FHE)", **R),
  dict(src=T3, **{"in": 399.0, "out": 408.6}, tag="live-monad", step="4 · Make private, reveal", **R),
@@ -28,7 +29,7 @@ clips = [
  dict(src=T3, **{"in": 456.8, "out": 471.6}, tag="live-monad", step="6 · Receive: inbox scan", **R),
  dict(src=T5, **{"in": 0.3, "out": 13.6}, tag="live-monad", step="7 · Plugin", compact=True, tagX=1664, tagY=60, cap="bottom"),
 ]
-vo = [("p1",0,0.2),("p2",1,0.4),("p3",2,0.9),("p4",4,0.9),("p5",6,0.2),("p6",8,0.2),("p7",11,0.2),("p8",15,0.2),("p9",17,0.2),("p10",19,0.2),("p11",21,0.4),("p12",23,0.3),("p14",24,0.3),("p15",24,6.6)]
+vo = [("p1",0,0.2),("p2",1,0.4),("p3",2,0.9),("p4",4,0.9),("p5",6,0.2),("p6",8,0.2),("p7",11,0.2),("p8",16,0.2),("p9",18,0.2),("p10",20,0.2),("p11",22,0.4),("p12",24,0.3),("p14",25,0.3),("p15",25,6.6)]
 spec = {"name": "kakushi-demo", "clips": clips, "vo": [{"id": a, "clip": b, "offset": c} for a, b, c in vo], "music": 0.06, "crf": 22,
         "captionReplace": {"a hundredth of a MON": "0.01 MON", "a thousandth of an ETH": "0.001 ETH", "point three": "0.3", "Z K": "ZK", "F H E": "FHE", "a hundred blocks": "100 blocks"},
         "texts": []}

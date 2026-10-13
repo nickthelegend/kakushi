@@ -3,6 +3,7 @@
 | File | Length | What it is |
 | --- | --- | --- |
 | [kakushi-demo.mp4](kakushi-demo.mp4) + [.srt](kakushi-demo.srt) | 2:53 | **The submission cut.** Live product only (no slides): the problem and the intended user, then a stealth send, Privy sign-in, Shield on Sepolia with a gasless relayed withdraw, a Monad → Sepolia bridge delivered privately, FHE (make private, reveal, encrypted stealth pay, KMS cash-out), CRE attestations, the Receive inbox, and the `<KakushiPay>` widget. |
+| [kakushi-promo.mp4](kakushi-promo.mp4) + [.srt](kakushi-promo.srt) | 0:24 | **The promo.** A 24-second cut of the same live footage: stealth send, gasless ZK withdraw, private bridge payout, encrypted balance and payment, the widget. |
 
 All are 1920×1080, H.264 + AAC at −16 LUFS, with burned-in captions (opaque) and a matching `.srt`. The narration is ElevenLabs **Lily** (Kakushi's voice in `metropolis-funding/VOICES.md`, `eleven_multilingual_v2`), with captions timed from its word timestamps.
 

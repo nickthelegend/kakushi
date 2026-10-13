@@ -1,0 +1,105 @@
+{
+ "name": "kakushi-promo",
+ "clips": [
+  {
+   "src": "take1.mp4",
+   "in": 6.0,
+   "out": 10.0,
+   "tag": "live-monad"
+  },
+  {
+   "src": "take1.mp4",
+   "in": 29.6,
+   "out": 32.6,
+   "tag": "live-monad",
+   "step": "Stealth send",
+   "badges": [
+    {
+     "text": "Receipt in 1.10 s"
+    }
+   ],
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 84.0,
+   "out": 87.0,
+   "tag": "live-sepolia",
+   "step": "Gasless ZK withdraw",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 160.4,
+   "out": 163.4,
+   "tag": "live-both",
+   "step": "Private bridge payout",
+   "tagY": 700,
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 407.6,
+   "out": 410.4,
+   "tag": "live-monad",
+   "step": "Encrypted balance",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 424.3,
+   "out": 427.3,
+   "tag": "live-monad",
+   "step": "Encrypted stealth pay",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take5.mp4",
+   "in": 1.0,
+   "out": 6.4,
+   "tag": "live-monad",
+   "step": "Plugin",
+   "compact": true,
+   "tagX": 1664,
+   "tagY": 60,
+   "cap": "bottom"
+  }
+ ],
+ "vo": [
+  {
+   "id": "r1",
+   "clip": 0,
+   "offset": 0.3
+  },
+  {
+   "id": "r2",
+   "clip": 1,
+   "offset": 0.4
+  },
+  {
+   "id": "r3",
+   "clip": 3,
+   "offset": 0.3
+  },
+  {
+   "id": "r4",
+   "clip": 6,
+   "offset": 0.4
+  }
+ ],
+ "music": 0.12,
+ "crf": 21,
+ "texts": [
+  {
+   "text": "kakushi.vercel.app",
+   "from": 19.59999999999995,
+   "to": 24.199999999999953,
+   "y": 880
+  }
+ ]
+}

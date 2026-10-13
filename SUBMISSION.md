@@ -5,6 +5,7 @@
 | Project | Kakushi, the privacy provider for Monad (ZK hides who, FHE hides how much) |
 | Live app | https://kakushi.vercel.app (Monad testnet 10143 + Ethereum Sepolia) |
 | Demo video | [docs/demo/kakushi-demo.mp4](docs/demo/kakushi-demo.mp4) (2:53, live footage, tx hashes in [docs/demo/README.md](docs/demo/README.md)) |
+| Promo | [docs/demo/kakushi-promo.mp4](docs/demo/kakushi-promo.mp4) (0:24) |
 | Repository | https://github.com/nickthelegend/kakushi |
 | Sponsors | Working: Chainlink CRE, Privy, BlockVision/MonadVision, Circle USDC, Monad-native RPC. Partial: Agora AUSD, Chainlink Data Feeds, Envio, Cleanverse. See [SPONSOR-COVERAGE](docs/SPONSOR-COVERAGE.md). |
 | Backends | Railway: relayer, Maker 1, attester, watchtower, indexer, FHE engine, FHE gateway + KMS |

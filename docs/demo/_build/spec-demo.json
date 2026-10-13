@@ -137,7 +137,7 @@
   {
    "src": "take3.mp4",
    "in": 139.4,
-   "out": 146.6,
+   "out": 145.1,
    "tag": "live-both",
    "step": "3 \u00b7 Bridge: Monad source",
    "badges": [
@@ -152,13 +152,22 @@
   },
   {
    "src": "take3.mp4",
+   "in": 145.1,
+   "out": 146.6,
+   "tag": "live-both",
+   "step": "3 \u00b7 Bridge: Monad source",
+   "tagY": 700,
+   "cap": "bottom"
+  },
+  {
+   "src": "take3.mp4",
    "in": 146.6,
    "out": 160.4,
    "speed": 4,
    "tag": "live-both",
    "step": "3 \u00b7 Waiting for Maker 1",
-   "cap": "right",
-   "capY": 640
+   "tagY": 700,
+   "cap": "bottom"
   },
   {
    "src": "take3.mp4",
@@ -308,37 +317,37 @@
   },
   {
    "id": "p8",
-   "clip": 15,
+   "clip": 16,
    "offset": 0.2
   },
   {
    "id": "p9",
-   "clip": 17,
+   "clip": 18,
    "offset": 0.2
   },
   {
    "id": "p10",
-   "clip": 19,
+   "clip": 20,
    "offset": 0.2
   },
   {
    "id": "p11",
-   "clip": 21,
+   "clip": 22,
    "offset": 0.4
   },
   {
    "id": "p12",
-   "clip": 23,
+   "clip": 24,
    "offset": 0.3
   },
   {
    "id": "p14",
-   "clip": 24,
+   "clip": 25,
    "offset": 0.3
   },
   {
    "id": "p15",
-   "clip": 24,
+   "clip": 25,
    "offset": 6.6
   }
  ],

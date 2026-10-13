@@ -73,6 +73,7 @@ T4: Trust, Identity & AI Infrastructure
 - **Live app:** https://kakushi.vercel.app
 - **Submission evidence:** https://github.com/nickthelegend/kakushi/blob/main/SUBMISSION.md
 - **Demo video (portal "demo video" field):** https://github.com/nickthelegend/kakushi/blob/main/docs/demo/kakushi-demo.mp4 (2:53, live on Monad testnet + Sepolia; recording tx hashes in https://github.com/nickthelegend/kakushi/blob/main/docs/demo/README.md)
+- **Promo (0:24):** https://github.com/nickthelegend/kakushi/blob/main/docs/demo/kakushi-promo.mp4
 
 ## Contracts (Monad testnet, MonadVision)
 

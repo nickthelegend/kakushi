@@ -94,6 +94,10 @@ for lid, st in vo:
         if re.search(r"[.?!:;]$", tok[0]) and len(" ".join(x[0] for x in cur)) > 16:
             flush(); cur = []
     flush()
+    # never leave a one-word tail on its own: fold it into the cue before (same line)
+    if len(cues) >= 2 and len(cues[-1]["text"]) < 14 and cues[-2]["start"] >= st and len(cues[-2]["text"]) + len(cues[-1]["text"]) < 80:
+        tail = cues.pop()
+        cues[-1]["text"] += " " + tail["text"]; cues[-1]["end"] = tail["end"]
 for a, b in zip(cues, cues[1:]):
     a["end"] = min(a["end"] + 0.3, b["start"] - 0.04)
 cues[-1]["end"] = min(cues[-1]["end"] + 0.5, TOTAL)
@@ -241,16 +245,12 @@ lst, cache = [], {}
 for i, (a, b) in enumerate(zip(pts, pts[1:])):
     if b - a < 0.5 / FPS:
         continue
-    im = state_img(a + 0.001)
+    im = state_img((a + b) / 2)
     key = hash(im.tobytes())
     p = cache.get(key)
     if not p:
         p = os.path.join(od, f"s{i:04d}.png"); im.save(p); cache[key] = p
-    lst.append((p, b - a))
-with open(os.path.join(WD, "ov.txt"), "w") as f:
-    for p, dd in lst:
-        f.write(f"file '{p}'\nduration {dd:.4f}\n")
-    f.write(f"file '{lst[-1][0]}'\n")
+    lst.append((p, round(b * FPS) - round(a * FPS)))
 print(f"overlay: {len(lst)} states, {len(cache)} images, {len(cues)} cues, total {TOTAL:.2f}s")
 
 # ── narration + bed ─────────────────────────────────────────────────────────
@@ -271,13 +271,25 @@ if not os.path.exists(PAD):
          "-af", "lowpass=f=1200,aecho=0.8:0.7:200|360:0.35|0.22,volume=1.4", "-ac", "2", PAD])
 music = spec.get("music", 0.07)
 fc = ";".join([
-    f"[1:v]fps={FPS},format=rgba[ov]", "[0:v][ov]overlay=0:0:format=auto,format=yuv420p[v]",
+    "[1:v]format=rgba[ov]", "[0:v][ov]overlay=0:0:format=auto,format=yuv420p[v]",
     f"[3:a]aloop=loop=-1:size=2147483647,atrim=0:{TOTAL:.3f},asetpts=N/SR/TB,volume={music},afade=t=in:st=0:d=1,afade=t=out:st={max(0, TOTAL-2):.3f}:d=2[bed]",
     "[2:a]pan=stereo|c0=c0|c1=c0[vo]",
     "[vo][bed]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[a]",
 ])
-run(["ffmpeg", "-v", "error", "-stats", "-y", "-i", os.path.join(WD, "base.mp4"), "-f", "concat", "-safe", "0", "-i", os.path.join(WD, "ov.txt"),
+# the overlay goes in frame-exact: each state's PNG piped for its number of frames (the concat demuxer drifts on images)
+NFR = round(TOTAL * FPS)
+ff = subprocess.Popen(["ffmpeg", "-v", "error", "-stats", "-y", "-i", os.path.join(WD, "base.mp4"), "-f", "image2pipe", "-framerate", str(FPS), "-c:v", "png", "-i", "pipe:0",
      "-i", os.path.join(WD, "narration.wav"), "-i", PAD, "-filter_complex", fc, "-map", "[v]", "-map", "[a]",
      "-c:v", "libx264", "-preset", "medium", "-crf", str(spec.get("crf", 22)), "-pix_fmt", "yuv420p", "-r", str(FPS),
-     "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-t", f"{TOTAL:.3f}", os.path.join(W, NAME + ".mp4")])
+     "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-t", f"{TOTAL:.3f}", os.path.join(W, NAME + ".mp4")], stdin=subprocess.PIPE)
+blobs = {}
+sent = 0
+for p, n in lst:
+    data = blobs.get(p) or blobs.setdefault(p, open(p, "rb").read())
+    for _ in range(n):
+        ff.stdin.write(data); sent += 1
+while sent < NFR + 2:
+    ff.stdin.write(data); sent += 1
+ff.stdin.close()
+assert ff.wait() == 0
 print("final:", os.path.join(W, NAME + ".mp4"), f"{TOTAL:.2f}s")

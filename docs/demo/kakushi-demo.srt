@@ -71,98 +71,90 @@ Then I withdraw to a brand-new address.
 The zero-knowledge proof is made in the browser, and the
 
 19
-00:00:59,674 --> 00:01:02,803
-relayer pays the gas, so the new address never needed
+00:00:59,674 --> 00:01:03,700
+relayer pays the gas, so the new address never needed funding.
 
 20
-00:01:02,843 --> 00:01:03,700
-funding.
-
-21
 00:01:11,191 --> 00:01:15,206
 Bridge, Monad to Sepolia, delivered privately.
 
-22
+21
 00:01:15,347 --> 00:01:19,522
 Maker 1 quotes, then pays a one-time stealth address on
 
-23
+22
 00:01:19,562 --> 00:01:24,410
 Sepolia. Makers post margin on Monad, and an unpaid transfer
 
-24
+23
 00:01:24,450 --> 00:01:26,851
 can be slashed with a ZK proof;
 
-25
+24
 00:01:26,992 --> 00:01:29,463
 that path is tested on a fork.
 
-26
+25
 00:01:37,346 --> 00:01:41,904
 Now the amount. One USDC becomes an encrypted balance, and
 
-27
+26
 00:01:41,944 --> 00:01:44,787
 only my signature reveals it, in this tab.
 
-28
+27
 00:01:51,458 --> 00:01:54,947
 Pay privately sends an encrypted 0.3 to a one-time stealth
 
-29
+28
 00:01:54,987 --> 00:01:58,364
 address. Neither who nor how much is public.
 
-30
+29
 00:02:04,670 --> 00:02:08,147
 Cash out asks the KMS for a signed decryption of just that
 
-31
+30
 00:02:08,187 --> 00:02:12,528
 amount. Today, one hosted engine holds the FHE key.
 
-32
+31
 00:02:16,870 --> 00:02:20,162
 Bridge payouts are attested by Kakushi's own runner, using
 
-33
+32
 00:02:20,202 --> 00:02:22,693
 Chainlink CRE workflow logic;
 
-34
+33
 00:02:22,733 --> 00:02:24,588
 it is not a DON yet.
 
-35
+34
 00:02:25,170 --> 00:02:27,916
 The recipient's inbox scans for these payments with a
 
-36
+35
 00:02:27,956 --> 00:02:33,245
 viewing key. Monad's RPC returns logs 100 blocks at a time,
 
-37
+36
 00:02:33,285 --> 00:02:36,476
 so a full-history scan takes many minutes today;
 
-38
+37
 00:02:36,559 --> 00:02:39,158
 an indexed scan is next.
 
-39
+38
 00:02:39,970 --> 00:02:43,610
 For developers, one React component, KakushiPay, brings all
 
-40
+39
 00:02:43,650 --> 00:02:45,633
 of this to any Monad app.
 
-41
-00:02:46,270 --> 00:02:50,630
-Kakushi. ZK hides who, FHE hides how much, live on Monad
-
-42
-00:02:50,670 --> 00:02:51,623
-today.
+40
+00:02:46,270 --> 00:02:51,623
+Kakushi. ZK hides who, FHE hides how much, live on Monad today.
 
