@@ -38,7 +38,7 @@ export default function SendPage() {
     if (!isAddress(v) || !k || !pc) return setResolved(isAddress(v) ? null : { error: "Paste a meta-address (st:eth:0x…) or a wallet address" });
     let live = true;
     readStealthMetaAddress(k.client(pc.chain.key), pc.privacy.stealthRegistry, v as Hex)
-      .then((m) => live && setResolved(m ? { meta: m, via: "registry" } : { error: "This wallet hasn't turned on private receiving" }))
+      .then((m) => live && setResolved(m ? { meta: m, via: "registry" } : { error: "This wallet hasn't turned on private receiving. Ask them to open Kakushi → Receive once, or paste their st:eth: meta-address." }))
       .catch((e) => live && setResolved({ error: readError((e as Error).message) ?? "Lookup failed" }));
     return () => {
       live = false;

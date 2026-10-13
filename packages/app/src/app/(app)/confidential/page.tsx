@@ -248,7 +248,7 @@ function PayTab({ token }: { token: ConfidentialToken }) {
     if (!k || !hub) return setResolved({ error: "Private receiving isn't deployed on this network" });
     let live = true;
     readStealthMetaAddress(k.client(hub.chain.key), hub.privacy.stealthRegistry, v as Hex)
-      .then((m) => live && setResolved(m ? { meta: m, via: "registry" } : { error: "This wallet hasn't turned on private receiving (Receive page)" }))
+      .then((m) => live && setResolved(m ? { meta: m, via: "registry" } : { error: "This wallet hasn't turned on private receiving. Ask them to open Kakushi → Receive once, or paste their st:eth: meta-address." }))
       .catch((e) => live && setResolved({ error: readError((e as Error).message) ?? "Lookup failed" }));
     return () => {
       live = false;
