@@ -153,15 +153,21 @@ export class IncrementalMerkleTree {
    * public RPC refuses more than 100). Leaves must be 0..n-1 with no gaps, so start at the pool's
    * deploy block.
    */
-  static async fromDeposits(client: PublicClient, pool: Hex, fromBlock: bigint, toBlock?: bigint, opts: { chunk?: bigint } = {}): Promise<IncrementalMerkleTree> {
+  static async fromDeposits(client: PublicClient, pool: Hex, fromBlock: bigint, toBlock?: bigint, opts: { chunk?: bigint; concurrency?: number } = {}): Promise<IncrementalMerkleTree> {
     const chunk = opts.chunk ?? 100n;
     if (chunk < 1n) throw new Error("chunk must be positive");
+    // Monad makes ~9,000 blocks an hour: a pool a day old is ~2,000 pages, so fetch several at once
+    const concurrency = Math.max(1, opts.concurrency ?? 12);
     const end = toBlock ?? (await client.getBlockNumber());
     const event = kakushiPoolAbi.find((x) => x.type === "event" && x.name === "Deposit")!;
     const byIndex = new Map<number, bigint>();
-    for (let from = fromBlock; from <= end; from += chunk) {
-      const to = from + chunk - 1n > end ? end : from + chunk - 1n;
-      const logs = await client.getLogs({ address: pool, event, fromBlock: from, toBlock: to });
+    const pages: [bigint, bigint][] = [];
+    for (let from = fromBlock; from <= end; from += chunk) pages.push([from, from + chunk - 1n > end ? end : from + chunk - 1n]);
+    const found: { args: unknown }[][] = [];
+    for (let i = 0; i < pages.length; i += concurrency) {
+      found.push(...((await Promise.all(pages.slice(i, i + concurrency).map(([from, to]) => client.getLogs({ address: pool, event, fromBlock: from, toBlock: to })))) as { args: unknown }[][]));
+    }
+    for (const logs of found) {
       for (const l of logs) {
         const { commitment, leafIndex } = l.args as { commitment?: Hex; leafIndex?: number };
         if (commitment === undefined || leafIndex === undefined) continue;

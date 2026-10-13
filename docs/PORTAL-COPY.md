@@ -39,7 +39,7 @@ Developers get `@kakushi/sdk`, `@kakushi/fhe-sdk` and the `<KakushiPay>` widget.
 - the Privy policy-fenced Maker wallet;
 - Chainlink CRE attestation windows, plus a `cre workflow simulate` run against live testnet state ([log](https://github.com/nickthelegend/kakushi/blob/main/docs/evidence/cre-simulate-attest-sepolia-testnet.txt)).
 
-44 contracts are verified on Sourcify. Timings and outputs for every run are in [docs/evidence](https://github.com/nickthelegend/kakushi/tree/main/docs/evidence).
+The Monad 0.1 MON pool holds 6 deposits from distinct wallets, seeded by the team for the demo ([seed-13oct.md](https://github.com/nickthelegend/kakushi/blob/main/docs/evidence/seed-13oct.md)). Two of those notes were withdrawn by the relayer to brand-new addresses. 44 contracts are verified on Sourcify. Timings and outputs for every run are in [docs/evidence](https://github.com/nickthelegend/kakushi/tree/main/docs/evidence).
 
 ## Track
 
