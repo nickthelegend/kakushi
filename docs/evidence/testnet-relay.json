@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-13T13:07:52.981Z",
+  "chainId": 11155111,
+  "app": "https://kakushi.vercel.app",
+  "pool": "0x01c494922333c7bb0C268BDcda1Ac218981a5F48",
+  "relayer": "0x62BDAe5619f3a144A947dAFB33ee7a1d23156613",
+  "fee": "100000000000000",
+  "depositTx": "0xc928a1c6d2659d99b3aece7a238f94a2d08dd00c194e33a0ceb6415c260ddc7d",
+  "withdrawTx": "0x02882fb832078ba1a41294dcfbf9bd836c84886d2ef0f081c0dc3e1c10acc38c",
+  "sentBy": "0x62bdae5619f3a144a947dafb33ee7a1d23156613",
+  "fresh": "0x839c1Ab8845345e3F457394A586240A8236683A4",
+  "received": "900000000000000",
+  "proofMs": 326,
+  "pass": true
+}
