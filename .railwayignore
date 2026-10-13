@@ -29,5 +29,10 @@ fhe/.kakushi-fhe/
 fhe/.stack/
 fhe/mobile/
 fhe/app/
+fhe/engine/bin/
+fhe/cre/
+fhe/indexer/
+fhe/docs/
+fhe/**/.env*
 config/generated/*.local.json
 packages/cre/workflows/*/config.local.json
