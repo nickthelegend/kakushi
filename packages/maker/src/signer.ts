@@ -61,6 +61,12 @@ export function privyAccount(cfg: PrivyConfig): Account {
       throw new Error("Privy maker signer only signs PayoutRouter / DisputeModule transactions");
     },
     async signTransaction(tx: TransactionSerializable) {
+      // Privy signs EIP-1559 here; a legacy gasPrice becomes both caps (the same price, paid in full).
+      // Without either it would sign a zero-fee tx that the node rejects ("fee too low").
+      const t = tx as { gasPrice?: bigint; maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint };
+      const maxFee = t.maxFeePerGas ?? t.gasPrice;
+      const tip = t.maxPriorityFeePerGas ?? t.gasPrice;
+      if (!maxFee || tip === undefined) throw new Error("Privy maker signer needs maxFeePerGas/maxPriorityFeePerGas or gasPrice");
       const url = `${api}/v1/wallets/${cfg.walletId}/rpc`;
       const body = {
         method: "eth_signTransaction",
@@ -72,8 +78,8 @@ export function privyAccount(cfg: PrivyConfig): Account {
             chain_id: tx.chainId,
             nonce: hexq(tx.nonce),
             gas_limit: hexq(tx.gas),
-            max_fee_per_gas: hexq((tx as { maxFeePerGas?: bigint }).maxFeePerGas),
-            max_priority_fee_per_gas: hexq((tx as { maxPriorityFeePerGas?: bigint }).maxPriorityFeePerGas),
+            max_fee_per_gas: hexq(maxFee),
+            max_priority_fee_per_gas: hexq(tip),
             type: 2,
           },
         },

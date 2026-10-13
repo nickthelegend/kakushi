@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-13T13:21:14.117Z",
+  "chainId": 10143,
+  "wallet": "0x8d1D30fBeef675E108ca2538E85f915CDB134f63",
+  "allowedTx": "0x99a69528658c259ee7d47ffc41101cd135bc6100a2ba3f5719029283cea627b4",
+  "allowedStatus": "success",
+  "refusedTransfer": "Privy refused to sign: 400 RPC request denied due to policy violation"
+}
