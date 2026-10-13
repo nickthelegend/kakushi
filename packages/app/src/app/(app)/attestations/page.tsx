@@ -4,7 +4,16 @@ import { useCallback, useMemo, useState } from "react";
 import { DataTable, PanelCard } from "@kakushi/ui";
 import { CHAIN_LIST, deployedChains } from "@kakushi/config";
 import { readWindows, windowCount } from "@kakushi/sdk";
-import { ChainName, Notice, PageHead, Pill, Stat, ago, readError , ArtBanner } from "@/components/kit";
+import { ChainName, Notice, PageHead, Pill, Stat, ago, readError } from "@/components/kit";
+
+/** Seconds as "42 s", "12 min" or "1 h 34 min". */
+function behind(secs: number): string {
+  const s = Math.round(secs);
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  const m = Math.floor((s % 3600) / 60);
+  return `${Math.floor(s / 3600)} h${m ? ` ${m} min` : ""}`;
+}
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
 
@@ -41,7 +50,6 @@ export default function AttestationsPage() {
   const rows = (data?.ws ?? []).filter((w) => showEmpty || w.leafCount > 0);
   return (
     <div>
-      <ArtBanner src="/art/attest-banner.webp" position="50% 55%" />
       <PageHead
         title="Attestations"
         sub="Kakushi's attester runs the Chainlink CRE workflow logic and commits each block window of Maker payouts and source payments as one root on the Monad hub. Windows leave no gaps, so a missing payout can be proven."
@@ -54,19 +62,18 @@ export default function AttestationsPage() {
         <Stat label="Windows on the hub" value={data ? data.n.toLocaleString() : "—"} sub={data ? "sorted Poseidon2 roots" : loading ? "reading the oracle…" : "unavailable"} className="bg-ui-surface-1" />
         {(data?.covered ?? chains.map((c) => ({ chainId: c.chainId, until: 0n }))).map((c) => {
           const payout = data?.indexedLag?.find((x) => x.chainId === c.chainId && x.kind === 2);
-          const source = data?.indexedLag?.find((x) => x.chainId === c.chainId && x.kind === 1);
           return (
             <Stat
               key={c.chainId}
               className="bg-ui-surface-1"
               label={<ChainName chainId={c.chainId} size={16} />}
-              value={payout?.confirmedLagSeconds != null ? `${payout.confirmedLagSeconds} s lag` : c.until ? `${Math.max(0, now - Number(c.until))} s lag` : "—"}
-              sub={source?.confirmedLagSeconds != null ? `source lag ${source.confirmedLagSeconds} s` : c.until ? `payouts attested to ${new Date(Number(c.until) * 1000).toLocaleTimeString()}` : "no window yet"}
+              value={payout?.confirmedLagSeconds != null ? `${behind(payout.confirmedLagSeconds)} behind` : c.until ? `${behind(Math.max(0, now - Number(c.until)))} behind` : "—"}
+              sub={c.until ? `payouts attested to ${new Date(Number(c.until) * 1000).toLocaleTimeString()}` : "no window yet"}
             />
           );
         })}
       </div>
-      <p className="mb-6 px-1 text-[13px] text-ui-muted">Windows with Kakushi activity are attested within about a minute. Quiet ranges are batched every 2 hours to save gas, so lag can read up to 2 h.</p>
+      <p className="mb-6 px-1 text-[13px] text-ui-muted">Busy ranges are attested within a minute; quiet ranges are batched every 2 h.</p>
       <PanelCard
         title="Recent windows"
         subtitle={empty ? (
