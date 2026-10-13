@@ -9,7 +9,7 @@
 | Full walkthrough | [docs/demo/kakushi-walkthrough.mp4](docs/demo/kakushi-walkthrough.mp4) (3:58, every screen incl. the operator side) |
 | Promo | [docs/demo/kakushi-promo.mp4](docs/demo/kakushi-promo.mp4) (0:24) |
 | Repository | https://github.com/nickthelegend/kakushi |
-| Sponsors | Working: Chainlink CRE, Privy, BlockVision/MonadVision, Circle USDC, Monad-native RPC. Partial: Agora AUSD, Chainlink Data Feeds, Envio, Cleanverse. See [SPONSOR-COVERAGE](docs/SPONSOR-COVERAGE.md). |
+| Sponsors | Working: Chainlink CRE, Privy, BlockVision/MonadVision, Circle USDC, Envio HyperSync, Monad-native RPC. Partial: Agora AUSD, Chainlink Data Feeds, Cleanverse. See [SPONSOR-COVERAGE](docs/SPONSOR-COVERAGE.md). |
 | Backends | Railway: relayer, Maker 1, attester, watchtower, indexer, FHE engine, FHE gateway + KMS |
 
 ## The pitch
@@ -60,6 +60,6 @@ The raw outputs are in `docs/evidence/testnet-*.json`. Rerun them with the `scri
 - **Fill window:** the testnet's 20 s window is shorter than Sepolia's block time allows for, so honest Makers can pay "late". The watchtower reports it and disputes it only with `WATCHTOWER_DISPUTE_LATE=1`.
 - **Gasless on Monad:** an UltraHonk withdraw is ~6.2M gas (the withdraw itself cost 0.698 MON on chain (6.22M gas, billed on the limit); the relayer quotes ~0.9 MON because it budgets 8M gas plus 10%), more than the 0.1 MON note. The app says so and offers self-withdraw. On Sepolia, gasless works.
 - **Chains awaiting funding:** Base, Arbitrum and OP Sepolia spokes are built and fork-tested but await testnet funding. maker2's ETH lane (Chainlink ETH/USD-priced margin) is unfunded.
-- **Envio:** offline-tested, not on Envio Cloud. The live indexer is Kakushi's RPC indexer.
+- **Envio:** HyperSync is live (the Receive inbox's history); the HyperIndex package is not on Envio Cloud, and bridge statistics come from Kakushi's RPC indexer.
 - **Cleanverse:** gated on sponsor onboarding.
 - **AUSD:** no live testnet AUSD transaction; cAUSD is deployed, and the AUSD flows are fork-tested.

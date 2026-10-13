@@ -43,7 +43,8 @@ WHAT'S LIVE (Monad testnet 10143 + Ethereum Sepolia; all hosted, all exercised w
 - Stealth send + scan: receipt 431 ms; Proposed 431 / Voted 725 / Finalized 1020 / Verified 1933 ms.
 - Shielded pool: the UltraHonk verifier runs on Monad. On Sepolia, a gasless withdraw through the relayer paid a never-funded address.
 - Confidential (FHE), 8/8: wrap, encrypted pay to a stealth address, scan, stealth-key decrypt, move, encrypted pay, KMS cash-out, pay link. Every transaction hash is in docs/evidence/testnet-fhe.json.
-- Bridge in both directions through a hosted Maker: 11.3 s Sepolia→Monad, 23 s Monad→Sepolia.
+- Bridge in both directions through a hosted Maker: 11.3 s Sepolia→Monad, 23 s Monad→Sepolia. Private delivery to a one-time stealth address also ran live: 0.44955 USDC 11 s after the source (0x77ebad1437d992a60d354ac04d10cc993906f7b9cb5b2a45ec73fca311b4be06, Sepolia).
+- Envio HyperSync powers the Receive inbox: a full scan of 350,352 Monad blocks in 1.3 s, where paging Monad's 100-block eth_getLogs took many minutes.
 - Chainlink CRE: attestation windows on the hub, and a `cre workflow simulate` run against live testnet state.
 - Privy: a policy-fenced server wallet signs an allowed approval, which lands on chain, and is refused a transfer out.
 - 44 contracts verified on Sourcify / MonadVision.
@@ -81,12 +82,12 @@ https://kakushi.vercel.app
 
 ## 9. Demo video (≤ 3:00, the working product)
 
-Upload: `/Volumes/Extreme SSD/Projects/kakushi/docs/demo/kakushi-demo.mp4`
+Upload: `/Volumes/Extreme SSD/Projects/kakushi/docs/demo/kakushi-demo.mp4` (2:53, 1920×1080, captions burned in plus `kakushi-demo.srt`; live footage on Monad testnet and Sepolia)
 **[user]** The portal takes a link: upload it to YouTube or Loom (unlisted is fine) and paste the URL here.
 
 ## 10. Pitch video (≤ 2:00)
 
-Upload: `/Volumes/Extreme SSD/Projects/kakushi/docs/demo/kakushi-pitch.mp4`
+Upload: `/Volumes/Extreme SSD/Projects/kakushi/docs/demo/kakushi-pitch.mp4` (1:20)
 **[user]** Upload and paste the link.
 Team: **[user fills in]**
 
@@ -143,9 +144,18 @@ The CRE workflows in packages/cre/workflows (attest-monad, attest-sepolia, sourc
 - On chain: a hosted runner executes the same attest-core logic and delivers through Chainlink's MockKeystoneForwarder (0xB9F79d863261869B234c481D1f9A7af84AeAd192). One example window, 10,000 Monad blocks in one report: 0x29f20989d587fece820750cb8e71da9c4026107f3b238244a2367dce35f300b8.
 - Honest note: the mock forwarder checks no signatures, so attestations are trusted from Kakushi's runner. This is not a deployed DON workflow.
 
+### Envio ($1,000, all tracks)
+
+**How do you use Envio?**
+Kakushi's Receive inbox finds a user's stealth payments by matching every ERC-5564 announcement against their viewing key. On Monad the public RPC caps eth_getLogs at 100 blocks, so a scan over the chain's history meant thousands of sequential requests and never finished in our demo recording. The inbox now reads the full announcement history from Envio HyperSync through a server route (`/api/announcements`; the token stays on the server, and only Kakushi's announcer is served). It then reads only the newest blocks over RPC. A HyperIndex v3 package (schema, handlers, derived Maker and route statistics) is in `packages/indexer/envio` and `fhe/indexer`, built and tested in CI.
+
+**Evidence**
+- Live: `https://kakushi.vercel.app/api/announcements?chainId=10143&from=70440000` returns the announcer's full history (source "envio-hypersync"). A full inbox scan of 350,352 Monad blocks takes 1.3 s.
+- Honest note: the HyperIndex package is not deployed to Envio Cloud; the live use is HyperSync.
+
 ## 13. Optional promo clip (≤ 0:30)
 
-`/Volumes/Extreme SSD/Projects/kakushi/docs/demo/kakushi-promo.mp4`
+`/Volumes/Extreme SSD/Projects/kakushi/docs/demo/kakushi-promo.mp4` (0:24). Full walkthrough (3:58, not a portal field): `docs/demo/kakushi-walkthrough.mp4`.
 
 ## 14. X link
 

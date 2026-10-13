@@ -2,7 +2,7 @@
 
 Status as of 13 Oct 2026. **Working** means a real call or transaction, exercised by a script or the live app, with the evidence linked. **Partial** means the code exists and is tested offline or on a fork, but a live piece is missing. **Not used** says why.
 
-**Count:** 5 working, 4 partial, the rest not used.
+**Count:** 6 working, 3 partial, the rest not used.
 
 ## Working
 
@@ -12,6 +12,7 @@ Status as of 13 Oct 2026. **Working** means a real call or transaction, exercise
 | **Privy** | (1) Wallet login in the app: email, Google or any wallet. (2) The Maker's hot key as a Privy **server wallet fenced by a policy**. The policy is default-deny: fill and refund on the PayoutRouter, `answerDispute`, and approvals to the PayoutRouter or MDC only, on chains 10143 and 11155111 only. It is built and updated by `packages/maker/scripts/privy-setup.ts`. | `scripts/privy-proof-testnet.ts`: Privy signed `USDC.approve(PayoutRouter)` and it landed (`0x99a69528658c259ee7d47ffc41101cd135bc6100a2ba3f5719029283cea627b4`). Privy refused `USDC.transfer` to an outside address ("policy violation"). Evidence: [testnet-privy.json](evidence/testnet-privy.json). |
 | **BlockVision (MonadVision)** | Every contract is verified through MonadVision's Sourcify endpoint (`scripts/verify-testnet.ts`), so the explorer shows the source. | 29/29 Monad contracts verified (Sourcify exact or bytecode match). Sepolia is 15/15 on sourcify.dev. |
 | **Circle USDC (canonical, Monad testnet)** | The bridge asset, the 1-USDC shielded pool and the token under cUSDC. | Bridge 0.5 USDC Monad → Sepolia `0x2db2e050…` → payout `0x11b85b3e…` (27.4 s). Bridge 0.3 USDC Sepolia → Monad `0x65e30e33…` → payout `0x7bd85700…` (11.3 s). Wrap into cUSDC (see FHE below). |
+| **Envio HyperSync** | The Receive inbox reads every stealth announcement from HyperSync (`/api/announcements`, server-side token, only Kakushi's announcer), then reads only newer blocks over RPC. Monad's RPC caps `eth_getLogs` at 100 blocks, so a scan over the chain's history was minutes long; it never finished in the demo recording. The HyperIndex package (`packages/indexer/envio`, `fhe/indexer`) is built and tested offline. | Live: a full scan of 350,352 Monad blocks in 1.3 s via `kakushi.vercel.app/api/announcements` (10 announcements). The HyperIndex package is not deployed to Envio Cloud. |
 | **Monad-native RPC** (`eth_sendRawTransactionSync`, `monadNewHeads`, `txpool_statusByHash`) | Smoke tests and the app: synchronous receipts, the commit-state timeline, and a live finality readout in the app's header pill. | Stealth send `0x7181caa5…`: receipt 431 ms, Proposed 431 / Voted 725 / Finalized 1020 / Verified 1933 ms, txpool "tracked" ([testnet-smoke-stealth.json](evidence/testnet-smoke-stealth.json)). |
 
 ## Partial
@@ -20,7 +21,6 @@ Status as of 13 Oct 2026. **Working** means a real call or transaction, exercise
 | --- | --- | --- |
 | **Agora AUSD** | `cAUSD` (`0x21503258…4c77`) is deployed on testnet over the real AUSD `0xa9012a05…22dC`. The FHE flows (wrap, encrypted pay, pay links, encrypted requests, cash out) are tested on real AUSD on a Monad fork (`fhe/` e2e and mobile `verify-fork` 16/16). | No live testnet AUSD transaction yet: the deployer holds no AUSD. The live FHE run used cUSDC. |
 | **Chainlink Data Feeds** | The EBC prices native-coin lanes from the ETH/USD feed `0x5c8c8482…6d31` (margin = max × price × haircut × k). The deploy script reads it live to size Maker margin. | No native lane is registered on testnet: maker2's ETH lane is unfunded. |
-| **Envio** | A real HyperIndex v3 package (`packages/indexer/envio`, `fhe/indexer`) with config, schema, handlers and derived Maker and route stats. Codegen and offline tests run in CI (`fhe-indexer`). | Not deployed to Envio Cloud. The live app uses Kakushi's own RPC indexer on Railway. |
 | **Cleanverse** | PayoutRouter has an optional compliant-token gate with local validator tests ([CLEANVERSE-INTEGRATION](CLEANVERSE-INTEGRATION.md)). | The canonical validator ABI and A-Pass onboarding need the sponsor. |
 
 ## Not used
