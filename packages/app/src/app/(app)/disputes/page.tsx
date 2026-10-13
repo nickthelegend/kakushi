@@ -18,7 +18,7 @@ import { receiptLogIndex } from "@/lib/receipt-selection";
 import { requireSuccessfulReceipt } from "@/lib/bridge-state";
 
 interface Row { logIndex?: number; srcRef: string; maker: string; srcChainId: number; txHash: string; gross: string; token: string; status: string; note: string | null; proofMs: number | null; updatedAt: number }
-const SHOW = new Set(["overdue", "proving", "disputed", "slashed", "maker-proven", "unprovable"]);
+const SHOW = new Set(["overdue", "late", "proving", "disputed", "slashed", "maker-proven", "unprovable"]);
 
 function DisputeYourself() {
   const { k, cfg } = useRuntime();
@@ -181,7 +181,7 @@ export default function DisputesPage() {
               columns={[
                 { key: "amount", header: "Transfer", render: (r) => { const native = r.token === "0x0000000000000000000000000000000000000000"; return <span className="grid gap-0.5"><Amount value={BigInt(r.gross)} decimals={native ? 18 : 6} symbol={native ? "ETH" : "USDC"} max={4} /><span className="text-[13px] text-ui-muted"><ChainName chainId={r.srcChainId} size={14} /></span></span>; } },
                 { key: "maker", header: "Maker", hideBelow: "sm", render: (r) => cfg?.makers.find((m) => m.address.toLowerCase() === r.maker)?.name ?? short(r.maker) },
-                { key: "status", header: "Status", render: (r) => <Pill tone={r.status === "slashed" ? "indigo" : r.status === "maker-proven" ? "ok" : r.status === "overdue" ? "bad" : "warn"}>{r.status === "slashed" ? "Paid from margin" : r.status === "maker-proven" ? "Maker proved payout" : r.status === "unprovable" ? "Proof unavailable" : r.status[0]!.toUpperCase() + r.status.slice(1)}</Pill> },
+                { key: "status", header: "Status", render: (r) => <Pill tone={r.status === "slashed" ? "indigo" : r.status === "maker-proven" ? "ok" : r.status === "overdue" ? "bad" : "warn"}>{r.status === "slashed" ? "Paid from margin" : r.status === "maker-proven" ? "Maker proved payout" : r.status === "unprovable" ? "Proof unavailable" : r.status === "late" ? "Paid late" : r.status[0]!.toUpperCase() + r.status.slice(1)}</Pill> },
                 { key: "when", header: "Updated", align: "right", hideBelow: "md", render: (r) => <span className="text-ui-muted">{r.proofMs ? `proof ${r.proofMs} ms · ` : ""}{ago(Math.floor(r.updatedAt / 1000))}</span> },
               ]}
             />

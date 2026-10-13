@@ -42,6 +42,8 @@ export function statusPill(status: string): { tone: "lime" | "purple" | "teal" |
       return { tone: "teal", text: "In flight" };
     case "overdue":
       return { tone: "red", text: "Overdue" };
+    case "late":
+      return { tone: "amber", text: "Paid late" };
     case "proving":
     case "disputed":
       return { tone: "amber", text: "Proving" };
@@ -50,7 +52,7 @@ export function statusPill(status: string): { tone: "lime" | "purple" | "teal" |
     case "maker-proven":
       return { tone: "lime", text: "Maker proved it" };
     case "no-obligation":
-      return { tone: "neutral", text: "No obligation" };
+      return { tone: "neutral", text: "Not a bridge payment" };
     default:
       return { tone: "neutral", text: status };
   }

@@ -37,6 +37,8 @@ const log = (m: string) => console.log(`[watchtower] ${m}`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Monad reserve rule (src/spacing.ts): bonds are MON value; on testnet each bond waits >= 3 blocks
 // and >= 1.2 s after this account's previous tx. WATCHTOWER_VALUE_SPACING_BLOCKS overrides (0 = off).
+// WATCHTOWER_DISPUTE_LATE=1: also dispute payouts that arrived in full but after the fill window
+const disputeLate = process.env.WATCHTOWER_DISPUTE_LATE === "1";
 const spacingBlocks = BigInt(process.env.WATCHTOWER_VALUE_SPACING_BLOCKS ?? (k.network === "testnet" ? "3" : "0"));
 const spacer = new TxSpacer({ blocks: spacingBlocks, ms: spacingBlocks > 0n ? 1200 : 0, blockNumber: () => k.hub.getBlockNumber({ cacheTime: 0 }) });
 const adapters = Object.fromEntries(k.chains.map((c) => [c.chainId, new EvmAdapter(k, c.key)]));
@@ -103,7 +105,14 @@ async function drive(r: Row) {
     return setRow(r.srcRef, r.maker, { status: "paid", note: `${c.kind === 1 ? "filled" : "refunded"} ${paid.txHash}` });
   }
   if (now <= deadline) return; // still within the fill window
-  if (r.status === "watching") setRow(r.srcRef, r.maker, { status: "overdue", note: "no compliant payout by the deadline" });
+  // A full payout that arrived after the fill window is "late": still disputable under the protocol, but
+  // the sender was paid, so say so rather than calling it unpaid.
+  const late = paid && paid.amount >= c.expected && paid.recipient.toLowerCase() === (c.kind === 1 ? p.recipient : p.sender).toLowerCase() ? paid : null;
+  const missed = late ? "late" : "overdue";
+  const lateNote = late ? `paid ${late.timestamp - p.timestamp} s after the source, after the ${k.fillWindow} s window (${late.txHash}): disputable` : null;
+  if (r.status === "watching") setRow(r.srcRef, r.maker, { status: missed, note: lateNote ?? "no compliant payout by the deadline" });
+  // The sender was paid in full: disputing a late payout (slashing the Maker's margin for the delay) is opt-in.
+  if (late && !disputeLate) return setRow(r.srcRef, r.maker, { status: "late", note: lateNote });
 
   // native source payments are attested on demand (kakushi-source-native)
   if (p.token === zeroAddress && r.note !== "native-attested") {
@@ -113,7 +122,7 @@ async function drive(r: Row) {
     } catch {}
   }
   const plan = await prepareDispute(k, p);
-  if (!plan.ready) return setRow(r.srcRef, r.maker, { status: "overdue", note: plan.reason });
+  if (!plan.ready) return setRow(r.srcRef, r.maker, { status: missed, note: lateNote ? `${lateNote}; ${plan.reason}` : plan.reason });
   setRow(r.srcRef, r.maker, { status: "proving", note: `${plan.payoutWindowIds.length} attested windows` });
   let proof;
   try {
@@ -151,7 +160,7 @@ async function drive(r: Row) {
 async function driveLoop() {
   const busy = new Set<string>();
   for (;;) {
-    const rows = db.prepare(`SELECT * FROM watched WHERE status IN ('watching', 'overdue', 'disputed', 'proving')`).all() as unknown as Row[];
+    const rows = db.prepare(`SELECT * FROM watched WHERE status IN ('watching', 'overdue', ${disputeLate ? "'late', " : ""}'disputed', 'proving')`).all() as unknown as Row[];
     for (const r of rows) {
       const id = `${r.srcRef}:${r.maker}`;
       if (busy.has(id)) continue;
