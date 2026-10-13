@@ -1,0 +1,72 @@
+1
+00:00:03,381 --> 00:00:05,617
+Kakushi uses Privy in two places.
+
+2
+00:00:05,657 --> 00:00:07,614
+In the app, Privy is the sign-in:
+
+3
+00:00:07,654 --> 00:00:10,067
+email, Google or any wallet.
+
+4
+00:00:11,935 --> 00:00:13,276
+On the operator side,
+
+5
+00:00:13,316 --> 00:00:16,051
+a Maker's hot wallet can be a Privy server wallet,
+
+6
+00:00:16,091 --> 00:00:19,503
+fenced by a policy that denies everything by default.
+
+7
+00:00:19,946 --> 00:00:23,161
+This is a real run on Monad testnet.
+
+8
+00:00:23,244 --> 00:00:26,431
+Privy signs the one kind of thing the policy allows,
+
+9
+00:00:26,471 --> 00:00:31,067
+a USDC approve to the PayoutRouter, and it lands on chain.
+
+10
+00:00:31,208 --> 00:00:34,431
+Then it refuses to move the USDC anywhere else:
+
+11
+00:00:34,471 --> 00:00:36,106
+policy violation.
+
+12
+00:00:36,458 --> 00:00:40,354
+The policy allows only fills and refunds through the router,
+
+13
+00:00:40,394 --> 00:00:44,243
+dispute answers, approvals to the router or the margin
+
+14
+00:00:44,283 --> 00:00:47,381
+contract, and the Maker's own setup.
+
+15
+00:00:47,522 --> 00:00:52,141
+A compromised Maker host can't drain inventory or margin.
+
+16
+00:00:52,758 --> 00:00:55,574
+The approve is on chain, sent from the Privy wallet.
+
+17
+00:00:55,614 --> 00:00:58,906
+One honest note: the live Maker 1 still signs with its own
+
+18
+00:00:58,946 --> 00:01:02,209
+key; the Privy wallet runs this fenced path.
+

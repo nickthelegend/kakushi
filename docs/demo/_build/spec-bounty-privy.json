@@ -1,0 +1,120 @@
+{
+ "name": "bounty-privy",
+ "clips": [
+  {
+   "src": "card-bounty-privy.png",
+   "in": 0,
+   "out": 3.0
+  },
+  {
+   "src": "take3.mp4",
+   "in": 1.5,
+   "out": 10.2,
+   "tag": "live-monad",
+   "step": "App sign-in \u00b7 Privy",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 10.2,
+   "out": 14.6,
+   "speed": 2,
+   "tag": "live-monad",
+   "step": "App sign-in \u00b7 Privy",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "privy-term.mp4",
+   "in": 0,
+   "out": 9.2,
+   "tag": "CLI RUN CAPTURED 05:17 IST \u00b7 REAL SPEED",
+   "tagX": 1250,
+   "tagY": 880,
+   "cap": "bottom"
+  },
+  {
+   "src": "hold_pv1.png",
+   "in": 0,
+   "out": 13.0,
+   "tag": "CLI RUN CAPTURED 05:17 IST \u00b7 REAL SPEED",
+   "tagX": 1250,
+   "tagY": 560,
+   "cap": "bottom",
+   "badges": [
+    {
+     "text": "Allowed: approve landed",
+     "sub": "Refused: transfer out (policy violation)",
+     "from": 0.5
+    }
+   ]
+  },
+  {
+   "src": "privy-term.mp4",
+   "in": 9.2,
+   "out": 14.2,
+   "tag": "CLI RUN CAPTURED 05:17 IST \u00b7 REAL SPEED",
+   "tagX": 1250,
+   "tagY": 880,
+   "cap": "bottom"
+  },
+  {
+   "src": "hold_pv2.png",
+   "in": 0,
+   "out": 11.3,
+   "tag": "CLI RUN CAPTURED 05:17 IST \u00b7 REAL SPEED",
+   "tagX": 1250,
+   "tagY": 880,
+   "cap": "bottom"
+  },
+  {
+   "src": "privy-tx.mp4",
+   "in": 0,
+   "out": 6.0,
+   "tag": "MONAD TESTNET RPC \u00b7 CAPTURED 05:18 IST",
+   "tagX": 1250,
+   "tagY": 880,
+   "cap": "bottom"
+  },
+  {
+   "src": "hold_pvtx.png",
+   "in": 0,
+   "out": 4.0,
+   "tag": "MONAD TESTNET RPC \u00b7 CAPTURED 05:18 IST",
+   "tagX": 1250,
+   "tagY": 880,
+   "cap": "bottom"
+  }
+ ],
+ "vo": [
+  {
+   "id": "v1",
+   "clip": 1,
+   "offset": 0.3
+  },
+  {
+   "id": "v2",
+   "clip": 2,
+   "offset": 0.2
+  },
+  {
+   "id": "v3",
+   "clip": 3,
+   "offset": 6.0
+  },
+  {
+   "id": "v4",
+   "clip": 5,
+   "offset": 0.3
+  },
+  {
+   "id": "v5",
+   "clip": 7,
+   "offset": 0.3
+  }
+ ],
+ "music": 0.06,
+ "crf": 22,
+ "captionReplace": {}
+}

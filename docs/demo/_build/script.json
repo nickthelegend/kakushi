@@ -352,6 +352,31 @@
    "id": "e4",
    "part": "bounty-envio",
    "text": "This is the raw route behind it: the announcer's logs, served from Envio HyperSync. The Envio token stays on the server, and matching happens only in the browser."
+  },
+  {
+   "id": "v1",
+   "part": "bounty-privy",
+   "text": "Kakushi uses Privy in two places. In the app, Privy is the sign-in: email, Google or any wallet."
+  },
+  {
+   "id": "v2",
+   "part": "bounty-privy",
+   "text": "On the operator side, a Maker's hot wallet can be a Privy server wallet, fenced by a policy that denies everything by default."
+  },
+  {
+   "id": "v3",
+   "part": "bounty-privy",
+   "text": "This is a real run on Monad testnet. Privy signs the one kind of thing the policy allows, a USDC approve to the PayoutRouter, and it lands on chain. Then it refuses to move the USDC anywhere else: policy violation."
+  },
+  {
+   "id": "v4",
+   "part": "bounty-privy",
+   "text": "The policy allows only fills and refunds through the router, dispute answers, approvals to the router or the margin contract, and the Maker's own setup. A compromised Maker host can't drain inventory or margin."
+  },
+  {
+   "id": "v5",
+   "part": "bounty-privy",
+   "text": "The approve is on chain, sent from the Privy wallet. One honest note: the live Maker 1 still signs with its own key; the Privy wallet runs this fenced path."
   }
  ]
 }
