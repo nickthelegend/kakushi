@@ -8,7 +8,7 @@
 
 **Problem and intended user.** Every Monad payment is public: who paid whom, and how much. Kakushi is for wallets and payment apps on Monad that need private payouts (payroll, merchants, OTC) without building zero-knowledge or FHE cryptography themselves.
 
-**Videos:** [Demo](docs/demo/kakushi-demo.mp4) (2:53, live on Monad testnet + Sepolia, captions in [.srt](docs/demo/kakushi-demo.srt)) · [Full walkthrough](docs/demo/kakushi-walkthrough.mp4) (3:58) · [Promo](docs/demo/kakushi-promo.mp4) (0:24). Recording notes and every transaction hash: [docs/demo](docs/demo/README.md).
+**Videos:** [Demo](docs/demo/kakushi-demo.mp4) (2:53, live on Monad testnet + Sepolia, captions in [.srt](docs/demo/kakushi-demo.srt)) · [Pitch](docs/demo/kakushi-pitch.mp4) (1:20) · [Full walkthrough](docs/demo/kakushi-walkthrough.mp4) (3:58) · [Promo](docs/demo/kakushi-promo.mp4) (0:24). Recording notes and every transaction hash: [docs/demo](docs/demo/README.md).
 
 Send, Receive, Shield, Confidential and Bridge are the app. The SDK (`@kakushi/sdk`, `@kakushi/fhe-sdk`) and the drop-in `<KakushiPay>` widget (`@kakushi/widget`) are the plugin for other apps.
 

@@ -89,7 +89,12 @@ for lid, st in vo:
             cues.append({"text": " ".join(x[0] for x in cur), "start": st + cur[0][1], "end": st + cur[-1][2]})
     for tok in toks:
         if cur and len(" ".join(x[0] for x in cur + [tok])) > 60:
-            flush(); cur = []
+            # prefer to break after the last comma, so a cue never starts with a stranded word
+            k = max((i for i, x in enumerate(cur[:-1]) if x[0].endswith(",") and i >= 2), default=None)
+            if k is not None:
+                rest = cur[k + 1:]; cur = cur[:k + 1]; flush(); cur = rest
+            else:
+                flush(); cur = []
         cur.append(tok)
         if re.search(r"[.?!:;]$", tok[0]) and len(" ".join(x[0] for x in cur)) > 16:
             flush(); cur = []

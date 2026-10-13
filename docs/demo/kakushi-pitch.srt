@@ -1,0 +1,96 @@
+1
+00:00:00,658 --> 00:00:02,998
+What if your salary showed up on a public ledger,
+
+2
+00:00:03,038 --> 00:00:04,473
+for anyone to read?
+
+3
+00:00:04,513 --> 00:00:06,809
+On Monad today, it does.
+
+4
+00:00:07,654 --> 00:00:10,539
+Kakushi comes from builders who think a payment on a public
+
+5
+00:00:10,579 --> 00:00:13,349
+chain shouldn't publish your salary, your customers,
+
+6
+00:00:13,389 --> 00:00:14,722
+or your balance.
+
+7
+00:00:15,324 --> 00:00:18,500
+Every Monad payment shows who paid, who got paid,
+
+8
+00:00:18,540 --> 00:00:20,253
+and how much. Payroll,
+
+9
+00:00:20,293 --> 00:00:23,658
+merchants and OTC desks can't work like that.
+
+10
+00:00:24,248 --> 00:00:28,144
+Why now? Monad's sub-second finality makes private payments
+
+11
+00:00:28,184 --> 00:00:31,700
+practical, and payment apps are launching on it right now.
+
+12
+00:00:32,372 --> 00:00:33,957
+Kakushi does three things.
+
+13
+00:00:33,997 --> 00:00:36,070
+Hide who. Hide how much.
+
+14
+00:00:36,110 --> 00:00:37,629
+Add it to any app.
+
+15
+00:00:42,608 --> 00:00:44,498
+It's live on testnet:
+
+16
+00:00:44,640 --> 00:00:47,014
+44 verified contracts,
+
+17
+00:00:47,054 --> 00:00:51,624
+a stealth receipt in 431 milliseconds and finality in about
+
+18
+00:00:51,664 --> 00:00:55,505
+a second, the full FHE flow on chain,
+
+19
+00:00:55,646 --> 00:00:57,742
+a Monad to Sepolia bridge,
+
+20
+00:00:57,782 --> 00:01:00,729
+and a six-deposit pool our team seeded.
+
+21
+00:01:01,573 --> 00:01:05,155
+It's for Monad wallets, payment apps and payroll apps,
+
+22
+00:01:05,195 --> 00:01:08,595
+and they add it with a drop-in widget and an SDK.
+
+23
+00:01:09,474 --> 00:01:12,383
+Kakushi. The privacy provider for Monad:
+
+24
+00:01:12,423 --> 00:01:16,336
+ZK hides who, FHE hides how much.
+
