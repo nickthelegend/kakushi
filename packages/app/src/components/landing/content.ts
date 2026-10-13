@@ -153,7 +153,7 @@ export const faq = {
     { q: "What does the pool hide?", a: "The link between a deposit and a withdrawal. You deposit a fixed amount with a commitment and later withdraw with a zero-knowledge proof that you own one of the deposits, without saying which." },
     { q: "Who can see my keys?", a: "Nobody. Your stealth keys are derived from a signature in your own wallet, and proofs are generated in your browser." },
     { q: "Why a relayer?", a: "A fresh address has no gas. The relayer submits the withdrawal and takes a fee from it, so the new address never touches your old one." },
-    { q: "Which chains?", a: "Monad testnet first, then Sepolia, Base Sepolia, Arbitrum Sepolia and OP Sepolia. The private bridge moves funds between them to stealth addresses." },
+    { q: "Which chains?", a: "Monad testnet and Sepolia today. Base, Arbitrum and OP Sepolia are awaiting testnet funding. The private bridge moves funds between live chains to stealth addresses." },
     { q: "What about compliance?", a: "Pools are fixed-size and every proof is public on chain. A compliant lane with Cleanverse checks is available for apps that need it." },
   ],
 };

@@ -12,7 +12,7 @@ import { usePrivacyChains } from "@/lib/privacy";
 import { AssetCoin, ChainCoin } from "@/components/coins";
 import { readError } from "@/components/kit";
 import { ConnectButton } from "@/components/AppShell";
-import { ROUTES, routesFor, tokenOf, type Route } from "@/lib/routes";
+import { ROUTES, pendingChains, routesFor, tokenOf, type Route } from "@/lib/routes";
 import { maximumPrincipal, parseBridgeAmount, requireSuccessfulReceipt } from "@/lib/bridge-state";
 import { useRuntime } from "@/lib/runtime";
 import { usePoll } from "@/lib/usePoll";
@@ -53,7 +53,7 @@ function useBalance(route: Route, who: Hex | null) {
 
 /* ── pickers ──────────────────────────────────────────────────────────────── */
 
-function ChainPicker({ label, value, options, onPick }: { label: string; value: ChainKey; options: ChainKey[]; onPick: (k: ChainKey) => void }) {
+function ChainPicker({ label, value, options, pending = [], onPick }: { label: string; value: ChainKey; options: ChainKey[]; pending?: ChainKey[]; onPick: (k: ChainKey) => void }) {
   return (
     <Menu
       label={label}
@@ -68,6 +68,11 @@ function ChainPicker({ label, value, options, onPick }: { label: string; value: 
     >
       {options.map((k) => (
         <Menu.Item key={k} icon={<ChainCoin chainId={CHAINS[k].chainId} size={22} />} onSelect={() => onPick(k)}>
+          {CHAINS[k].shortName}
+        </Menu.Item>
+      ))}
+      {pending.filter((k) => k !== value && !options.includes(k)).map((k) => (
+        <Menu.Item key={k} disabled icon={<ChainCoin chainId={CHAINS[k].chainId} size={22} />} description="Awaiting funding">
           {CHAINS[k].shortName}
         </Menu.Item>
       ))}
@@ -186,6 +191,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
   const insufficient = gross !== null && balance !== null && balance < gross;
   const fixed = gross !== null ? (() => { const s = gross.toString().padStart(src.decimals + 1, "0"); return `${s.slice(0, -src.decimals)}.${s.slice(-src.decimals)}`; })() : "";
   const reverse = routes.find((r) => r.src === route.dst && r.dst === route.src && r.asset === route.asset);
+  const pending = pendingChains(cfg?.deployments);
   const srcOptions = [...new Set(routes.map((r) => r.src))];
   const dstOptions = [...new Set(routes.filter((r) => r.src === route.src && r.asset === route.asset).map((r) => r.dst))];
   const assetOptions = [...new Set(routes.filter((r) => r.src === route.src).map((r) => r.asset))];
@@ -262,7 +268,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
       <div className="rounded-[22px] bg-[#04060f]/80 p-5 ring-1 ring-white/[0.04]">
         <div className="flex items-center justify-between text-[13px] text-ui-muted">
           <span className="flex items-center gap-2">
-            From <ChainPicker label="Source chain" value={route.src} options={srcOptions} onPick={(s) => setRoute(pickRoute(routes, { src: s }, route))} />
+            From <ChainPicker label="Source chain" value={route.src} options={srcOptions} pending={pending} onPick={(s) => setRoute(pickRoute(routes, { src: s }, route))} />
           </span>
           <button
             type="button"
@@ -303,7 +309,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
       <div className="rounded-[22px] bg-[#04060f]/80 p-5 ring-1 ring-white/[0.04]">
         <div className="flex items-center justify-between text-[13px] text-ui-muted">
           <span className="flex items-center gap-2">
-            To <ChainPicker label="Destination chain" value={route.dst} options={dstOptions} onPick={(d) => setRoute(pickRoute(routes, { src: route.src, dst: d }, route))} />
+            To <ChainPicker label="Destination chain" value={route.dst} options={dstOptions} pending={pending} onPick={(d) => setRoute(pickRoute(routes, { src: route.src, dst: d }, route))} />
           </span>
           <span>{q ? `from ${q.name}` : null}</span>
         </div>

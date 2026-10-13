@@ -29,6 +29,14 @@ export function routesFor(deployments: { chains: Record<number, unknown> } | nul
   return r.length ? r : ROUTES;
 }
 
+/** Chains some route needs but the deployment doesn't cover yet (shown as "Awaiting funding").
+ *  Empty when there is no deployment to compare against. */
+export function pendingChains(deployments: { chains: Record<number, unknown> } | null | undefined): ChainKey[] {
+  if (!deployments?.chains) return [];
+  const live = new Set(deployedChains(deployments).map((c) => c.key));
+  return [...new Set(ROUTES.flatMap((r) => [r.src, r.dst]))].filter((k) => !live.has(k));
+}
+
 export function tokenOf(r: Route, side: "src" | "dst"): { address: Hex; decimals: number; symbol: string } {
   const c = CHAINS[side === "src" ? r.src : r.dst];
   return r.asset === "USDC" ? { address: c.usdc.address, decimals: 6, symbol: "USDC" } : { address: zeroAddress, decimals: 18, symbol: "ETH" };

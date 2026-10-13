@@ -1,10 +1,12 @@
 "use client";
 
 import { CHAINS, type ChainKey } from "@kakushi/config";
+import { cn } from "@kakushi/ui";
 import { ArrowRight } from "lucide-react";
 import { ChainCoin } from "@/components/coins";
 import { Rise } from "@/components/motion";
-import { ROUTES } from "@/lib/routes";
+import { ROUTES, pendingChains, routesFor } from "@/lib/routes";
+import { useRuntime } from "@/lib/runtime";
 import { chains } from "./content";
 import { SectionIntro, Shell } from "./section";
 
@@ -12,9 +14,12 @@ const KEYS = [...new Set(ROUTES.flatMap((r) => [r.src, r.dst]))].sort((a, b) => 
 
 /** The figures Orbiter leads with, and the chains and routes as they are configured. */
 export function Chains() {
+  const { cfg } = useRuntime();
+  const pending = pendingChains(cfg?.deployments);
+  const routes = routesFor(cfg?.deployments);
   const stats = [
     { value: "1", label: "SDK call to go private" },
-    { value: String(KEYS.length), label: "chains, one hub" },
+    { value: String(KEYS.length - pending.length), label: "chains live, one hub" },
     { value: "0", label: "custodians" },
     { value: "≈1 s", label: "private bridge to Monad" },
   ];
@@ -38,22 +43,27 @@ export function Chains() {
           <div className="grid gap-3 sm:grid-cols-2">
             {KEYS.map((k, i) => {
               const c = CHAINS[k];
-              const out = ROUTES.filter((r) => r.src === k);
+              const out = routes.filter((r) => r.src === k);
               const hub = k === "monadTestnet";
+              const waiting = pending.includes(k);
               return (
                 <Rise key={k} delay={0.05 * i} className={hub ? "sm:col-span-2" : undefined}>
-                  <article className="h-full rounded-[24px] bg-ui-surface-1 p-5 ring-1 ring-ui-hairline-strong">
+                  <article className={cn("h-full rounded-[24px] bg-ui-surface-1 p-5 ring-1 ring-ui-hairline-strong", waiting && "opacity-60")}>
                     <div className="flex items-center gap-3">
                       <ChainCoin chainId={c.chainId} size={40} />
                       <div className="min-w-0 flex-1">
                         <h3 className="text-[17px] font-medium">{c.shortName}</h3>
                         <p className="text-[13px] text-ui-muted">{hub ? "Hub: pools, proofs and disputes" : "Spoke: pools and stealth payments"}</p>
                       </div>
-                      <span className="ui-figure rounded-full bg-ui-lime-chip px-2.5 py-1 text-[12px] text-ui-lime-active" title="The last four digits of an amount sent here">
-                        code {c.identCode}
-                      </span>
+                      {waiting ? (
+                        <span className="rounded-full bg-ui-surface-2 px-2.5 py-1 text-[12px] text-ui-muted">Awaiting funding</span>
+                      ) : (
+                        <span className="ui-figure rounded-full bg-ui-lime-chip px-2.5 py-1 text-[12px] text-ui-lime-active" title="The last four digits of an amount sent here">
+                          code {c.identCode}
+                        </span>
+                      )}
                     </div>
-                    <ul className="mt-4 flex flex-wrap gap-1.5">
+                    <ul className="mt-4 flex flex-wrap gap-1.5 empty:hidden">
                       {out.map((r) => (
                         <li key={r.id} className="inline-flex items-center gap-1.5 rounded-full bg-ui-canvas px-2.5 py-1 text-[12px]">
                           {r.asset}
