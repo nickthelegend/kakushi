@@ -9,6 +9,10 @@
 // `pnpm --filter @kakushi/cre simulate:attest local-settings` instead.
 //
 //   node local/runner.ts            # loop every KAKUSHI_ATTEST_INTERVAL seconds (default 8)
+//   KAKUSHI_ATTEST_MAX_BLOCKS       blocks per payout window (default 100, CRE's limit; larger = fewer hub txs)
+//   KAKUSHI_ATTEST_IDLE_SECONDS     attest a range without Kakushi logs only once it is this old (default 0)
+//   KAKUSHI_ATTEST_MIN_BALANCE_WEI  stop delivering below this MON balance (default 0)
+//   KAKUSHI_ATTEST_HOST (default 127.0.0.1), CRE_ETH_PRIVATE_KEY (required off the local forks)
 //   POST http://127.0.0.1:3714/attest-native {"chainId":11155111,"txHash":"0x..."}
 //   GET  http://127.0.0.1:3714/status
 import { createServer } from "node:http";
@@ -37,7 +41,19 @@ const INTERVAL = Number(process.env.KAKUSHI_ATTEST_INTERVAL ?? "8") * 1000;
 const PORT = Number(process.env.KAKUSHI_ATTEST_PORT ?? "3714");
 const MAX_BLOCKS = 100n; // CRE's log-query limit
 const READ_BUDGET = 15; // CRE's EVM reads per execution
+// Payout windows must be block-contiguous, and each one is a hub transaction. On Monad (~2.5 blocks/s)
+// one 100-block window per tx costs ~15 MON an hour, so off the local forks the runner may cover a
+// longer span per window (KAKUSHI_ATTEST_MAX_BLOCKS), paging eth_getLogs 100 blocks at a time. With
+// the default 100 it keeps the CRE workflow's exact limits.
+const SPAN = BigInt(process.env.KAKUSHI_ATTEST_MAX_BLOCKS ?? "100");
+const BLOCK_BUDGET = SPAN > MAX_BLOCKS ? 200 : READ_BUDGET; // distinct log blocks whose timestamps are read
+// A range with no Kakushi logs is attested only once it is this old (seconds); 0 = every tick.
+// Activity is attested on the next tick either way.
+const IDLE_SECONDS = BigInt(process.env.KAKUSHI_ATTEST_IDLE_SECONDS ?? "0");
+// stop delivering below this balance (wei of MON) and say so in /status, instead of failing every tick
+const MIN_BALANCE = BigInt(process.env.KAKUSHI_ATTEST_MIN_BALANCE_WEI ?? "0");
 // LOCAL ANVIL ONLY key (anvil account 5); on testnet set CRE_ETH_PRIVATE_KEY
+if (network !== "local" && !process.env.CRE_ETH_PRIVATE_KEY) throw new Error(`CRE_ETH_PRIVATE_KEY must be set on ${network}`);
 const KEY = (process.env.CRE_ETH_PRIVATE_KEY ?? "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba") as Hex;
 const account = privateKeyToAccount(KEY);
 const hub = publicClient("monadTestnet");
@@ -59,12 +75,14 @@ async function deliver(windows: AttestWindow[], label: string): Promise<Hex> {
     timestamp: Math.floor(Date.now() / 1000),
   });
   const before = (await hub.readContract({ address: d.hub.attestationOracle, abi: attestationOracleAbi, functionName: "windowCount" })) as bigint;
+  const data = encodeFunctionData({ abi: forwarderAbi, functionName: "report", args: [d.hub.attestationOracle, raw, "0x", []] });
+  const gas = ((await hub.estimateGas({ account, to: forwarder, data })) * 115n) / 100n;
   const hash = await hubWallet.sendTransaction({
     chain: hubWallet.chain,
     account,
     to: forwarder,
-    data: encodeFunctionData({ abi: forwarderAbi, functionName: "report", args: [d.hub.attestationOracle, raw, "0x", []] }),
-    gas: 1_500_000n, // Monad charges the gas LIMIT: keep it explicit and tight
+    data,
+    gas, // Monad charges the gas LIMIT: estimate + 15%
   });
   const rc = await hub.waitForTransactionReceipt({ hash });
   // the mock forwarder swallows receiver reverts: check ReportProcessed.result and the count
@@ -94,21 +112,39 @@ async function attestChain(chainId: number): Promise<void> {
   const head = await client.getBlockNumber();
   reads += 1;
   const conf = network === "local" ? 0n : BigInt(c.attestConfirmations);
-  const range = nextRange(lastTo, BigInt(dep.deployBlock), head - conf, MAX_BLOCKS);
+  const range = nextRange(lastTo, BigInt(dep.deployBlock), head - conf, SPAN);
   if (!range) return;
   const cfg = { chainId, payoutRouter: dep.payoutRouter, sourceRouter: dep.sourceRouter, tokens: [c.usdc.address], makers };
   let logs: RawLog[] = [];
+  // RPCs cap eth_getLogs at ~100 blocks: page the span, a few chunks at a time
+  const chunks: { from: bigint; to: bigint }[] = [];
+  for (let b = range.from; b <= range.to; b += MAX_BLOCKS) chunks.push({ from: b, to: b + MAX_BLOCKS - 1n < range.to ? b + MAX_BLOCKS - 1n : range.to });
   for (const f of windowLogFilters(cfg)) {
-    reads += 1;
-    const res = (await client.request({
-      method: "eth_getLogs",
-      params: [{ address: f.address, topics: f.topics as never, fromBlock: `0x${range.from.toString(16)}`, toBlock: `0x${range.to.toString(16)}` }],
-    })) as any[];
-    logs = logs.concat(
-      res.filter((l) => !l.removed).map((l) => ({ address: l.address, topics: l.topics, data: l.data, blockNumber: BigInt(l.blockNumber), transactionHash: l.transactionHash, logIndex: Number(BigInt(l.logIndex)) })),
-    );
+    for (let i = 0; i < chunks.length; i += 8) {
+      const pages = await Promise.all(
+        chunks.slice(i, i + 8).map((ch) => {
+          reads += 1;
+          return client.request({
+            method: "eth_getLogs",
+            params: [{ address: f.address, topics: f.topics as never, fromBlock: `0x${ch.from.toString(16)}`, toBlock: `0x${ch.to.toString(16)}` }],
+          }) as Promise<any[]>;
+        }),
+      );
+      for (const res of pages) {
+        logs = logs.concat(
+          res.filter((l) => !l.removed).map((l) => ({ address: l.address, topics: l.topics, data: l.data, blockNumber: BigInt(l.blockNumber), transactionHash: l.transactionHash, logIndex: Number(BigInt(l.logIndex)) })),
+        );
+      }
+    }
   }
-  const capped = capByDistinctBlocks(logs, range.from, range.to, Math.max(0, READ_BUDGET - reads - 3));
+  if (logs.length === 0 && IDLE_SECONDS > 0n) {
+    const fromTime = (await client.getBlock({ blockNumber: range.from })).timestamp;
+    if (BigInt(Math.floor(Date.now() / 1000)) - fromTime < IDLE_SECONDS) return;
+  }
+  if (MIN_BALANCE > 0n && (await hub.getBalance({ address: account.address })) < MIN_BALANCE) {
+    throw new Error(`attester ${account.address} is below ${MIN_BALANCE} wei of MON: not delivering`);
+  }
+  const capped = capByDistinctBlocks(logs, range.from, range.to, SPAN > MAX_BLOCKS ? BLOCK_BUDGET : Math.max(0, READ_BUDGET - reads - 3));
   const times = new Map<bigint, bigint>();
   for (const b of [range.from, capped.to, ...capped.blocks]) {
     if (!times.has(b)) times.set(b, (await client.getBlock({ blockNumber: b })).timestamp);
@@ -186,7 +222,7 @@ createServer(async (req, res) => {
     res.statusCode = 400;
     res.end(JSON.stringify({ error: (e as Error).message }));
   }
-}).listen(PORT, "127.0.0.1", () => {
+}).listen(PORT, process.env.KAKUSHI_ATTEST_HOST ?? "127.0.0.1", () => {
   console.log(`[attest] local CRE runner on :${PORT}, every ${INTERVAL / 1000}s, forwarder ${forwarder} (${CHAINS.monadTestnet.shortName} hub)`);
 });
 
