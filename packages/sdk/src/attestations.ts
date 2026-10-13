@@ -99,30 +99,37 @@ export interface ChainCtx {
   cfg: ChainAttestConfig;
 }
 
-async function fetchLogs(ctx: ChainCtx, from: bigint, to: bigint): Promise<RawLog[]> {
+/** RPCs cap eth_getLogs at ~100 blocks (Monad's public RPC enforces exactly 100). */
+export const LOG_PAGE_BLOCKS = 100n;
+
+/** Every window log in [from, to], paged so windows longer than one eth_getLogs range still rebuild. */
+export async function fetchLogs(ctx: Pick<ChainCtx, "cfg" | "client">, from: bigint, to: bigint): Promise<RawLog[]> {
   const out: RawLog[] = [];
   for (const f of windowLogFilters(ctx.cfg)) {
-    const logs = await ctx.client.request({
-      method: "eth_getLogs",
-      params: [
-        {
-          address: f.address,
-          topics: f.topics as (Hex | Hex[] | null)[],
-          fromBlock: `0x${from.toString(16)}`,
-          toBlock: `0x${to.toString(16)}`,
-        },
-      ],
-    });
-    for (const l of logs as any[]) {
-      if (l.removed) continue;
-      out.push({
-        address: l.address,
-        topics: l.topics,
-        data: l.data,
-        blockNumber: BigInt(l.blockNumber),
-        transactionHash: l.transactionHash,
-        logIndex: Number(BigInt(l.logIndex)),
+    for (let lo = from; lo <= to; lo += LOG_PAGE_BLOCKS) {
+      const hi = lo + LOG_PAGE_BLOCKS - 1n < to ? lo + LOG_PAGE_BLOCKS - 1n : to;
+      const logs = await ctx.client.request({
+        method: "eth_getLogs",
+        params: [
+          {
+            address: f.address,
+            topics: f.topics as (Hex | Hex[] | null)[],
+            fromBlock: `0x${lo.toString(16)}`,
+            toBlock: `0x${hi.toString(16)}`,
+          },
+        ],
       });
+      for (const l of logs as any[]) {
+        if (l.removed) continue;
+        out.push({
+          address: l.address,
+          topics: l.topics,
+          data: l.data,
+          blockNumber: BigInt(l.blockNumber),
+          transactionHash: l.transactionHash,
+          logIndex: Number(BigInt(l.logIndex)),
+        });
+      }
     }
   }
   return out;
