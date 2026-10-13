@@ -6,7 +6,7 @@ import { developers } from "@/components/landing/content";
 import { WidgetDemo } from "@/components/widget-demo";
 
 const STEPS = [
-  { icon: <Package size={18} />, title: "Install", body: "pnpm add @kakushi/sdk" },
+  { icon: <Package size={18} />, title: "Install", body: "git clone https://github.com/nickthelegend/kakushi && pnpm install", note: "npm package coming. Import @kakushi/sdk from the workspace." },
   { icon: <EyeOff size={18} />, title: "Pay privately", body: "Send to a meta-address" },
   { icon: <Shield size={18} />, title: "Shield", body: "Deposit, withdraw with a proof" },
   { icon: <Zap size={18} />, title: "Go gasless", body: "Point at a relayer" },
@@ -26,7 +26,8 @@ export default function DevelopersPage() {
           <li key={s.title} className="rounded-[22px] bg-ui-surface-1/80 p-5 ring-1 ring-ui-hairline-strong backdrop-blur">
             <span className="flex items-center justify-between text-[#8ea5ff]">{s.icon}<span className="serif text-[22px] text-white/20">{i + 1}</span></span>
             <h2 className="mt-3 text-[17px] font-medium">{s.title}</h2>
-            <p className="mt-1 font-mono text-[13px] text-ui-muted">{s.body}</p>
+            <p className="mt-1 font-mono text-[13px] break-words text-ui-muted">{s.body}</p>
+            {"note" in s && s.note ? <p className="mt-2 text-[12px] text-ui-dim">{s.note}</p> : null}
           </li>
         ))}
       </ol>
