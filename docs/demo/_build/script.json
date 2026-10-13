@@ -330,6 +330,28 @@
    "id": "c6",
    "part": "bounty-cre",
    "text": "The app shows every window. When a Maker misses a deadline, the dispute circuit proves the missing payout against these roots, and the Maker's margin pays the user."
+  },
+  {
+   "id": "e1",
+   "part": "bounty-envio",
+   "text": "The Receive inbox has to read every stealth announcement since launch and test each one against the viewing key, locally. Monad's RPC returns logs 100 blocks at a time, so the first version took many minutes.",
+   "say": "The Receive inbox has to read every stealth announcement since launch and test each one against the viewing key, locally. Monad's RPC returns logs a hundred blocks at a time, so the first version took many minutes."
+  },
+  {
+   "id": "e2",
+   "part": "bounty-envio",
+   "text": "Now the history comes from Envio HyperSync in one query, and only the newest blocks are read over RPC. Scan, and the inbox is ready in about two seconds."
+  },
+  {
+   "id": "e3",
+   "part": "bounty-envio",
+   "text": "It finds all three payments from the demo: an encrypted 0.3 cUSDC that my stealth key reveals, the 0.44955 USDC private bridge delivery on Sepolia, and the 0.01 MON stealth send.",
+   "say": "It finds all three payments from the demo: an encrypted point three c USDC that my stealth key reveals, the zero point four four nine five five USDC private bridge delivery on Sepolia, and the hundredth of a MON stealth send."
+  },
+  {
+   "id": "e4",
+   "part": "bounty-envio",
+   "text": "This is the raw route behind it: the announcer's logs, served from Envio HyperSync. The Envio token stays on the server, and matching happens only in the browser."
   }
  ]
 }

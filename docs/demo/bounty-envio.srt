@@ -1,0 +1,60 @@
+1
+00:00:03,370 --> 00:00:06,325
+The Receive inbox has to read every stealth announcement
+
+2
+00:00:06,365 --> 00:00:09,146
+since launch and test each one against the viewing key,
+
+3
+00:00:09,186 --> 00:00:14,011
+locally. Monad's RPC returns logs 100 blocks at a time,
+
+4
+00:00:14,051 --> 00:00:16,522
+so the first version took many minutes.
+
+5
+00:00:16,758 --> 00:00:20,271
+Now the history comes from Envio HyperSync in one query,
+
+6
+00:00:20,311 --> 00:00:23,327
+and only the newest blocks are read over RPC.
+
+7
+00:00:23,538 --> 00:00:27,403
+Scan, and the inbox is ready in about two seconds.
+
+8
+00:00:27,635 --> 00:00:30,083
+It finds all three payments from the demo:
+
+9
+00:00:30,166 --> 00:00:34,735
+an encrypted 0.3 cUSDC that my stealth key reveals,
+
+10
+00:00:34,775 --> 00:00:40,807
+the 0.44955 USDC private bridge delivery on Sepolia,
+
+11
+00:00:40,847 --> 00:00:43,875
+and the 0.01 MON stealth send.
+
+12
+00:00:44,358 --> 00:00:46,570
+This is the raw route behind it:
+
+13
+00:00:46,610 --> 00:00:50,382
+the announcer's logs, served from Envio HyperSync.
+
+14
+00:00:50,685 --> 00:00:53,118
+The Envio token stays on the server,
+
+15
+00:00:53,158 --> 00:00:56,015
+and matching happens only in the browser.
+
