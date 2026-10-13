@@ -3,7 +3,7 @@
 import { CopyButton, PrimaryButton, SecondaryButton, StatusPill, cn } from "@kakushi/ui";
 import { ArrowUpRight, Eye, Inbox, KeyRound, Lock, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import { formatUnits, isAddress, type Hex } from "viem";
+import { erc20Abi, formatUnits, isAddress, type Hex } from "viem";
 import { chainById } from "@kakushi/config";
 import { buildRegisterKeysCalldata, readStealthMetaAddress, scanAnnouncements, stealthBalance, type AnnouncementLog, type StealthMatch } from "@kakushi/sdk";
 import { ConnectButton } from "@/components/AppShell";
@@ -106,6 +106,22 @@ function Payment({ m, onDone }: { m: Found; onDone: (hash: Hex) => void }) {
   const native = m.kind !== "erc20";
   const bal = m.balance ?? 0n;
   const key = chainById(m.chainId).key;
+  // an ERC-20 payment (e.g. a private bridge delivery) shows in its own units, read from the token
+  const [unit, setUnit] = useState<{ decimals: number; symbol: string } | null>(null);
+  useEffect(() => {
+    if (native || !m.token || !k) return;
+    let live = true;
+    const c = k.client(key);
+    Promise.all([
+      c.readContract({ address: m.token as Hex, abi: erc20Abi, functionName: "decimals" }),
+      c.readContract({ address: m.token as Hex, abi: erc20Abi, functionName: "symbol" }),
+    ])
+      .then(([decimals, symbol]) => live && setUnit({ decimals: Number(decimals), symbol }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [native, m.token, k, key]);
 
   async function withdraw() {
     if (!m.stealthPrivateKey || !isAddress(dest) || busy) return;
@@ -132,7 +148,7 @@ function Payment({ m, onDone }: { m: Found; onDone: (hash: Hex) => void }) {
       <div className="flex items-center gap-3">
         <ChainCoin chainId={m.chainId} size={34} />
         <div className="min-w-0 flex-1">
-          <div className="ui-figure text-[20px] font-medium">{formatUnits(bal, chainById(m.chainId).nativeDecimals).slice(0, 10)} {native ? nativeSymbol(m.chainId) : "tokens"}</div>
+          <div className="ui-figure text-[20px] font-medium">{native ? `${formatUnits(bal, chainById(m.chainId).nativeDecimals).slice(0, 10)} ${nativeSymbol(m.chainId)}` : unit ? `${formatUnits(bal, unit.decimals)} ${unit.symbol}` : "…"}</div>
           <div className="text-[12px] text-ui-muted">{chainById(m.chainId).shortName} · {short(m.stealthAddress)}</div>
         </div>
         {bal > 10_000_000_000_000n && native ? (
