@@ -191,6 +191,115 @@
    "id": "r4",
    "part": "promo",
    "text": "Live on Monad testnet. Kakushi: the privacy provider for Monad."
+  },
+  {
+   "id": "w1",
+   "part": "walk",
+   "text": "This is Kakushi, the privacy provider for Monad. On Monad every payment is public: who paid, who got paid, and how much. Kakushi is for wallets and payment apps that need private payouts without building the cryptography."
+  },
+  {
+   "id": "w2",
+   "part": "walk",
+   "text": "The header reads Monad's block stream live: proposed to finalized in about six tenths of a second."
+  },
+  {
+   "id": "w3",
+   "part": "walk",
+   "text": "Send privately looks up the recipient's registered meta-address and pays a one-time stealth address. 0.01 MON, and the receipt is back in about a second.",
+   "say": "Send privately looks up the recipient's registered meta-address and pays a one-time stealth address. A hundredth of a MON, and the receipt is back in about a second."
+  },
+  {
+   "id": "w4",
+   "part": "walk",
+   "text": "Sign-in runs on Privy: email, Google or any wallet. Email needs a one-time code, so this recording connects a browser wallet."
+  },
+  {
+   "id": "w5",
+   "part": "walk",
+   "text": "Shield is a zero-knowledge pool. On Sepolia I deposit 0.001 ETH. The note is the only way to withdraw, so I copy it.",
+   "say": "Shield is a zero-knowledge pool. On Sepolia I deposit a thousandth of an ETH. The note is the only way to withdraw, so I copy it."
+  },
+  {
+   "id": "w6",
+   "part": "walk",
+   "text": "Withdraw proves the note in the browser, with Noir and UltraHonk, in about seven seconds, and the relayer pays the gas. A brand-new address receives the ETH, minus a ten percent fee."
+  },
+  {
+   "id": "w7",
+   "part": "walk",
+   "text": "Pools are permissionless: anyone can open one for any token. A withdrawal can also pay a stealth address, or call any contract, bound by the proof."
+  },
+  {
+   "id": "w8",
+   "part": "walk",
+   "text": "The bridge is run by Makers. Maker 1 quotes 0.5 USDC from Monad to Sepolia, and with Deliver privately, the payout goes to a one-time address derived from my meta-address.",
+   "say": "The bridge is run by Makers. Maker 1 quotes half a USDC from Monad to Sepolia, and with Deliver privately, the payout goes to a one-time address derived from my meta-address."
+  },
+  {
+   "id": "w9",
+   "part": "walk",
+   "text": "Three Monad receipts, each under about a second, then Maker 1 pays on Sepolia eleven seconds later. Settled."
+  },
+  {
+   "id": "w10",
+   "part": "walk",
+   "text": "If a Maker misses the deadline, anyone can claim. The watchtower proves the missing payout with a ZK proof and slashes the Maker's margin. That path runs end to end on a fork; no transfer has gone unpaid on testnet.",
+   "say": "If a Maker misses the deadline, anyone can claim. The watchtower proves the missing payout with a Z K proof and slashes the Maker's margin. That path runs end to end on a fork; no transfer has gone unpaid on testnet."
+  },
+  {
+   "id": "w11",
+   "part": "walk",
+   "text": "Makers are the operator side. The market shows each Maker's routes, margin and payout times, and in the Maker console an operator posts margin on Monad and registers routes."
+  },
+  {
+   "id": "w12",
+   "part": "walk",
+   "text": "The explorer lists every bridge transfer, with its source, payout and status."
+  },
+  {
+   "id": "w13",
+   "part": "walk",
+   "text": "Payout windows are attested by Kakushi's own runner, using Chainlink CRE workflow logic. It is not a DON yet."
+  },
+  {
+   "id": "w14",
+   "part": "walk",
+   "text": "Now FHE, which hides how much. One USDC becomes an encrypted balance. Revealing it takes one signature, and the value shows in this tab only.",
+   "say": "Now F H E, which hides how much. One USDC becomes an encrypted balance. Revealing it takes one signature, and the value shows in this tab only."
+  },
+  {
+   "id": "w15",
+   "part": "walk",
+   "text": "Pay privately uses both engines: 0.3, encrypted, to a one-time stealth address, with a little MON forwarded so the recipient can move it.",
+   "say": "Pay privately uses both engines: point three, encrypted, to a one-time stealth address, with a little MON forwarded so the recipient can move it."
+  },
+  {
+   "id": "w16",
+   "part": "walk",
+   "text": "Cash out asks the KMS for a signed decryption of just that amount. Today one hosted engine holds the FHE key, and the KMS signers run in one service.",
+   "say": "Cash out asks the K M S for a signed decryption of just that amount. Today one hosted engine holds the F H E key, and the K M S signers run in one service."
+  },
+  {
+   "id": "w17",
+   "part": "walk",
+   "text": "The recipient's inbox scans with a viewing key. Monad's RPC returns logs 100 blocks at a time, so a full-history scan is slow today; an indexed scan is next.",
+   "say": "The recipient's inbox scans with a viewing key. Monad's RPC returns logs a hundred blocks at a time, so a full-history scan is slow today; an indexed scan is next."
+  },
+  {
+   "id": "w18",
+   "part": "walk",
+   "text": "For developers, the SDK and the KakushiPay React component bring these payments into any Monad app."
+  },
+  {
+   "id": "w19",
+   "part": "walk",
+   "text": "Honest limits: gasless withdrawals are uneconomic on Monad at today's gas, the Base and OP spokes await funding, and slashing has only run on a fork."
+  },
+  {
+   "id": "w20",
+   "part": "walk",
+   "text": "Kakushi. ZK hides who, FHE hides how much. Try it at kakushi.vercel.app.",
+   "say": "Kakushi. Z K hides who, F H E hides how much. Try it at kakushi dot vercel dot app."
   }
  ]
 }

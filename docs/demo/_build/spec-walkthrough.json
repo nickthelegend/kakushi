@@ -1,0 +1,465 @@
+{
+ "name": "kakushi-walkthrough",
+ "clips": [
+  {
+   "src": "take1.mp4",
+   "in": 0.0,
+   "out": 15.2,
+   "tag": "live-monad",
+   "step": "Kakushi \u00b7 the problem"
+  },
+  {
+   "src": "take1.mp4",
+   "in": 15.2,
+   "out": 22.0,
+   "tag": "live-monad",
+   "step": "Monad finality, live",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take1.mp4",
+   "in": 22.0,
+   "out": 28.7,
+   "speed": 2,
+   "tag": "live-monad",
+   "step": "Send \u00b7 stealth",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take1.mp4",
+   "in": 28.7,
+   "out": 35.5,
+   "tag": "live-monad",
+   "step": "Send \u00b7 stealth",
+   "badges": [
+    {
+     "text": "Receipt in 1.10 s",
+     "sub": "tx 0x8bf5\u2026f051",
+     "from": 1.6
+    }
+   ],
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 1.5,
+   "out": 10.2,
+   "tag": "live-monad",
+   "step": "Sign-in \u00b7 Privy",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 10.2,
+   "out": 14.6,
+   "speed": 2,
+   "tag": "live-monad",
+   "step": "Sign-in \u00b7 browser wallet",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 14.6,
+   "out": 27.4,
+   "speed": 2,
+   "tag": "live-sepolia",
+   "step": "Shield \u00b7 deposit",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 27.4,
+   "out": 47.0,
+   "speed": 4,
+   "tag": "live-sepolia",
+   "step": "Shield \u00b7 deposit",
+   "badges": [
+    {
+     "text": "Sepolia receipt 16.9 s",
+     "sub": "shown at \u00d74",
+     "from": 3.0
+    }
+   ],
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 47.0,
+   "out": 58.7,
+   "speed": 2,
+   "tag": "live-sepolia",
+   "step": "Shield \u00b7 withdraw",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 58.7,
+   "out": 84.0,
+   "speed": 4,
+   "tag": "live-sepolia",
+   "step": "Shield \u00b7 proving in the browser",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 84.0,
+   "out": 89.0,
+   "tag": "live-sepolia",
+   "step": "Shield \u00b7 gasless via relayer",
+   "badges": [
+    {
+     "text": "Proof made in 7.3 s",
+     "sub": "relayer fee 0.0001 ETH (10%)"
+    }
+   ],
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take4.mp4",
+   "in": 3.0,
+   "out": 21.0,
+   "speed": 1.5,
+   "tag": "live-monad",
+   "step": "Shield \u00b7 any token, private calls",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 120.4,
+   "out": 139.4,
+   "speed": 2,
+   "tag": "live-both",
+   "step": "Bridge \u00b7 deliver privately",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 139.4,
+   "out": 145.1,
+   "tag": "live-both",
+   "step": "Bridge \u00b7 Monad source",
+   "badges": [
+    {
+     "text": "3 Monad receipts \u2248 0.7\u20131.0 s",
+     "sub": "approve, pay, announce",
+     "from": 2.0
+    }
+   ],
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 145.1,
+   "out": 146.6,
+   "tag": "live-both",
+   "step": "Bridge \u00b7 Monad source",
+   "tagY": 700,
+   "cap": "bottom"
+  },
+  {
+   "src": "take3.mp4",
+   "in": 146.6,
+   "out": 160.4,
+   "speed": 4,
+   "tag": "live-both",
+   "step": "Bridge \u00b7 waiting for Maker 1",
+   "tagY": 700,
+   "cap": "bottom"
+  },
+  {
+   "src": "take3.mp4",
+   "in": 160.4,
+   "out": 166.4,
+   "tag": "live-both",
+   "step": "Bridge \u00b7 paid on Sepolia",
+   "tagY": 700,
+   "cap": "bottom",
+   "badges": [
+    {
+     "text": "0.44955 USDC in 11 s",
+     "sub": "to a one-time stealth address"
+    }
+   ]
+  },
+  {
+   "src": "take4.mp4",
+   "in": 87.0,
+   "out": 101.5,
+   "tag": "live-monad",
+   "tagX": 1500,
+   "tagY": 950,
+   "cap": "bottom"
+  },
+  {
+   "src": "take4.mp4",
+   "in": 102.5,
+   "out": 109.0,
+   "tag": "live-monad",
+   "tagX": 1000,
+   "tagY": 810,
+   "cap": "right",
+   "capY": 960
+  },
+  {
+   "src": "take4.mp4",
+   "in": 111.4,
+   "out": 128.0,
+   "speed": 2,
+   "tag": "live-monad",
+   "tagX": 1500,
+   "tagY": 950,
+   "cap": "bottom"
+  },
+  {
+   "src": "take4.mp4",
+   "in": 128.5,
+   "out": 136.5,
+   "tag": "live-both",
+   "step": "Explorer",
+   "cap": "right",
+   "capY": 300
+  },
+  {
+   "src": "take3.mp4",
+   "in": 445.2,
+   "out": 449.6,
+   "tag": "live-monad",
+   "tagX": 1500,
+   "tagY": 118,
+   "cap": "bottom"
+  },
+  {
+   "src": "hold_attest.png",
+   "in": 0,
+   "out": 4.0,
+   "tag": "live-monad",
+   "tagX": 1500,
+   "tagY": 118,
+   "cap": "bottom"
+  },
+  {
+   "src": "take3.mp4",
+   "in": 390.0,
+   "out": 399.0,
+   "speed": 2,
+   "tag": "live-monad",
+   "step": "FHE \u00b7 make private",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 399.0,
+   "out": 408.6,
+   "tag": "live-monad",
+   "step": "FHE \u00b7 make private, reveal",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 408.6,
+   "out": 417.8,
+   "speed": 2,
+   "tag": "live-monad",
+   "step": "FHE \u00b7 encrypted stealth pay",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 417.8,
+   "out": 426.4,
+   "tag": "live-monad",
+   "step": "FHE \u00b7 encrypted stealth pay",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 426.4,
+   "out": 434.4,
+   "speed": 2,
+   "tag": "live-monad",
+   "step": "FHE \u00b7 KMS cash-out",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 434.4,
+   "out": 442.4,
+   "tag": "live-monad",
+   "step": "FHE \u00b7 KMS cash-out",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take3.mp4",
+   "in": 456.8,
+   "out": 471.6,
+   "tag": "live-monad",
+   "step": "Receive \u00b7 inbox scan",
+   "cap": "right",
+   "capY": 640
+  },
+  {
+   "src": "take5.mp4",
+   "in": 0.3,
+   "out": 9.0,
+   "tag": "live-monad",
+   "step": "Plugin",
+   "compact": true,
+   "tagX": 1664,
+   "tagY": 60,
+   "cap": "bottom"
+  },
+  {
+   "src": "take4.mp4",
+   "in": 153.5,
+   "out": 173.0,
+   "tag": "live-monad",
+   "step": "Plugin \u00b7 SDK",
+   "compact": true,
+   "tagX": 1664,
+   "tagY": 60,
+   "cap": "bottom"
+  }
+ ],
+ "vo": [
+  {
+   "id": "w1",
+   "clip": 0,
+   "offset": 0.3
+  },
+  {
+   "id": "w2",
+   "clip": 1,
+   "offset": 0.3
+  },
+  {
+   "id": "w3",
+   "clip": 2,
+   "offset": 0.3
+  },
+  {
+   "id": "w4",
+   "clip": 4,
+   "offset": 1.0
+  },
+  {
+   "id": "w5",
+   "clip": 6,
+   "offset": 0.3
+  },
+  {
+   "id": "w6",
+   "clip": 8,
+   "offset": 0.3
+  },
+  {
+   "id": "w7",
+   "clip": 11,
+   "offset": 0.3
+  },
+  {
+   "id": "w8",
+   "clip": 12,
+   "offset": 0.3
+  },
+  {
+   "id": "w9",
+   "clip": 14,
+   "offset": 0.3
+  },
+  {
+   "id": "w10",
+   "clip": 17,
+   "offset": 0.3
+  },
+  {
+   "id": "w11",
+   "clip": 18,
+   "offset": 1.6
+  },
+  {
+   "id": "w12",
+   "clip": 20,
+   "offset": 0.3
+  },
+  {
+   "id": "w13",
+   "clip": 21,
+   "offset": 0.3
+  },
+  {
+   "id": "w14",
+   "clip": 23,
+   "offset": 0.3
+  },
+  {
+   "id": "w15",
+   "clip": 25,
+   "offset": 0.3
+  },
+  {
+   "id": "w16",
+   "clip": 27,
+   "offset": 0.3
+  },
+  {
+   "id": "w17",
+   "clip": 29,
+   "offset": 0.3
+  },
+  {
+   "id": "w18",
+   "clip": 30,
+   "offset": 0.3
+  },
+  {
+   "id": "w19",
+   "clip": 31,
+   "offset": 0.3
+  },
+  {
+   "id": "w20",
+   "clip": 31,
+   "offset": 11.9
+  }
+ ],
+ "music": 0.06,
+ "crf": 23,
+ "captionReplace": {
+  "a hundredth of a MON": "0.01 MON",
+  "a thousandth of an ETH": "0.001 ETH",
+  "half a USDC": "0.5 USDC",
+  "point three": "0.3",
+  "Z K": "ZK",
+  "F H E": "FHE",
+  "K M S": "KMS",
+  "a hundred blocks": "100 blocks",
+  "kakushi dot vercel dot app": "kakushi.vercel.app"
+ },
+ "texts": [
+  {
+   "text": "kakushi.vercel.app",
+   "from": 230.675,
+   "to": 237.675,
+   "y": 880
+  }
+ ]
+}

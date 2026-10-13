@@ -1,0 +1,260 @@
+1
+00:00:00,358 --> 00:00:04,060
+This is Kakushi, the privacy provider for Monad.
+
+2
+00:00:04,201 --> 00:00:06,437
+On Monad every payment is public:
+
+3
+00:00:06,477 --> 00:00:09,679
+who paid, who got paid, and how much.
+
+4
+00:00:09,762 --> 00:00:12,532
+Kakushi is for wallets and payment apps that need private
+
+5
+00:00:12,572 --> 00:00:14,903
+payouts without building the cryptography.
+
+6
+00:00:15,570 --> 00:00:18,343
+The header reads Monad's block stream live:
+
+7
+00:00:18,426 --> 00:00:21,814
+proposed to finalized in about six tenths of a second.
+
+8
+00:00:22,335 --> 00:00:25,209
+Send privately looks up the recipient's registered
+
+9
+00:00:25,249 --> 00:00:28,680
+meta-address and pays a one-time stealth address.
+
+10
+00:00:28,720 --> 00:00:32,805
+0.01 MON, and the receipt is back in about a second.
+
+11
+00:00:33,168 --> 00:00:34,916
+Sign-in runs on Privy:
+
+12
+00:00:34,956 --> 00:00:37,705
+email, Google or any wallet.
+
+13
+00:00:37,789 --> 00:00:41,278
+Email needs a one-time code, so this recording connects a
+
+14
+00:00:41,318 --> 00:00:42,500
+browser wallet.
+
+15
+00:00:43,379 --> 00:00:45,325
+Shield is a zero-knowledge pool.
+
+16
+00:00:45,365 --> 00:00:48,750
+On Sepolia I deposit 0.001 ETH.
+
+17
+00:00:48,790 --> 00:00:52,085
+The note is the only way to withdraw, so I copy it.
+
+18
+00:00:54,703 --> 00:00:57,495
+Withdraw proves the note in the browser, with Noir and
+
+19
+00:00:57,535 --> 00:01:01,373
+UltraHonk, in about seven seconds, and the relayer pays the
+
+20
+00:01:01,413 --> 00:01:07,170
+gas. A brand-new address receives the ETH, minus a ten percent fee.
+
+21
+00:01:11,879 --> 00:01:13,430
+Pools are permissionless:
+
+22
+00:01:13,470 --> 00:01:16,007
+anyone can open one for any token.
+
+23
+00:01:16,047 --> 00:01:19,502
+A withdrawal can also pay a stealth address, or call any
+
+24
+00:01:19,542 --> 00:01:22,036
+contract, bound by the proof.
+
+25
+00:01:23,891 --> 00:01:25,755
+The bridge is run by Makers.
+
+26
+00:01:25,795 --> 00:01:30,028
+Maker 1 quotes 0.5 USDC from Monad to Sepolia, and with
+
+27
+00:01:30,068 --> 00:01:33,394
+Deliver privately, the payout goes to a one-time address
+
+28
+00:01:33,434 --> 00:01:35,360
+derived from my meta-address.
+
+29
+00:01:39,091 --> 00:01:42,650
+Three Monad receipts, each under about a second, then Maker
+
+30
+00:01:42,690 --> 00:01:46,450
+1 pays on Sepolia eleven seconds later. Settled.
+
+31
+00:01:50,035 --> 00:01:52,994
+If a Maker misses the deadline, anyone can claim.
+
+32
+00:01:53,135 --> 00:01:56,821
+The watchtower proves the missing payout with a ZK proof and
+
+33
+00:01:56,861 --> 00:01:58,799
+slashes the Maker's margin.
+
+34
+00:01:59,311 --> 00:02:02,305
+That path runs end to end on a fork;
+
+35
+00:02:02,446 --> 00:02:05,625
+no transfer has gone unpaid on testnet.
+
+36
+00:02:05,835 --> 00:02:07,745
+Makers are the operator side.
+
+37
+00:02:07,785 --> 00:02:11,008
+The market shows each Maker's routes, margin and payout
+
+38
+00:02:11,048 --> 00:02:14,885
+times, and in the Maker console an operator posts margin on
+
+39
+00:02:14,925 --> 00:02:17,141
+Monad and registers routes.
+
+40
+00:02:19,370 --> 00:02:22,186
+The explorer lists every bridge transfer, with its source,
+
+41
+00:02:22,226 --> 00:02:23,896
+payout and status.
+
+42
+00:02:27,370 --> 00:02:30,557
+Payout windows are attested by Kakushi's own runner, using
+
+43
+00:02:30,597 --> 00:02:32,844
+Chainlink CRE workflow logic.
+
+44
+00:02:32,884 --> 00:02:34,659
+It is not a DON yet.
+
+45
+00:02:35,758 --> 00:02:38,632
+Now FHE, which hides how much.
+
+46
+00:02:38,672 --> 00:02:41,755
+One USDC becomes an encrypted balance.
+
+47
+00:02:41,795 --> 00:02:44,936
+Revealing it takes one signature, and the value shows in
+
+48
+00:02:44,976 --> 00:02:46,437
+this tab only.
+
+49
+00:02:49,870 --> 00:02:52,152
+Pay privately uses both engines:
+
+50
+00:02:52,192 --> 00:02:55,867
+0.3, encrypted, to a one-time stealth address, with a little
+
+51
+00:02:55,907 --> 00:02:58,970
+MON forwarded so the recipient can move it.
+
+52
+00:03:03,081 --> 00:03:06,420
+Cash out asks the KMS for a signed decryption of just that
+
+53
+00:03:06,460 --> 00:03:11,064
+amount. Today one hosted engine holds the FHE key, and the
+
+54
+00:03:11,104 --> 00:03:13,970
+KMS signers run in one service.
+
+55
+00:03:15,058 --> 00:03:17,843
+The recipient's inbox scans with a viewing key.
+
+56
+00:03:17,926 --> 00:03:21,845
+Monad's RPC returns logs 100 blocks at a time, so a
+
+57
+00:03:21,885 --> 00:03:24,240
+full-history scan is slow today;
+
+58
+00:03:24,381 --> 00:03:26,887
+an indexed scan is next.
+
+59
+00:03:29,858 --> 00:03:34,079
+For developers, the SDK and the KakushiPay React component
+
+60
+00:03:34,119 --> 00:03:36,834
+bring these payments into any Monad app.
+
+61
+00:03:38,535 --> 00:03:42,651
+Honest limits: gasless withdrawals are uneconomic on Monad
+
+62
+00:03:42,691 --> 00:03:47,295
+at today's gas, the Base and OP spokes await funding, and
+
+63
+00:03:47,335 --> 00:03:49,922
+slashing has only run on a fork.
+
+64
+00:03:50,170 --> 00:03:54,460
+Kakushi. ZK hides who, FHE hides how much.
+
+65
+00:03:54,500 --> 00:03:57,636
+Try it at kakushi.vercel.app.
+
