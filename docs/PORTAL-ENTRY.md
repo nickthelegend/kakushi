@@ -148,7 +148,7 @@ Live: `cre workflow simulate` (CLI v1.36.0) run against live testnet state compu
 
 **Video (required, ≤ 2:00): a CRE CLI simulation or live deployment**
 
-Upload `docs/demo/bounty-cre.mp4`, then paste the link: **[user]**
+Upload `docs/demo/bounty-cre.mp4` (1:24: a real `cre workflow simulate` run, plus the on-chain window tx), then paste the link: **[user]**
 
 **What we did**
 - Built one CRE workflow per chain with @chainlink/cre-sdk: cron trigger, EVMClient reads at finalized, filterLogs, writeReport.
@@ -159,6 +159,7 @@ Upload `docs/demo/bounty-cre.mp4`, then paste the link: **[user]**
 **Evidence**
 - CLI simulation log: https://github.com/nickthelegend/kakushi/blob/main/docs/evidence/cre-simulate-attest-sepolia-testnet.txt
 - On-chain window (10,000 Monad blocks in one report): https://testnet.monadvision.com/tx/0x29f20989d587fece820750cb8e71da9c4026107f3b238244a2367dce35f300b8
+- Window #44, from the runner key, covers the demo's private bridge payout: https://testnet.monadvision.com/tx/0xe00a40a0559c68f251fdf70ccd04bd0c07c10c25a3ca77b9c890d9f62e7562c7
 - AttestationOracle: https://testnet.monadvision.com/address/0xc50A536E04DA4E2385e66fCf211820438F4905Da
 - Article: https://github.com/nickthelegend/kakushi/blob/main/docs/CHAINLINK-CRE.md
 
@@ -182,7 +183,7 @@ Live: Privy signed USDC.approve(PayoutRouter) and it landed on Monad testnet. It
 
 **Video (optional, ≤ 2:00)**
 
-Upload `docs/demo/bounty-privy.mp4` (if delivered), then paste the link: **[user]**
+Upload `docs/demo/bounty-privy.mp4` (1:02), then paste the link: **[user]**
 
 **What we did**
 - Privy login (email, Google, any wallet) on the app's Connect button.
@@ -191,7 +192,7 @@ Upload `docs/demo/bounty-privy.mp4` (if delivered), then paste the link: **[user
 - Fixed a zero-fee signing bug found in the live proof (a legacy gasPrice now fills both EIP-1559 caps).
 
 **Evidence**
-- Allowed and landed: https://testnet.monadvision.com/tx/0x99a69528658c259ee7d47ffc41101cd135bc6100a2ba3f5719029283cea627b4
+- Allowed and landed: https://testnet.monadvision.com/tx/0x99a69528658c259ee7d47ffc41101cd135bc6100a2ba3f5719029283cea627b4 and, in the bounty video, https://testnet.monadvision.com/tx/0xd870e9ea01405d6d09e8a64db287a050639d6e42331ce0cb9b93e6bb48df1291
 - Refused (policy violation), script output: https://github.com/nickthelegend/kakushi/blob/main/docs/evidence/testnet-privy.json
 - Article: https://github.com/nickthelegend/kakushi/blob/main/docs/PRIVY.md
 
@@ -209,7 +210,7 @@ Result: a full inbox scan over 350,352 Monad blocks in 1.3 s. A HyperIndex v3 pa
 
 **Video (optional, ≤ 2:00): data flowing end to end**
 
-Upload `docs/demo/bounty-envio.mp4` (if delivered), then paste the link: **[user]**
+Upload `docs/demo/bounty-envio.mp4` (0:57), then paste the link: **[user]**
 
 **What we did**
 - Moved the Receive inbox's announcement history to Envio HyperSync (a server route, token kept server-side).
