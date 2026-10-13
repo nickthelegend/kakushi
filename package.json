@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Kakushi: a trust-minimized instant bridge. Pay a Maker, get paid in seconds; a ZK proof slashes the Maker's margin if they don't.",
+  "description": "Kakushi, the privacy provider for Monad: ZK hides who (stealth addresses, shielded pool, private calls), FHE hides how much (encrypted balances and payments). SDK, widget and live app.",
   "type": "module",
   "engines": {
     "node": ">=22.18.0"
