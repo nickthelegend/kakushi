@@ -10,7 +10,7 @@
     {
       "name": "Encrypted pay to a stealth address",
       "pass": true,
-      "detail": "one tx (704272 gas): from alice to ConfidentialStealthPay, value 0.07344 MON (gas for the recipient), amount = ciphertext 0xbd184a2431d51576…; metadata selector 0xfe0000fe, token cUSDC"
+      "detail": "one tx (704272 gas): from alice to ConfidentialStealthPay, value 0.07344 MON (gas for the recipient), amount = ciphertext 0xbd184a2431d51576\u2026; metadata selector 0xfe0000fe, token cUSDC"
     },
     {
       "name": "Scanner finds it",
@@ -42,5 +42,16 @@
       "pass": true,
       "detail": "link #1 (key only in the URL fragment) claimed by bob: +0.1 USDC encrypted, link Claimed"
     }
-  ]
+  ],
+  "txs": {
+    "wrap (alice approve+wrap 1 USDC -> cUSDC)": "0x412c4d7ba938a56b0f9a67e22d71cded900101453d326b199b4441b9f3077059",
+    "encrypted pay to a stealth address (ConfidentialStealthPay)": "0x02617ac2e624e962e6e1e8443108333a6615bd81eef79f4b6be72b0b352eaac6",
+    "move from the stealth address (sent by the stealth address 0x71855d\u2026)": "0xceda1dbf322545a8b8dbafc8265d28ae8c60a72f9ba11ced6f7d274e0197e354",
+    "encrypted pay to a known address": "0xdf8563a79a410f493cc96b02dade6d0ebc66504436a3b135f91c58c1fa4eabee",
+    "cash out request (bob 0x74d7a2\u2026)": "0xd2f3f91c9cb4e1b1d17cd2e607f6a2e3eb454277abd115803e28751d6ddb3caf",
+    "KMS 2-of-3 public decryption delivered (FHE relayer 0xD211\u2026)": "0xa57102dab4ed1a2b2f3aad2cb4225176506dd9c217e009cadf4f4902894ab854",
+    "pay link created": "0x3cb7347d1d63ec24bdeeb54e3b4055161c37223d42c39f3e76891901846a5e15",
+    "pay link claimed (bob)": "0xb02d6a21e6ec8451df027aac1bc37733a244a30605637fe16b4ab75545f0f9b1"
+  },
+  "txsNote": "recovered from cUSDC / ConfidentialStealthPay / oracle logs on Monad testnet (blocks 70691273-70691334); the run script did not record hashes"
 }

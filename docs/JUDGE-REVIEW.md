@@ -20,7 +20,7 @@ Wallets and payment apps on Monad need private payouts (payroll, merchants, OTC)
 
 ## Top 5 weaknesses
 
-1. **Gasless on Monad is uneconomic.** ~0.9 MON of gas per withdraw against a 0.1 MON note. The app says so and falls back to self-withdraw. A fix needs a cheaper verifier (batching, recursion) or larger pools.
+1. **Gasless on Monad is uneconomic.** 0.698 MON of gas per withdraw (relayer quote ~0.9 MON) against a 0.1 MON note. The app says so and falls back to self-withdraw. A fix needs a cheaper verifier (batching, recursion) or larger pools.
 2. **The attester is not a Chainlink DON.** It runs the CRE workflow logic through the MockKeystoneForwarder. This is clearly labelled, but a CRE judge will discount it.
 3. **Thin cross-chain coverage live.** Only Monad ↔ Sepolia is live, Maker 1 caps transfers at 1 USDC, and Base, Arbitrum and OP are "awaiting funding".
 4. **Trust in the FHE KMS.** The 2-of-3 signers run in one hosted service today, so the threshold is real in code but not yet in operators.

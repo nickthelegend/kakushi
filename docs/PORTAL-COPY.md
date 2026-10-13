@@ -28,14 +28,14 @@ Kakushi adds privacy to any Monad app: stealth addresses, a ZK shielded pool wit
 
 Developers get `@kakushi/sdk`, `@kakushi/fhe-sdk` and the `<KakushiPay>` widget.
 
-**Why Monad.** Private payments need fast, final settlement. On Monad a stealth payment's receipt arrives in 431 ms (`eth_sendRawTransactionSync`) and is Finalized in about 1 s (`monadNewHeads`). FHE decryptions are gated on `finalized`, so a reveal can never be reorged away. The app shows that finality live in its header. The cost: the UltraHonk verifier takes ~6.2M gas per withdraw on Monad (about 0.7 MON today), so gasless withdrawals pay off on Sepolia now and on Monad only for larger pools.
+**Why Monad.** Private payments need fast, final settlement. On Monad a stealth payment's receipt arrives in 431 ms (`eth_sendRawTransactionSync`) and is Finalized in about 1 s (`monadNewHeads`). FHE decryptions are gated on `finalized`, so a reveal can never be reorged away. The app shows that finality live in its header. The cost: the UltraHonk verifier takes ~6.2M gas per withdraw on Monad (0.698 MON for our withdraw; the relayer quotes ~0.9 MON, budgeting 8M gas plus 10%), so gasless withdrawals pay off on Sepolia now and on Monad only for larger pools.
 
 **What's live** (Monad testnet + Sepolia, all hosted, all exercised with real transactions):
 - stealth send + scan;
 - shield + ZK withdraw;
 - gasless withdraw via the relayer;
 - bridge in both directions (11–27 s);
-- the full confidential flow, 8/8: wrap, encrypted stealth pay, reveal, move, encrypted pay, KMS cash-out, pay link;
+- the full confidential flow, 8/8: wrap, encrypted stealth pay, reveal, move, encrypted pay, KMS cash-out, pay link (every tx hash in [testnet-fhe.json](https://github.com/nickthelegend/kakushi/blob/main/docs/evidence/testnet-fhe.json));
 - the Privy policy-fenced Maker wallet;
 - Chainlink CRE attestation windows, plus a `cre workflow simulate` run against live testnet state ([log](https://github.com/nickthelegend/kakushi/blob/main/docs/evidence/cre-simulate-attest-sepolia-testnet.txt)).
 
