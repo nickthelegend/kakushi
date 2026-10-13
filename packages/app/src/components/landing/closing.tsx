@@ -59,7 +59,7 @@ export function Footer() {
       </Shell>
       <Shell className="mt-10 flex flex-wrap items-center justify-between gap-3 text-[13px] text-ui-muted">
         <p>© 2026 Kakushi. Testnet: no real money moves.</p>
-        <p>Monad · Chainlink CRE · Noir · Privy · Envio · Cleanverse</p>
+        <p>Monad · Noir · tfhe-rs · Chainlink CRE · Privy · Circle USDC</p>
       </Shell>
     </footer>
   );

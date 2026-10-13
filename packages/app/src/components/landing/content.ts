@@ -25,8 +25,8 @@ export const hero = {
 };
 
 export const sponsors = {
-  pill: "Built on Monad with Noir, Chainlink CRE, Privy, Envio and Cleanverse",
-  items: [{ name: "Monad" }, { name: "Noir" }, { name: "Barretenberg" }, { name: "Chainlink CRE" }, { name: "Privy" }, { name: "Envio" }, { name: "Cleanverse" }, { name: "Circle USDC" }],
+  pill: "Built on Monad with Noir, Zama tfhe-rs, Chainlink CRE, Privy and Circle USDC",
+  items: [{ name: "Monad" }, { name: "Noir" }, { name: "Barretenberg" }, { name: "tfhe-rs" }, { name: "Chainlink CRE" }, { name: "Privy" }, { name: "Circle USDC" }, { name: "MonadVision" }],
 } as const;
 
 export const how = {
@@ -154,7 +154,7 @@ export const faq = {
     { q: "Who can see my keys?", a: "Nobody. Your stealth keys are derived from a signature in your own wallet, and proofs are generated in your browser." },
     { q: "Why a relayer?", a: "A fresh address has no gas. The relayer submits the withdrawal and takes a fee from it, so the new address never touches your old one." },
     { q: "Which chains?", a: "Monad testnet and Sepolia today. Base, Arbitrum and OP Sepolia are awaiting testnet funding. The private bridge moves funds between live chains to stealth addresses." },
-    { q: "What about compliance?", a: "Pools are fixed-size and every proof is public on chain. A compliant lane with Cleanverse checks is available for apps that need it." },
+    { q: "What about compliance?", a: "Pools are fixed-size and every proof is public on chain. A compliance gate for Cleanverse checks is built into the bridge and switches on once Cleanverse onboarding is done." },
   ],
 };
 
