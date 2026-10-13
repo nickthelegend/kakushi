@@ -50,8 +50,9 @@ function activeKey(pathname: string): string {
   return hit?.key ?? "send";
 }
 
-/** Where Kakushi is running, in the network pill's shape. */
-export function NetworkPill({ className }: { className?: string }) {
+/** Where Kakushi is running, in the network pill's shape. `compact`: just the live dot and Monad
+ *  finality ("final 0.6 s", the number alone between 1024 and 1280 px where the bar is tight). */
+export function NetworkPill({ className, compact = false }: { className?: string; compact?: boolean }) {
   const { cfg, error } = useRuntime();
   const label = error ? "Testnet deployment pending" : !cfg ? "Monad" : cfg.network === "local" ? "Local forks · Monad hub" : "Monad testnet hub";
   const live = Boolean(cfg && !error);
@@ -61,12 +62,31 @@ export function NetworkPill({ className }: { className?: string }) {
   const title = pulse
     ? `Monad block ${pulse.finalized.toLocaleString()} finalized. Proposed to Finalized ${secs(pulse.finalMs) ?? "measuring"}, to Verified ${secs(pulse.verifiedMs) ?? "measuring"} (live, monadNewHeads)`
     : undefined;
+  const dot = (
+    <span aria-hidden className="relative grid size-2.5 shrink-0 place-items-center">
+      {live ? <span className="absolute size-2.5 animate-ping rounded-full bg-ui-lime-button/60 motion-reduce:animate-none" /> : null}
+      <span className={`size-2 rounded-full ${live ? "bg-ui-lime-button" : "bg-ui-muted"}`} />
+    </span>
+  );
+  if (compact) {
+    return (
+      <span title={title ?? label} className={cn("h-11 shrink-0 items-center gap-2 rounded-full bg-ui-surface-1 px-3.5 text-[13px] font-medium whitespace-nowrap tabular-nums", className)}>
+        {dot}
+        {pulse?.finalMs != null ? (
+          <span>
+            <span className="sr-only">Monad </span>
+            <span className="text-ui-muted lg:max-xl:sr-only">final </span>
+            {secs(pulse.finalMs)}
+          </span>
+        ) : (
+          <span>Monad</span>
+        )}
+      </span>
+    );
+  }
   return (
     <span title={title} className={cn("inline-flex h-11 items-center gap-2.5 rounded-full bg-ui-surface-1 pr-5 pl-4 text-[15px] font-medium whitespace-nowrap", className)}>
-      <span aria-hidden className="relative grid size-2.5 place-items-center">
-        {live ? <span className="absolute size-2.5 animate-ping rounded-full bg-ui-lime-button/60 motion-reduce:animate-none" /> : null}
-        <span className={`size-2 rounded-full ${live ? "bg-ui-lime-button" : "bg-ui-muted"}`} />
-      </span>
+      {dot}
       {label}
       {pulse?.finalMs != null ? <span className="hidden text-[13px] font-normal text-ui-muted tabular-nums xl:inline">final in {secs(pulse.finalMs)}</span> : null}
     </span>
@@ -139,7 +159,7 @@ export function ConnectButton({ block = false, large = false }: { block?: boolea
       }
     >
       {w.privy.configured ? (
-        <Menu.Item icon={<Globe />} description="Email, Google or any wallet. Disputes on Monad need no gas." onSelect={() => w.privy.login?.()}>
+        <Menu.Item icon={<Globe />} description="Email, Google or any wallet" onSelect={() => w.privy.login?.()}>
           Sign in with Privy
         </Menu.Item>
       ) : (
@@ -182,11 +202,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         linkAs={ShellLink}
         actions={
           <>
+            <NetworkPill compact className="inline-flex 2xl:hidden" />
             <NetworkPill className="hidden 2xl:inline-flex" />
             <ConnectButton />
           </>
         }
-        compactActions={w.address ? <IconSquareButton label="Bridge" icon={<ArrowLeftRight />} tone="solid" active onClick={() => (location.href = "/bridge")} /> : <ConnectButton />}
+        compactActions={
+          <>
+            <NetworkPill compact className="hidden md:inline-flex" />
+            {w.address ? <IconSquareButton label="Bridge" icon={<ArrowLeftRight />} tone="solid" active onClick={() => (location.href = "/bridge")} /> : <ConnectButton />}
+          </>
+        }
         sheetTitle="Kakushi"
         sheetFooter={
           <>
