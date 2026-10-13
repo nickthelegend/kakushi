@@ -24,6 +24,7 @@ const STATUS: Record<string, { tone: Tone; label: string }> = {
   "maker-proven": { tone: "ok", label: "Maker proved payout" },
   expired: { tone: "warn", label: "Dispute expired" },
 };
+const UNPAID: { tone: Tone; label: string } = { tone: "bad", label: "Not paid in time" };
 const ZERO = "0x0000000000000000000000000000000000000000";
 const isHash = (q: string) => /^0x[0-9a-fA-F]{64}$/.test(q);
 const isAddr = (q: string) => /^0x[0-9a-fA-F]{40}$/.test(q);
@@ -48,6 +49,9 @@ function ExplorerView() {
   const sender = tab === "mine" && w.address ? w.address.toLowerCase() : isAddr(query) ? query.toLowerCase() : null;
   const transfers = useIndexer<{ total: number; items: Row[] }>(`transfers?limit=100${sender ? `&sender=${sender}` : ""}`, 5000);
   const overview = useIndexer<Overview>("stats/overview", 15000);
+  // "In flight" only while the fill window is open; after it, an unpaid transfer is a missed one
+  const fillWindow = Number((cfg?.deployments as { hub?: { fillWindow?: number } } | null)?.hub?.fillWindow ?? 0);
+  const pastWindow = (r: Row) => fillWindow > 0 && r.source != null && Date.now() / 1000 > Number(r.source.timestamp) + fillWindow + 60;
   const makerName = (a: string) => cfg?.makers.find((m) => m.address.toLowerCase() === a.toLowerCase())?.name ?? short(a);
   const rows = useMemo(() => {
     const items = (transfers.data?.items ?? []).filter((r) => r.source);
@@ -133,7 +137,7 @@ function ExplorerView() {
               { key: "from", header: "From", hideBelow: "md", render: (r) => <TableName title={<span className="font-mono text-[13px]">{short(r.source!.args.sender!)}</span>} /> },
               { key: "maker", header: "Maker", hideBelow: "lg", render: (r) => makerName(r.source!.args.maker!) },
               { key: "time", header: "Filled in", align: "right", hideBelow: "md", render: (r) => <span className="ui-figure text-ui-muted">{r.latencyMs != null ? `${(r.latencyMs / 1000).toFixed(1)} s` : "—"}</span> },
-              { key: "status", header: "Status", render: (r) => { const st = STATUS[r.status] ?? { tone: "neutral" as const, label: r.status }; return <Pill tone={st.tone}>{st.label}</Pill>; } },
+              { key: "status", header: "Status", render: (r) => { const st = r.status === "pending" && pastWindow(r) ? UNPAID : STATUS[r.status] ?? { tone: "neutral" as const, label: r.status }; return <Pill tone={st.tone}>{st.label}</Pill>; } },
               { key: "when", header: "", align: "right", hideBelow: "sm", render: (r) => <span className="inline-flex items-center gap-1 text-ui-muted">{ago(r.source!.timestamp)} <ArrowRight aria-hidden size={13} /></span> },
             ]}
           />
