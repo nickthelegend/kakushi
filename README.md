@@ -77,7 +77,7 @@ CI (`.github/workflows/ci.yml`) runs the TypeScript, Solidity, Noir, CRE and `fh
 
 - **The attester is not a Chainlink DON.** It runs the CRE workflow's logic through Chainlink's `MockKeystoneForwarder`, which checks no signatures, so attestations are trusted from Kakushi's runner.
 - **FHE key custody.** One hosted engine holds the FHE key, and the 2-of-3 KMS signers run in one service.
-- **Slashing on testnet.** It has run end to end only on a local fork (no testnet Maker has failed to pay).
+- **Slashing on testnet.** It has run end to end only on a local fork (no bridge transfer has gone unpaid on testnet).
 - **Stealth delivery over the bridge.** It is built but not yet run live.
 - **Gasless on Monad is uneconomic at today's testnet gas.** An UltraHonk withdraw is ~6.2M gas: the withdraw itself cost 0.698 MON on chain (6.22M gas, billed on the limit); the relayer quotes ~0.9 MON because it budgets 8M gas plus 10%. That is more than the 0.1 MON note, so the app offers self-withdraw instead. On Sepolia, gasless costs 10% of the note.
 - **Envio is offline-tested only.** The HyperIndex package is built and tested but not on Envio Cloud; the live app uses Kakushi's own RPC indexer.
