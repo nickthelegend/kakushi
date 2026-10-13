@@ -5,6 +5,7 @@ import { ArrowLeftRight, BarChart3, BookOpen, CodeXml, Compass, Gavel, GitBranch
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { forwardRef, useState, type ComponentProps, type ReactNode } from "react";
+import { useMonadPulse } from "@/lib/monad-heads";
 import { useRuntime } from "@/lib/runtime";
 import { useIndexer, type PointsView } from "@/lib/engage";
 import { useStoredReferrer } from "@/lib/referral";
@@ -54,13 +55,20 @@ export function NetworkPill({ className }: { className?: string }) {
   const { cfg, error } = useRuntime();
   const label = error ? "Testnet deployment pending" : !cfg ? "Monad" : cfg.network === "local" ? "Local forks · Monad hub" : "Monad testnet hub";
   const live = Boolean(cfg && !error);
+  // live consensus from monadNewHeads (testnet only: the local forks have no commit states)
+  const pulse = useMonadPulse(live && cfg?.network === "testnet");
+  const secs = (ms: number | null) => (ms === null ? null : `${(ms / 1000).toFixed(1)} s`);
+  const title = pulse
+    ? `Monad block ${pulse.finalized.toLocaleString()} finalized. Proposed to Finalized ${secs(pulse.finalMs) ?? "measuring"}, to Verified ${secs(pulse.verifiedMs) ?? "measuring"} (live, monadNewHeads)`
+    : undefined;
   return (
-    <span className={`inline-flex h-11 items-center gap-2.5 rounded-full bg-ui-surface-1 pr-5 pl-4 text-[15px] font-medium whitespace-nowrap ${className ?? ""}`}>
+    <span title={title} className={`inline-flex h-11 items-center gap-2.5 rounded-full bg-ui-surface-1 pr-5 pl-4 text-[15px] font-medium whitespace-nowrap ${className ?? ""}`}>
       <span aria-hidden className="relative grid size-2.5 place-items-center">
         {live ? <span className="absolute size-2.5 animate-ping rounded-full bg-ui-lime-button/60 motion-reduce:animate-none" /> : null}
         <span className={`size-2 rounded-full ${live ? "bg-ui-lime-button" : "bg-ui-muted"}`} />
       </span>
       {label}
+      {pulse?.finalMs != null ? <span className="hidden text-[13px] font-normal text-ui-muted tabular-nums xl:inline">final in {secs(pulse.finalMs)}</span> : null}
     </span>
   );
 }
