@@ -70,22 +70,28 @@ function ConfidentialPayment({ m, onDone }: { m: NonNullable<ReturnType<typeof c
     }
   }
 
+  const moved = state !== null && state.left === 0n;
+
   return (
     <li className="rounded-[20px] bg-[#04060f]/80 p-4 ring-1 ring-white/[0.04]">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
         <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#1a2a8a] ring-1 ring-[#3b55ff]/40"><Lock size={16} /></span>
         <div className="min-w-0 flex-1">
-          <div className="ui-figure text-[20px] font-medium">{state ? `${fmtUnits(state.amount, t.decimals)} ${t.symbol}` : `Encrypted ${t.symbol}`}</div>
-          <div className="text-[12px] text-ui-muted">{state ? (state.left === 0n ? "Moved to your private balance" : "Only you can see this") : "Amount hidden on-chain"} · {short(m.stealthAddress)}</div>
+          <div className="ui-figure flex items-baseline gap-1.5 text-[20px] font-medium">
+            <span className={cn(!state && "text-ui-dim")}>{state ? fmtUnits(state.amount, t.decimals) : "••••"}</span>
+            <span className="text-[15px] font-semibold">{t.symbol}</span>
+          </div>
+          <div className="truncate text-[12px] text-ui-muted">{!state ? "Hidden amount" : moved ? "In your private balance" : "Only you can see this"} · {short(m.stealthAddress)}</div>
         </div>
         {!state ? (
           <SecondaryButton size="sm" icon={<Eye />} loading={busy === "reveal"} onClick={doReveal}>Reveal</SecondaryButton>
-        ) : state.left > 0n ? (
-          <SecondaryButton size="sm" loading={busy === "move"} onClick={move}>Move to my private balance</SecondaryButton>
+        ) : !moved ? (
+          <SecondaryButton size="sm" loading={busy === "move"} disabled={!w.address} onClick={move} title={w.address ? undefined : "Connect a wallet first"}>Move to balance</SecondaryButton>
         ) : (
           <StatusPill tone="neutral" size="sm">Moved</StatusPill>
         )}
       </div>
+      {state && !moved && !w.address ? <p className="mt-2 text-[13px] text-ui-muted">Connect a wallet to move it into your private balance.</p> : null}
       {err ? <p className="mt-2 text-[13px] text-ui-down">{err}</p> : null}
     </li>
   );
@@ -252,11 +258,11 @@ export default function ReceivePage() {
             <div className="flex items-center justify-between px-2 py-2">
               <span className="text-[15px] font-medium">Inbox{scan.found ? ` · ${scan.found.length}` : ""}</span>
               <button type="button" onClick={runScan} disabled={scan.busy} className="inline-flex items-center gap-1.5 text-[13px] text-ui-muted hover:text-ui-text disabled:opacity-50">
-                <RefreshCw size={14} className={scan.busy ? "animate-spin" : undefined} /> {scan.busy ? "Scanning" : "Scan"}
+                <RefreshCw size={14} className={scan.busy ? "animate-spin" : undefined} /> {scan.busy ? "Scanning…" : "Scan"}
               </button>
             </div>
             {scan.err ? <p className="px-2 pb-2 text-[13px] text-ui-warn">{scan.err}</p> : null}
-            {scan.found?.length === 0 ? <p className="px-2 pb-3 text-[14px] text-ui-muted">Nothing yet</p> : null}
+            {scan.found?.length === 0 ? <p className="px-2 pb-3 text-[14px] text-ui-muted">No payments yet. Share your private address to get paid.</p> : null}
             <ul className="grid gap-2 pb-1">
               {scan.found?.map((m) => {
                 const c = confidentialMatch(m, cfg?.fhe ?? null);
