@@ -513,7 +513,7 @@ interface FheOut {
   stealthPay: Hex;
   stealthAnnouncer: Hex;
   gateway: string | null;
-  todo: string;
+  todo?: string;
   inputThreshold: number;
   kmsThreshold: number;
   inputSigners: Hex[];
@@ -603,8 +603,10 @@ async function fhe(c: Ctx) {
     tokens,
     stealthPay: stealthPay!,
     stealthAnnouncer: announcer,
-    gateway: null,
-    todo: "TODO: host the FHE engine + coprocessor gateway (fhe/DEPLOY-LATER.md section 2) and set KAKUSHI_FHE_GATEWAY_URL on the app; until then the app shows Kakushi Confidential as not live",
+    // a hosted gateway, once recorded, survives re-runs against the same executor
+    ...(same && prev!.gateway
+      ? { gateway: prev!.gateway }
+      : { gateway: null, todo: "TODO: host the FHE engine + coprocessor gateway (fhe/DEPLOY-LATER.md section 2) and set KAKUSHI_FHE_GATEWAY_URL on the app; until then the app shows Kakushi Confidential as not live" }),
     inputThreshold: 2,
     kmsThreshold: 2,
     inputSigners: s.inputSigners.map((x) => x.address),
