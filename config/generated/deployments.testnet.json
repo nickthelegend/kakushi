@@ -20,6 +20,10 @@
     "payoutRouter": "0x8187a35540972150A02c884048bF2F6B6aa7D1C1",
     "privacy": {
       "deployBlock": 70456992,
+      "stealthRegistry": "0x8777bf242EEe2112BA9185FB6571604dFD543A62",
+      "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
+      "stealthPay": "0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04",
+      "shieldedVerifier": "0xa5869C109b398e7A8663891BB1D6e0108F913015",
       "poolFactory": "0x2DfB49d4BDE2adF332407fe47dF835477a1Ecb3f",
       "pools": {
         "MON-0.1": {
@@ -36,11 +40,7 @@
           "decimals": 6,
           "denomination": "1000000"
         }
-      },
-      "shieldedVerifier": "0xa5869C109b398e7A8663891BB1D6e0108F913015",
-      "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
-      "stealthPay": "0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04",
-      "stealthRegistry": "0x8777bf242EEe2112BA9185FB6571604dFD543A62"
+      }
     },
     "role": "hub",
     "sourceRouter": "0xB1d06c6E0464dE3C28DB5bb1bb9313F2037C8707",
@@ -67,6 +67,10 @@
       "payoutRouter": "0x8187a35540972150A02c884048bF2F6B6aa7D1C1",
       "privacy": {
         "deployBlock": 70456992,
+        "stealthRegistry": "0x8777bf242EEe2112BA9185FB6571604dFD543A62",
+        "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
+        "stealthPay": "0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04",
+        "shieldedVerifier": "0xa5869C109b398e7A8663891BB1D6e0108F913015",
         "poolFactory": "0x2DfB49d4BDE2adF332407fe47dF835477a1Ecb3f",
         "pools": {
           "MON-0.1": {
@@ -83,15 +87,43 @@
             "decimals": 6,
             "denomination": "1000000"
           }
-        },
-        "shieldedVerifier": "0xa5869C109b398e7A8663891BB1D6e0108F913015",
-        "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
-        "stealthPay": "0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04",
-        "stealthRegistry": "0x8777bf242EEe2112BA9185FB6571604dFD543A62"
+        }
       },
       "role": "hub",
       "sourceRouter": "0xB1d06c6E0464dE3C28DB5bb1bb9313F2037C8707",
       "withdrawDelay": 200
+    },
+    "11155111": {
+      "chainId": 11155111,
+      "deployBlock": 11906118,
+      "deployer": "0x2c76aA36C88E89734223A5Cf0c54697782B9C24C",
+      "payoutRouter": "0x8187a35540972150A02c884048bF2F6B6aa7D1C1",
+      "privacy": {
+        "deployBlock": 11906132,
+        "stealthRegistry": "0x8777bf242EEe2112BA9185FB6571604dFD543A62",
+        "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
+        "stealthPay": "0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04",
+        "shieldedVerifier": "0x953e4c80e107ac1F2dC394BFA815900F90e1E684",
+        "poolFactory": "0x07dB2d8828E055B4ee8e15578e9575edFA387a5A",
+        "pools": {
+          "ETH-0.001": {
+            "address": "0x01c494922333c7bb0C268BDcda1Ac218981a5F48",
+            "token": "0x0000000000000000000000000000000000000000",
+            "symbol": "ETH",
+            "decimals": 18,
+            "denomination": "1000000000000000"
+          },
+          "USDC-1": {
+            "address": "0x68110aE99EC4653628aB6FD3C92637678d8D97f8",
+            "token": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+            "symbol": "USDC",
+            "decimals": 6,
+            "denomination": "1000000"
+          }
+        }
+      },
+      "role": "spoke",
+      "sourceRouter": "0xB1d06c6E0464dE3C28DB5bb1bb9313F2037C8707"
     }
   }
 }

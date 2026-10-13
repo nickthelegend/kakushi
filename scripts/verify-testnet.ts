@@ -1,6 +1,8 @@
-// Verify every Kakushi contract on Monad testnet with Sourcify (MonadVision reads Sourcify).
+// Verify every Kakushi contract on a testnet with Sourcify (MonadVision reads Sourcify).
 //
-//   node scripts/verify-testnet.ts [--verifier-url https://sourcify-api-monad.blockvision.org]
+//   node scripts/verify-testnet.ts [--chain 10143|11155111|84532] [--verifier-url …]
+//
+// Monad (the default) uses MonadVision's Sourcify; other chains the public sourcify.dev server.
 //
 // Reads the committed records (packages/contracts/deployments/testnet/10143.json, config/generated/
 // fhe.testnet.json) and the forge broadcast files for the linked libraries, then runs
@@ -12,9 +14,12 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const ZK = `${ROOT}packages/contracts`;
 const FHE = `${ROOT}fhe/contracts`;
-const CHAIN = "10143";
-const i = process.argv.indexOf("--verifier-url");
-const URL_ = i > 0 ? process.argv[i + 1]! : "https://sourcify-api-monad.blockvision.org";
+const arg = (name: string) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i > 0 ? process.argv[i + 1] : undefined;
+};
+const CHAIN = arg("chain") ?? "10143";
+const URL_ = arg("verifier-url") ?? (CHAIN === "10143" ? "https://sourcify-api-monad.blockvision.org" : "https://sourcify.dev/server");
 const readJson = (p: string) => (existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : null);
 
 interface Item {
@@ -28,7 +33,7 @@ const add = (project: string, address: string | undefined, id: string) => {
 };
 
 const hub = readJson(`${ZK}/deployments/testnet/${CHAIN}.json`);
-if (!hub) throw new Error("no hub record: packages/contracts/deployments/testnet/10143.json");
+if (!hub) throw new Error(`no record: packages/contracts/deployments/testnet/${CHAIN}.json`);
 add(ZK, hub.payoutRouter, "src/PayoutRouter.sol:PayoutRouter");
 add(ZK, hub.sourceRouter, "src/SourceRouter.sol:SourceRouter");
 add(ZK, hub.ebc, "src/EBC.sol:EBC");
@@ -43,7 +48,9 @@ add(ZK, p.stealthAnnouncer, "src/privacy/StealthAnnouncer.sol:StealthAnnouncer")
 add(ZK, p.stealthPay, "src/privacy/StealthPay.sol:StealthPay");
 add(ZK, p.shieldedVerifier, "src/verifiers/ShieldedWithdrawVerifier.sol:ShieldedWithdrawVerifier");
 add(ZK, p.poolFactory, "src/privacy/KakushiPoolFactory.sol:KakushiPoolFactory");
-for (const pool of Object.values((p.pools ?? {}) as Record<string, { address: string }>)) add(ZK, pool.address, "src/privacy/KakushiPool.sol:KakushiPool");
+// factory pools are recorded in the generated deployments, curated ones in the forge record
+const generated = readJson(`${ROOT}config/generated/deployments.testnet.json`)?.chains?.[CHAIN]?.privacy?.pools ?? {};
+for (const pool of Object.values({ ...(p.pools ?? {}), ...generated } as Record<string, { address: string }>)) add(ZK, pool.address, "src/privacy/KakushiPool.sol:KakushiPool");
 
 // linked libraries (verifiers): "path:Name:address" entries of the broadcast files
 const libs: Record<string, string[]> = {};
@@ -58,7 +65,7 @@ for (const [project, scripts] of [[ZK, ["Deploy.s.sol", "DeployPrivacy.s.sol"]],
   }
 }
 
-const fhe = readJson(`${ROOT}config/generated/fhe.testnet.json`);
+const fhe = CHAIN === "10143" ? readJson(`${ROOT}config/generated/fhe.testnet.json`) : null;
 if (fhe) {
   add(FHE, fhe.core.registry, "src/lib/KakushiRegistry.sol:KakushiRegistry");
   add(FHE, fhe.core.acl, "src/lib/KakushiACL.sol:KakushiACL");

@@ -1,0 +1,17 @@
+{
+  "hub": {
+    "chainSelectorName": "monad-testnet",
+    "oracle": "0xc50A536E04DA4E2385e66fCf211820438F4905Da",
+    "ebc": "0x4AeceD018b464d4870872935CdF47039D3A53ECf"
+  },
+  "rpcs": {
+    "10143": "https://testnet-rpc.monad.xyz",
+    "11155111": "https://ethereum-sepolia-rpc.publicnode.com"
+  },
+  "confirmations": {
+    "10143": 0,
+    "11155111": 3
+  },
+  "authorizedKeys": [],
+  "gasLimit": "600000"
+}

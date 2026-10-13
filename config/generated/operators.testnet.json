@@ -34,9 +34,9 @@
     "secrets": "fhe/.secrets/signers.testnet.json"
   },
   "liveBalancesAtDeploy": {
-    "monadTestnet": {
-      "deployer": "12",
-      "maker1": "0",
+    "sepolia": {
+      "deployer": "0.042844",
+      "maker1": "0.002",
       "maker2": "0",
       "relayer": "0",
       "watchtower": "0"

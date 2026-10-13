@@ -13,6 +13,18 @@
       "pool": "0xD1f5598c3A5e6250D2f6448bD5e2D9e3d3954E2B",
       "minFee": "100000",
       "label": "USDC-1"
+    },
+    {
+      "chainId": 11155111,
+      "pool": "0x01c494922333c7bb0C268BDcda1Ac218981a5F48",
+      "minFee": "100000000000000",
+      "label": "ETH-0.001"
+    },
+    {
+      "chainId": 11155111,
+      "pool": "0x68110aE99EC4653628aB6FD3C92637678d8D97f8",
+      "minFee": "100000",
+      "label": "USDC-1"
     }
   ]
 }
