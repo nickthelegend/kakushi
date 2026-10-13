@@ -21,7 +21,7 @@ export function Chains() {
     { value: "1", label: "SDK call to go private" },
     { value: String(KEYS.length - pending.length), label: "chains live, one hub" },
     { value: "0", label: "custodians" },
-    { value: "≈1 s", label: "private bridge to Monad" },
+    { value: "15–30 s", label: "private bridge, Sepolia to Monad" },
   ];
   return (
     <section id="chains" aria-labelledby="chains-title" className="scroll-mt-24 py-16 lg:py-24">

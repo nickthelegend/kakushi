@@ -28,7 +28,7 @@ export function ProductPreview() {
   const steps = [
     { t: "Paid on Sepolia", s: "25.009001 USDC to Maker B", tag: "0.0 s", tone: "neutral" as const },
     { t: "The hub classifies it", s: "Maker B owes you 24.93 USDC on Monad", tag: "rules", tone: "teal" as const },
-    { t: "Paid out on Monad", s: "Through the PayoutRouter", tag: "≈1 s", tone: "lime" as const },
+    { t: "Paid out on Monad", s: "Through the PayoutRouter", tag: "~20 s", tone: "lime" as const },
     { t: "Attested by Chainlink CRE", s: "In a contiguous block window", tag: "CRE", tone: "purple" as const },
   ];
   return (
@@ -77,7 +77,7 @@ export function ProductPreview() {
           stats={[
             { label: "Fees", value: q ? q.fees.toFixed(4) : "—" },
             { label: "You receive", value: q ? q.net.toFixed(2) : "—" },
-            { label: "Settles in", value: "≈1 s" },
+            { label: "Settles in", value: "15–30 s" },
           ]}
         />
       </div>
