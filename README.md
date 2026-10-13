@@ -1,35 +1,81 @@
 # Kakushi
 
-Kakushi is a fast Maker bridge for Monad, built as a competitor to Orbiter Finance: pay a Maker on one chain, receive on another in about a second, with every transfer backed by Maker margin on Monad and missed payouts provable in your browser. The app has Trade, Explorer, Quests (points from on-chain transfers, quests, leaderboard), Market (routes and Makers), Referral, Claim (disputes) and a Maker console.
+**The privacy provider for Monad.** Kakushi adds privacy to any Monad app, including apps that were never built for it, using two engines:
 
-Kakushi routes payments through competing Makers, with dispute proofs and Maker margin accounting on Monad. Local code and tests exist; sponsor integration and production readiness remain separate gates. See [PLAN](PLAN.md), [sponsor gaps](docs/SPONSOR-GAP.md), [deployment hold](docs/DEPLOY-LATER.md), and [submission checklist](SUBMISSION.md).
+- **ZK hides *who*.** Stealth addresses (ERC-5564 / ERC-6538), a shielded pool with Noir/UltraHonk proofs, private contract calls, gasless withdrawals through a relayer, and private delivery over a cross-chain bridge.
+- **FHE hides *how much*.** Encrypted balances and payments on a native tfhe-rs engine, with k-of-n input attestation and KMS. Any contract becomes confidential with `contract MyApp is KakushiConfig` and the Zama-compatible `FHE.*` API.
+- **Both at once:** an encrypted amount sent to a one-time stealth address.
 
-## FHE (Kakushi Confidential)
+Send, Receive, Shield, Confidential and Bridge are the app. The SDK (`@kakushi/sdk`, `@kakushi/fhe-sdk`) and the drop-in `<KakushiPay>` widget (`@kakushi/widget`) are the plugin for other apps.
 
-Kakushi is the privacy provider for Monad on two engines: ZK (stealth addresses, shielded pool, private calls, private bridge; `packages/`) hides *who*, and fully homomorphic encryption hides *how much*. The FHE half lives in [`fhe/`](fhe/README.md) (formerly Fhish, imported with its history): a native Zama tfhe-rs engine, a parallel coprocessor, k-of-n input attestation and KMS, the gateway, the `FHE.sol` / `KakushiExecutor` / `KakushiACL` / `KakushiInputVerifier` / `KakushiDecryptionOracle` contracts, `ConfidentialPayments` (Kakushi Pay), `@kakushi/fhe-sdk`, a Chainlink CRE decrypt relay, an Envio indexer, a web app, an Expo mobile app, the `mm kakushi` MetaMask plugin and agent skills. Any contract becomes confidential with `contract MyApp is KakushiConfig` and the Zama-compatible `FHE.*` API.
+**Live:** https://kakushi.vercel.app, on Monad testnet (10143) plus Ethereum Sepolia (11155111). Evidence is in [SUBMISSION](SUBMISSION.md); sponsor status is in [SPONSOR-COVERAGE](docs/SPONSOR-COVERAGE.md).
 
-**One app, both engines.** The Kakushi app has a **Confidential** page (`/confidential`): make USDC or AUSD private (wrap), reveal your encrypted balance (EIP-712 user decryption, sealed to the tab), cash out, and pay an encrypted amount. Its flagship is **Private recipient**, which hides who *and* how much: the amount is an FHE ciphertext and the recipient a one-time ERC-5564 stealth address. `ConfidentialStealthPay` (in `fhe/contracts`) moves the encrypted amount, forwards a little MON as gas and announces the payment on Kakushi's StealthAnnouncer with FHE metadata (selector `0xfe0000fe`, the confidential token, the amount's ciphertext handle; see `packages/sdk/src/stealth.ts`). The Receive inbox shows such payments as "Encrypted · Reveal": it decrypts the amount with the stealth private key and can move the encrypted balance to your main wallet without decrypting it. Locally, both engines share the Monad fork on 18710: after `pnpm stack:up && pnpm deploy:local`, run `pnpm fhe:up` (deploys the FHE core, cUSDC/cAUSD over the fork's real USDC/AUSD and the router; starts the engine on 8899 and the gateway on 8890; writes `config/generated/fhe.local.json`; records `fhe-engine`/`fhe-gateway` PIDs in `.stack/demo-pids`), `pnpm fhe:e2e` (the stealth + FHE end-to-end check) and `pnpm fhe:down` (stops exactly those PIDs). The app reaches the gateway through `/api/svc/fhe-gateway`; without a deployment for the network (hosted testnet today) the page says it is not live. `/confidential` alone is served with COOP/COEP so tfhe's WASM gets a thread pool; other pages keep default headers, and browsers without isolation encrypt single-threaded.
+## What works live
 
-`fhe/` is a separate pnpm workspace with its own lockfile (`cd fhe && pnpm install`); the root workspace does not include it, except that the app and root scripts link `@kakushi/fhe-sdk` (`link:fhe/sdk`, TypeScript source; its only runtime dependency, viem, resolves from the root). Its local ports (engine 8899, gateway 8890, CRE runner 8891, fork 18810, app 3810, indexer 8892/5442/9908) do not overlap the ZK stack's. CI runs its jobs as `fhe-*` in `.github/workflows/ci.yml`.
+Every row below is a real transaction on a public testnet. It was run by a script in `scripts/`, and the output is saved in `docs/evidence/`.
 
-## Local runbook
+| Flow | Result | Script |
+| --- | --- | --- |
+| Stealth send + scan | The receipt arrives in 431 ms. Proposed 431, Voted 725, Finalized 1020, Verified 1933 ms. The scanner finds the payment, and the derived key controls it. | `smoke-testnet.ts` |
+| Shield + ZK withdraw to a fresh address | 0.1 MON in, then out with an UltraHonk proof (6.2M gas on Monad) | `smoke-testnet.ts` |
+| Gasless withdraw through the relayer | Sepolia: a never-funded address receives 0.0009 ETH. The relayer's key pays, reached through the app's own proxy. | `smoke-relay-testnet.ts` |
+| Bridge Monad → Sepolia, Sepolia → Monad | A Maker pays the exact quote in 27.4 s and 11.3 s | `smoke-bridge-testnet.ts` |
+| Confidential (FHE), 8 steps | Wrap, encrypted pay to a stealth address, scan, stealth-key decrypt, move, encrypted pay, KMS cash-out, pay link | `fhe-stealth-e2e.ts --testnet` |
+| Privy policy wallet | The Maker's Privy server wallet signs an allowed approve (it lands), and Privy refuses a transfer out | `privy-proof-testnet.ts` |
 
-Use Node 22.18+ and pnpm 10.29.2, Foundry, and the repository-pinned Noir tooling. Run `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`, `pnpm contracts:test`, and `pnpm zk:test` sequentially. App gates are `pnpm --filter @kakushi/app typecheck` and `pnpm --filter @kakushi/app build`. Limit heavy builds to one at a time on this shared machine.
+## Architecture
 
-The explicitly authorized local demonstration uses `pnpm stack:up` to start three pruned forks on ports 18710 (Monad testnet), 18711 (Sepolia), and 18712 (Base Sepolia). Coordinate ownership first. Override upstream archive RPCs with MONAD_FORK_URL, SEPOLIA_FORK_URL, and BASE_SEPOLIA_FORK_URL when necessary. The Arbitrum Sepolia (ident code 9004) and OP Sepolia (9005) spokes are optional locally: `KAKUSHI_EXTRA_FORKS=all pnpm stack:up` (or `arbitrumSepolia` / `opSepolia`) adds forks on 18713 and 18714 (ARBITRUM_SEPOLIA_FORK_URL, OP_SEPOLIA_FORK_URL), `pnpm deploy:local` deploys to whichever answer, and `pnpm demo` then adds scenarios E (USDC Arbitrum Sepolia to Monad) and F (ETH Sepolia to OP Sepolia). `pnpm deploy:local` creates contracts only on those local forks; it is not a public deployment command. `pnpm demo` exercises four scenarios through the local Makers, attestation runner and watchtower. Inspect the current scripts before running them: the demo writes local transactions and generates real proofs.
+| Piece | Where | Runs on |
+| --- | --- | --- |
+| App (Next.js 16) | `packages/app` | Vercel |
+| Contracts: stealth, shielded pools + factory, private-call executor, bridge hub (EBC, MDC, DisputeModule, AttestationOracle) and routers | `packages/contracts` (Foundry), `packages/zk` (Noir) | Monad testnet, Sepolia |
+| FHE contracts, engine, coprocessor, gateway, KMS | `fhe/` (its own pnpm workspace) | Monad testnet; engine + gateway on Railway |
+| Relayer (gasless withdrawals; refuses fees below its gas cost) | `packages/relayer` | Railway |
+| Maker 1 (fills bridge transfers; local key, or a policy-fenced Privy server wallet) | `packages/maker` | Railway |
+| Attester (Chainlink CRE logic through the MockKeystoneForwarder; not a DON) | `packages/cre` | Railway |
+| Watchtower (proves a missed payout and slashes the Maker's margin) | `packages/watchtower` | Railway |
+| Indexer (transfers, Makers, attestations) | `packages/indexer` | Railway |
 
-Use `pnpm dev` for the app on port 3710, `pnpm stack:status` to inspect the fork PIDs, and `pnpm stack:down` to stop the tracked forks. Stop any demo service using its tracked PID in `.stack/demo-pids`; never use process-name-wide kill commands. `.stack` logs and `.data` databases are local operational evidence, not production infrastructure or credentials to publish.
-
-The 2026-10-08 final four-scenario local fork replay passed in 201 seconds. Browser transfers settled in both directions, including a custom recipient; a browser-generated 27-public-input UltraHonk proof (8,768 bytes, 8,508 ms) recovered another unpaid local payment. Maker margin deposit and a timelocked withdrawal request also succeeded. Seven app pages were checked at 390×844 with no horizontal page overflow or JavaScript exceptions. See [verification](docs/VERIFICATION.md) for evidence and limits. Chainlink's local runner is not a DON deployment; Privy, Cleanverse, and Envio Cloud status is listed explicitly in the sponsor gaps.
-
-The persistent local RPC indexer is in [packages/indexer](packages/indexer/README.md). Start it explicitly before using indexed history. The app proxies it at `/api/svc/indexer`; local mode defaults to port 4201, while testnet requires `KAKUSHI_INDEXER_URL`. A separate [Envio HyperIndex package](packages/indexer/envio/README.md) passes codegen and offline lifecycle tests; its Docker/Cloud runtime still requires verification.
+All Railway services build from `deploy/*.Dockerfile`. Keys live only in the hosts' environment variables. The app reaches each service through `/api/svc/<name>`, so the browser talks to a single origin.
 
 ## Testnet addresses
 
-Monad testnet (10143), deployed 2026-10-12 by `scripts/deploy-testnet.ts` from `0x2c76aA36C88E89734223A5Cf0c54697782B9C24C` and verified on Sourcify. Hub: DisputeModule `0xE701a71Ec80Db1e50fbA55fC902CBc8919dD3aF9`, EBC `0x4AeceD018b464d4870872935CdF47039D3A53ECf`, MDC `0xe12c7c7da94fE211AaAD848fd2919714C96988A2`, AttestationOracle `0xc50A536E04DA4E2385e66fCf211820438F4905Da`, PayoutRouter `0x8187a35540972150A02c884048bF2F6B6aa7D1C1`, SourceRouter `0xB1d06c6E0464dE3C28DB5bb1bb9313F2037C8707`. Privacy: StealthRegistry `0x8777bf242EEe2112BA9185FB6571604dFD543A62`, StealthAnnouncer `0x7030628079Ce422c905DD819ba6ad95B562d66Aa`, StealthPay `0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04`, KakushiPoolFactory `0x2DfB49d4BDE2adF332407fe47dF835477a1Ecb3f` (pools: 0.1 MON `0x5f859405D69F24385C0Cf2297a6b2D4c91be2950`, 1 USDC `0xD1f5598c3A5e6250D2f6448bD5e2D9e3d3954E2B`). FHE: KakushiRegistry `0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`, cUSDC `0x18567b9fa61E7322f8d4111c7606107C7eEb55a1`, cAUSD `0x215032585515b2d55aB53Cb1b088deC0f75E4c77`, ConfidentialStealthPay `0x0b1fffD49Ccd2BcBDe14359C9435185A1607F7C6`. The CRE forwarder is Chainlink's MockKeystoneForwarder `0xB9F79d863261869B234c481D1f9A7af84AeAd192`, the `cre workflow simulate --broadcast` path; the production forwarder needs a deployed DON workflow, which Kakushi does not have. The full table, costs and what is still unfunded (spokes, Makers, relayer, watchtower) are in [DEPLOY-LATER](docs/DEPLOY-LATER.md#monad-testnet-deployment-2026-10-12).
+**Monad testnet (10143)**
+- Hub: DisputeModule `0xE701a71Ec80Db1e50fbA55fC902CBc8919dD3aF9`, EBC `0x4AeceD018b464d4870872935CdF47039D3A53ECf`, MDC `0xe12c7c7da94fE211AaAD848fd2919714C96988A2`, AttestationOracle `0xc50A536E04DA4E2385e66fCf211820438F4905Da`, PayoutRouter `0x8187a35540972150A02c884048bF2F6B6aa7D1C1`, SourceRouter `0xB1d06c6E0464dE3C28DB5bb1bb9313F2037C8707`.
+- Privacy: StealthRegistry `0x8777bf242EEe2112BA9185FB6571604dFD543A62`, StealthAnnouncer `0x7030628079Ce422c905DD819ba6ad95B562d66Aa`, StealthPay `0x0f650e5bC29242eBc107CA7B879d33c4EE4f4B04`, KakushiPoolFactory `0x2DfB49d4BDE2adF332407fe47dF835477a1Ecb3f` (pools: 0.1 MON `0x5f859405D69F24385C0Cf2297a6b2D4c91be2950`, 1 USDC `0xD1f5598c3A5e6250D2f6448bD5e2D9e3d3954E2B`).
+- FHE: KakushiRegistry `0x0047D047510cd9201470c7Eb85cE0FdF69d7De90`, executor `0x632871F641F89ef095eE721c49B1F75b95471010`, cUSDC `0x18567b9fa61E7322f8d4111c7606107C7eEb55a1`, cAUSD `0x215032585515b2d55aB53Cb1b088deC0f75E4c77`, ConfidentialStealthPay `0x0b1fffD49Ccd2BcBDe14359C9435185A1607F7C6`.
+- All 29 contracts are verified on MonadVision (Sourcify).
 
-## Hosted app
+**Ethereum Sepolia (11155111)**
+- PayoutRouter and SourceRouter at the same addresses as on Monad.
+- StealthRegistry `0x8777…3A62`, StealthAnnouncer `0x7030…66Aa`, StealthPay `0x0f65…4B04`.
+- KakushiPoolFactory `0x07dB2d8828E055B4ee8e15578e9575edFA387a5A` (pools: 0.001 ETH `0x01c494922333c7bb0C268BDcda1Ac218981a5F48`, 1 USDC `0x68110aE99EC4653628aB6FD3C92637678d8D97f8`).
+- 15/15 verified on Sourcify.
 
-The interface is deployed on Vercel at https://kakushi.vercel.app (project root `packages/app`; `.vercelignore` keeps the upload to the app and its workspace packages). Hosted builds always run in testnet mode and read the committed `config/generated/*.testnet.json`. Pages for chains, Makers and services that are not live yet show an honest "not deployed" or "not configured" state instead of data. The Maker nodes, Watchtower and attestation runner are long-running processes and do not run on Vercel. Redeploy with `vercel deploy --prod` from the repository root.
+Base, Arbitrum and OP Sepolia are built and tested on forks and are **awaiting funding** on testnet.
 
-The UI is built on `packages/ui`, a copy of the Polaris design system renamed `@kakushi/ui`, re-coloured in `packages/app/src/app/globals.css` to a navy and royal-blue palette after the Swyftx hero (serif headlines in IBM Plex Serif). The hero's coin wave is real-time Three.js (`components/landing/coin-wave.tsx`). The art in `packages/app/public/art` (ChatGPT stills, a Gemini Veo loop) and `public/assets/glass` is AI-generated and was re-graded into the palette with `scripts/art/regrade.py`; the film in `docs/video` predates the palette.
+Machine-readable records are in `config/generated/*.testnet.json`. Redeploy with `node scripts/deploy-testnet.ts` (a dry run by default; idempotent and resumable).
+
+## Run it locally
+
+Requirements: Node 22.18+, pnpm 10.29.2, Foundry, and the pinned Noir toolchain.
+
+1. `pnpm install --frozen-lockfile`
+2. `pnpm stack:up && pnpm deploy:local`: three pruned anvil forks (Monad 18710, Sepolia 18711, Base Sepolia 18712), with the contracts deployed on them.
+3. `pnpm fhe:up`: the FHE core plus cUSDC/cAUSD on the Monad fork; engine on 8899, gateway on 8890.
+4. `pnpm dev`: the app on 3710.
+5. Tests:
+   - `pnpm demo`: the bridge scenarios, including a slashed Maker and a ZK proof;
+   - `pnpm fhe:e2e`;
+   - `pnpm test`, `pnpm contracts:test`, `pnpm zk:test`.
+6. `pnpm stack:down` / `pnpm fhe:down` stop exactly the tracked PIDs.
+
+CI (`.github/workflows/ci.yml`) runs the TypeScript, Solidity, Noir, CRE and `fhe-*` jobs on every push.
+
+## Honest limits
+
+- **The attester is not a Chainlink DON.** It runs the CRE workflow's logic through Chainlink's `MockKeystoneForwarder` (the simulate `--broadcast` path).
+- **Gasless on Monad is uneconomic at today's testnet gas.** An UltraHonk withdraw is ~6.2M gas, about 0.9 MON. That is more than the 0.1 MON note, so the app offers self-withdraw instead. On Sepolia, gasless costs 10% of the note.
+- **Envio is offline-tested only.** The HyperIndex package is built and tested but not on Envio Cloud; the live app uses Kakushi's own RPC indexer.
+- **Cleanverse needs onboarding.** The compliance gate waits on Cleanverse's canonical ABI.
+- **AUSD has no live transaction.** cAUSD is deployed, but the live FHE run used cUSDC.
