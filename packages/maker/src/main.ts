@@ -16,7 +16,7 @@ const dbPath = process.env.MAKER_DB ?? `.data/maker-${account.address.toLowerCas
 const engine = new MakerEngine(k, account, { name, db: new MakerDb(dbPath) });
 engine.paused = process.env.MAKER_PAUSED === "1";
 engine.start();
-makerServer(engine, { adminToken: process.env.MAKER_ADMIN_TOKEN, signerKind: kind }).listen(port, "127.0.0.1", () => {
+makerServer(engine, { adminToken: process.env.MAKER_ADMIN_TOKEN, signerKind: kind }).listen(port, process.env.MAKER_HOST ?? "127.0.0.1", () => {
   console.log(`[${name}] ${account.address} (${kind} signer) on :${port}, network ${k.network}, db ${dbPath}`);
 });
 for (const sig of ["SIGINT", "SIGTERM"] as const) process.on(sig, () => { engine.stop(); process.exit(0); });

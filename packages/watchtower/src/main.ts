@@ -200,7 +200,7 @@ createServer(async (req, res) => {
     res.statusCode = 500;
     res.end(JSON.stringify({ error: (e as Error).message.split("\n")[0] }));
   }
-}).listen(port, "127.0.0.1", () => log(`challenger ${account.address} on :${port} (${k.network}); attester ${attesterUrl}`));
+}).listen(port, process.env.WATCHTOWER_HOST ?? "127.0.0.1", () => log(`challenger ${account.address} on :${port} (${k.network}); attester ${attesterUrl}`));
 
 for (const c of k.chains) void watchChain(c.chainId);
 void driveLoop();
