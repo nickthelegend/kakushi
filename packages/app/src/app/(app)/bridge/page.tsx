@@ -113,7 +113,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
   const w = useWallet();
   const router = useRouter();
   const src = tokenOf(route, "src");
-  const [amountStr, setAmountStr] = useState("25");
+  const [amountStr, setAmountStr] = useState("1");
   const [custom, setCustom] = useState(false);
   const [recipient, setRecipient] = useState("");
   const [priv, setPriv] = useState(false);
@@ -223,7 +223,13 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
     }
   }
 
-  const reason = error ? "Not live on this network yet" : !w.address ? null : qErr ?? (q && !q.quotable ? q.reason : null);
+  // no Maker will take this amount: say what they will take, rather than showing a quiet 0
+  const sized = !q && quotes?.length ? quotes.filter((x) => x.reason === "below minimum" || x.reason === "above maximum") : [];
+  const sizeHint = sized.length
+    ? `Makers on this route take ${fmt(sized.reduce((m, x) => (BigInt(x.minAmount) < m ? BigInt(x.minAmount) : m), BigInt(sized[0]!.minAmount)), src.decimals, 4)} to ${fmt(sized.reduce((m, x) => (BigInt(x.maxAmount) > m ? BigInt(x.maxAmount) : m), 0n), src.decimals, 4)} ${route.asset} right now`
+    : null;
+  const unquoted = !q && quotes?.length && !sizeHint ? `No Maker can take this transfer right now (${quotes[0]!.reason ?? "unavailable"})` : null;
+  const reason = error ? "Not live on this network yet" : (qErr ?? (q && !q.quotable ? q.reason : null) ?? sizeHint ?? unquoted);
   const cta = sending ?? (!w.address ? "Connect a wallet to bridge" : insufficient ? `Not enough ${route.asset}` : !amount ? "Enter an amount" : q ? `Bridge ${fmt(BigInt(q.principal), src.decimals, route.asset === "ETH" ? 4 : 2)} ${route.asset}` : loadingQ ? "Finding a Maker…" : "Bridge");
 
   return (
