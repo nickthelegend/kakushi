@@ -33,8 +33,7 @@
   ],
   "stealthPay": "0x0b1fffD49Ccd2BcBDe14359C9435185A1607F7C6",
   "stealthAnnouncer": "0x7030628079Ce422c905DD819ba6ad95B562d66Aa",
-  "gateway": null,
-  "todo": "TODO: host the FHE engine + coprocessor gateway (fhe/DEPLOY-LATER.md section 2) and set KAKUSHI_FHE_GATEWAY_URL on the app; until then the app shows Kakushi Confidential as not live",
+  "gateway": "https://fhe-gateway-production.up.railway.app",
   "inputThreshold": 2,
   "kmsThreshold": 2,
   "inputSigners": [

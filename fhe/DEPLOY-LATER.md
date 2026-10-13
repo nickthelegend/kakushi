@@ -73,6 +73,12 @@ AUSD (60 s global cooldown); Circle's faucet gives testnet USDC.
 
 ## 2. Engine, coprocessor, gateway
 
+**Hosted on Railway since 2026-10-13** (project `kakushi-monad`): `fhe-engine` (`deploy/fhe-engine.Dockerfile`,
+keys generated on first start on its `/data` volume, private network only, `[::]:8899`) and `fhe-gateway`
+(`deploy/fhe-gateway.Dockerfile`, signers from the `KAKUSHI_FHE_SECRETS_JSON` variable, cursor on its `/state`
+volume, `DELIVER=direct`, `DECRYPT_AT=finalized`), public at **https://fhe-gateway-production.up.railway.app**.
+Public decryptions (`fulfill`) need the FHE relayer funded: ~0.03 MON each at 102 gwei.
+
 ```bash
 engine/bin/kakushi-fhe-engine serve --dir .kakushi-fhe --port 8899           # same keys as local: .kakushi-fhe/keys
 KAKUSHI_FHE_NETWORK=testnet KAKUSHI_FHE_SECRETS=.secrets/signers.testnet.json RPC_URL=https://testnet-rpc.monad.xyz DELIVER=both \
