@@ -16,7 +16,7 @@
 //   POST http://127.0.0.1:3714/attest-native {"chainId":11155111,"txHash":"0x..."}
 //   GET  http://127.0.0.1:3714/status
 import { createServer } from "node:http";
-import { type Hex, keccak256, toHex, decodeEventLog, encodeFunctionData } from "viem";
+import { type Hex, keccak256, toHex, decodeEventLog, encodeFunctionData, parseAbi, zeroAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { CHAINS, CRE_FORWARDERS, chainById, currentNetwork, deployedChains } from "@kakushi/config";
 import { loadDeployments } from "@kakushi/config/deployments";
@@ -60,6 +60,10 @@ const account = privateKeyToAccount(KEY);
 const hub = publicClient("monadTestnet");
 const hubWallet = walletClient("monadTestnet", account);
 const forwarder = (d.hub.creForwarder ?? CRE_FORWARDERS.simulation) as Hex;
+// As in CRE, the workflow owner (pinned in the oracle) and the transmitter that pays the gas are
+// separate: reports name the oracle's expected owner, while this runner's key only sends them.
+const pinnedOwner = (await hub.readContract({ address: d.hub.attestationOracle, abi: parseAbi(["function expectedOwner() view returns (address)"]), functionName: "expectedOwner" }).catch(() => zeroAddress)) as Hex;
+const workflowOwner = pinnedOwner !== zeroAddress ? pinnedOwner : account.address;
 
 const status: Record<number, { lastTo?: string; lastRoot?: string; lastAt?: number; error?: string; windows: number }> = {};
 for (const c of chains) status[c.chainId] = { windows: 0 };
@@ -71,7 +75,7 @@ async function deliver(windows: AttestWindow[], label: string): Promise<Hex> {
     body,
     workflowId: keccak256(toHex(`kakushi-local:${label}`)),
     workflowName,
-    workflowOwner: account.address,
+    workflowOwner,
     executionId: keccak256(toHex(`${label}:${Date.now()}:${Math.random()}`)),
     timestamp: Math.floor(Date.now() / 1000),
   });
