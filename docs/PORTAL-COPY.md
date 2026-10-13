@@ -67,6 +67,14 @@ T4: Trust, Identity & AI Infrastructure
 - **Evidence.** A 10,000-block window attested on Monad testnet: `0x29f20989d587fece820750cb8e71da9c4026107f3b238244a2367dce35f300b8`.
 - **Stated plainly:** this is not a deployed DON workflow.
 
+## Bounty article links
+
+The portal requires one published article per bounty: how the sponsor was used and the value it brought.
+
+- Privy: https://github.com/nickthelegend/kakushi/blob/main/docs/PRIVY.md
+- Chainlink CRE: https://github.com/nickthelegend/kakushi/blob/main/docs/CHAINLINK-CRE.md
+- Envio: https://github.com/nickthelegend/kakushi/blob/main/docs/ENVIO.md
+
 ## Links
 
 - **Repository:** https://github.com/nickthelegend/kakushi

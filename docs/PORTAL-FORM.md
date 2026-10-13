@@ -121,6 +121,8 @@ NOTES AND CAPS
 
 ### Privy ($5,000, all tracks)
 
+**Published article (required link):** https://github.com/nickthelegend/kakushi/blob/main/docs/PRIVY.md
+
 **How does your project use Privy beyond authentication?**
 Privy is the app's login (email, Google or any wallet). Beyond login, a bridge Maker can hold its hot key as a Privy server wallet fenced by a default-deny policy (the Maker's `privy` signer, packages/maker/src/signer.ts). The policy allows only:
 - fill and refund on Kakushi's PayoutRouter;
@@ -136,6 +138,8 @@ and only on chains 10143 and 11155111. packages/maker/scripts/privy-setup.ts bui
 
 ### Chainlink CRE ($3,000, all tracks)
 
+**Published article (required link):** https://github.com/nickthelegend/kakushi/blob/main/docs/CHAINLINK-CRE.md
+
 **How is a CRE workflow used as an orchestration layer?**
 The CRE workflows in packages/cre/workflows (attest-monad, attest-sepolia, source-native, built with @chainlink/cre-sdk: cron trigger, EVM reads, log filters, writeReport) attest every chain's Maker payouts and source payments. They write them as sorted Poseidon2 window roots to the hub's AttestationOracle, with contiguous payout windows. Kakushi's dispute circuit (Noir) proves a payout missing against those roots, so CRE is the bridge's source of truth for what happened on other chains.
 
@@ -145,6 +149,8 @@ The CRE workflows in packages/cre/workflows (attest-monad, attest-sepolia, sourc
 - Honest note: the mock forwarder checks no signatures, so attestations are trusted from Kakushi's runner. This is not a deployed DON workflow.
 
 ### Envio ($1,000, all tracks)
+
+**Published article (required link):** https://github.com/nickthelegend/kakushi/blob/main/docs/ENVIO.md
 
 **How do you use Envio?**
 Kakushi's Receive inbox finds a user's stealth payments by matching every ERC-5564 announcement against their viewing key. On Monad the public RPC caps eth_getLogs at 100 blocks, so a scan over the chain's history meant thousands of sequential requests and never finished in our demo recording. The inbox now reads the full announcement history from Envio HyperSync through a server route (`/api/announcements`; the token stays on the server, and only Kakushi's announcer is served). It then reads only the newest blocks over RPC. A HyperIndex v3 package (schema, handlers, derived Maker and route statistics) is in `packages/indexer/envio` and `fhe/indexer`, built and tested in CI.
