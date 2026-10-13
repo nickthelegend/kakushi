@@ -155,8 +155,8 @@ const INIT = `(() => {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();`;
 
-export async function launch({ width = 1536, height = 864, scale = 1.25 } = {}) {
-  const browser = await chromium.launch({ channel: "chrome", headless: true, args: ["--hide-scrollbars", "--autoplay-policy=no-user-gesture-required"] });
+export async function launch({ width = 1536, height = 864, scale = 1.25, headless = process.env.HEADED ? false : true } = {}) {
+  const browser = await chromium.launch({ channel: "chrome", headless, args: ["--hide-scrollbars", "--autoplay-policy=no-user-gesture-required"] });
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, colorScheme: "dark", locale: "en-US", timezoneId: "Asia/Kolkata" });
   return { browser, context };
 }

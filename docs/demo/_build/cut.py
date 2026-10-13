@@ -177,7 +177,7 @@ def state_img(t0):
     LXc = c.get("tagX", LX)
     ft, fs = (F_TAG_S, F_STEP_S) if c.get("compact") else (F_TAG, F_STEP)
     if c.get("tag"):
-        label, col = TAGS[c["tag"]]
+        label, col = TAGS[c["tag"]] if c["tag"] in TAGS else (c["tag"], (150, 190, 255))
         _, h = pill(d, LXc, y, label, ft, col, (6, 10, 24, 255), outline=col + (200,), dot=col)
         y += h + 12
     if c.get("step"):

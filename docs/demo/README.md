@@ -67,3 +67,11 @@ Caveat on the shield leg: the 0.001 ETH Sepolia pool has few deposits, and this 
 ## Rebuild
 
 `docs/demo/_build/` holds the pipeline, adapted from `clockin/videos/_pipeline` for landscape web capture: `fund-wallet.mjs` / `topup.mjs` (funding), `rec-lib.mjs` (wallet bridge, cursor, capture), `record.mjs` / `record3.mjs` / `record4.mjs` / `record5.mjs` (takes), `tts.py` (ElevenLabs), `cards.py`, `spec_*.py` → `cut.py` (cut, speed chips, captions, mix). Intermediates go to `_build/work/` (gitignored).
+
+## Bounty videos
+
+| File | Length | What it shows |
+| --- | --- | --- |
+| [bounty-cre.mp4](bounty-cre.mp4) + [.srt](bounty-cre.srt) | 1:24 | **Chainlink CRE.** A real `cre workflow simulate ./workflows/attest-sepolia --non-interactive --trigger-index 0 -T staging-settings` run (CLI v1.36.0, live testnet, read-only, no broadcast), captured in a pseudo-terminal at 04:54 IST on 14 Oct and replayed at real speed in xterm.js (labelled "CLI run captured 04:54 IST · real speed"). It computed the next Sepolia window, 11908836–11908935. Then a real `cast` run (captured 05:02 IST) against Monad testnet RPC: the hosted runner's tx `0xe00a40a0559c68f251fdf70ccd04bd0c07c10c25a3ca77b9c890d9f62e7562c7` (from the attester `0x379d…2316` through the MockKeystoneForwarder `0xb9f7…d192`) wrote window #44 (Sepolia payouts 11908661–11908835, which holds the demo's bridge payout at block 11908833), and `AttestationOracle.lastPayoutToBlock(11155111)` reads 11908835. The live bridge payout and the app's Attestations page come from the demo takes. |
+
+Notes on the CRE video: MonadVision is behind a Cloudflare bot check that an automated browser can't pass without solving a challenge (we don't), so the attestation tx is shown through real `cast` queries of Monad's RPC instead of the explorer page. The CLI's own "update available" notice (it links GitHub) was cut from the end of the replay. The narration states that the on-chain windows come from Kakushi's runner through Chainlink's MockKeystoneForwarder, not a DON.

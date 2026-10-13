@@ -1,0 +1,104 @@
+1
+00:00:03,370 --> 00:00:06,430
+Kakushi's bridge promises that if a Maker doesn't pay,
+
+2
+00:00:06,470 --> 00:00:07,768
+you can prove it.
+
+3
+00:00:07,851 --> 00:00:11,375
+Proving that something did not happen needs complete,
+
+4
+00:00:11,415 --> 00:00:14,653
+gap-free windows of another chain's history.
+
+5
+00:00:14,794 --> 00:00:18,995
+That is the job of our Chainlink CRE workflow.
+
+6
+00:00:21,737 --> 00:00:23,450
+This is the real workflow,
+
+7
+00:00:23,490 --> 00:00:28,036
+run by the CRE CLI simulator against live testnet,
+
+8
+00:00:28,076 --> 00:00:31,019
+read-only. A cron trigger fires,
+
+9
+00:00:31,059 --> 00:00:33,249
+the workflow reads the Monad hub,
+
+10
+00:00:33,289 --> 00:00:35,977
+finds the next contiguous Sepolia range,
+
+11
+00:00:36,017 --> 00:00:39,092
+and pulls the Maker payouts with filterLogs.
+
+12
+00:00:40,202 --> 00:00:43,157
+It builds sorted Poseidon2 roots for that window,
+
+13
+00:00:43,197 --> 00:00:46,872
+and writeReport sends them to the AttestationOracle on
+
+14
+00:00:46,912 --> 00:00:51,215
+Monad. This run computed the Sepolia window right after the
+
+15
+00:00:51,255 --> 00:00:53,226
+one that holds our bridge payout.
+
+16
+00:00:53,702 --> 00:00:57,133
+On Monad, the hosted runner delivers those reports.
+
+17
+00:00:57,173 --> 00:00:59,467
+This transaction, from the runner's key,
+
+18
+00:00:59,507 --> 00:01:01,595
+lands windows on the oracle.
+
+19
+00:01:02,225 --> 00:01:05,215
+To be clear: the on-chain windows come from Kakushi's
+
+20
+00:01:05,255 --> 00:01:07,607
+runner, running the same logic through Chainlink's
+
+21
+00:01:07,647 --> 00:01:09,270
+MockKeystoneForwarder.
+
+22
+00:01:09,481 --> 00:01:12,591
+It checks no signatures, so this is not a DON yet.
+
+23
+00:01:13,037 --> 00:01:14,834
+The app shows every window.
+
+24
+00:01:14,976 --> 00:01:16,758
+When a Maker misses a deadline,
+
+25
+00:01:16,798 --> 00:01:19,661
+the dispute circuit proves the missing payout against these
+
+26
+00:01:19,701 --> 00:01:23,034
+roots, and the Maker's margin pays the user.
+

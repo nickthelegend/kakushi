@@ -300,6 +300,36 @@
    "part": "walk",
    "text": "Kakushi. ZK hides who, FHE hides how much. Try it at kakushi.vercel.app.",
    "say": "Kakushi. Z K hides who, F H E hides how much. Try it at kakushi dot vercel dot app."
+  },
+  {
+   "id": "c1",
+   "part": "bounty-cre",
+   "text": "Kakushi's bridge promises that if a Maker doesn't pay, you can prove it. Proving that something did not happen needs complete, gap-free windows of another chain's history. That is the job of our Chainlink CRE workflow."
+  },
+  {
+   "id": "c2",
+   "part": "bounty-cre",
+   "text": "This is the real workflow, run by the CRE CLI simulator against live testnet, read-only. A cron trigger fires, the workflow reads the Monad hub, finds the next contiguous Sepolia range, and pulls the Maker payouts with filterLogs."
+  },
+  {
+   "id": "c3",
+   "part": "bounty-cre",
+   "text": "It builds sorted Poseidon2 roots for that window, and writeReport sends them to the AttestationOracle on Monad. This run computed the Sepolia window right after the one that holds our bridge payout."
+  },
+  {
+   "id": "c4",
+   "part": "bounty-cre",
+   "text": "On Monad, the hosted runner delivers those reports. This transaction, from the runner's key, lands windows on the oracle."
+  },
+  {
+   "id": "c5",
+   "part": "bounty-cre",
+   "text": "To be clear: the on-chain windows come from Kakushi's runner, running the same logic through Chainlink's MockKeystoneForwarder. It checks no signatures, so this is not a DON yet."
+  },
+  {
+   "id": "c6",
+   "part": "bounty-cre",
+   "text": "The app shows every window. When a Maker misses a deadline, the dispute circuit proves the missing payout against these roots, and the Maker's margin pays the user."
   }
  ]
 }

@@ -37,3 +37,11 @@ card("card-next", "Honest limits · what's next", "Decentralize the trust.",
 card("card-vision", "Vision", "Privacy as a plugin\nfor every Monad app.",
      [("ZK hides who", "stealth addresses, shielded pool, private bridge delivery"), ("FHE hides how much", "encrypted balances and payments"), ("One component", "<KakushiPay /> and the SDK, drop-in")])
 print("cards ok")
+
+def bounty(name, sponsor):
+    im = bg(); d = ImageDraw.Draw(im)
+    d.text((VW / 2, 470), f"{sponsor} bounty · Kakushi", font=F("Satoshi-Black.ttf", 92), fill=(255, 255, 255), anchor="mm")
+    d.text((VW / 2, 580), "The privacy provider for Monad: ZK hides who, FHE hides how much.", font=F("Satoshi-Medium.ttf", 38), fill=GOLD, anchor="mm")
+    im.convert("RGB").save(os.path.join(W, name + ".png"))
+for n, s in [("card-bounty-cre", "Chainlink CRE"), ("card-bounty-privy", "Privy"), ("card-bounty-envio", "Envio")]:
+    bounty(n, s)
