@@ -1,7 +1,10 @@
 // Create a Kakushi Maker hot wallet on Privy: a server wallet fenced by a policy.
 //
 //   PRIVY_APP_ID=... PRIVY_APP_SECRET=... node scripts/privy-setup.ts [--network testnet] [--max-native-wei 2000000000000000]
-//        [--owner-public-key <base64 P-256 SPKI>] [--dry-run]
+//        [--owner-public-key <base64 P-256 SPKI>] [--dry-run] [--update-policy <policy id>]
+//
+// --update-policy rewrites an existing policy's rules in place (e.g. after a new spoke deploys) and
+// keeps its wallet; without it a new policy and a new server wallet are created.
 //
 // The policy (default DENY; every condition in a rule must hold) allows only:
 //   - PayoutRouter.fill / refund on the deployed chains, with at most --max-native-wei of native value
@@ -67,6 +70,12 @@ const appSecret = process.env.PRIVY_APP_SECRET;
 if (!appId || !appSecret) throw new Error("Set PRIVY_APP_ID and PRIVY_APP_SECRET (e.g. source the gitignored .env.testnet), or run with --dry-run");
 const { PrivyClient } = await import("@privy-io/node");
 const privy = new PrivyClient({ appId, appSecret });
+const updateId = opt("update-policy");
+if (updateId) {
+  const updated = await privy.policies().update(updateId, { name: policy.name, rules: policy.rules } as never);
+  console.log(`policy ${updated.id} updated: ${updated.rules.length} rules over chains ${chainIds.join(", ")}`);
+  process.exit(0);
+}
 const created = await privy.policies().create(policy as never);
 const ownerKey = opt("owner-public-key") ?? process.env.PRIVY_AUTHORIZATION_PUBLIC_KEY;
 const wallet = await privy.wallets().create({ chain_type: "ethereum", policy_ids: [created.id], display_name: "Kakushi Maker", ...(ownerKey ? { owner: { public_key: ownerKey } } : {}) });
