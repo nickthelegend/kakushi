@@ -5,7 +5,7 @@ import { ArrowUpRight, Eye, Inbox, KeyRound, Lock, RefreshCw } from "lucide-reac
 import { useEffect, useState } from "react";
 import { formatUnits, isAddress, type Hex } from "viem";
 import { chainById } from "@kakushi/config";
-import { buildRegisterKeysCalldata, readStealthMetaAddress, scanAnnouncements, stealthBalance, type StealthMatch } from "@kakushi/sdk";
+import { buildRegisterKeysCalldata, readStealthMetaAddress, scanAnnouncements, stealthBalance, type AnnouncementLog, type StealthMatch } from "@kakushi/sdk";
 import { ConnectButton } from "@/components/AppShell";
 import { ChainCoin } from "@/components/coins";
 import { readError, short } from "@/components/kit";
@@ -186,6 +186,14 @@ function Register({ pc, meta }: { pc: PrivacyChain; meta: string }) {
   );
 }
 
+/** History from Envio HyperSync (via /api/announcements); the inbox reads only newer blocks over RPC. */
+async function announcementHistory(chainId: number, from: bigint): Promise<{ logs: AnnouncementLog[]; toBlock: bigint } | null> {
+  const r = await fetch(`/api/announcements?chainId=${chainId}&from=${from}`);
+  if (!r.ok) return null;
+  const j = (await r.json()) as { logs: { blockNumber: string; transactionHash: Hex; logIndex: number; topics: Hex[]; data: Hex }[]; toBlock: string };
+  return { logs: j.logs.map((l) => ({ ...l, blockNumber: BigInt(l.blockNumber) })), toBlock: BigInt(j.toBlock) };
+}
+
 export default function ReceivePage() {
   const { k, cfg } = useRuntime();
   const w = useWallet();
@@ -206,7 +214,7 @@ export default function ReceivePage() {
         try {
           const client = k.client(pc.chain.key);
           const latest = await client.getBlockNumber();
-          const matches = await scanAnnouncements(client, pc.privacy.stealthAnnouncer, BigInt(pc.privacy.deployBlock), latest, { viewingKey: keys.viewingKey, spendingPublicKey: keys.spendingPublicKey, spendingKey: keys.spendingKey }, { withBalances: true });
+          const matches = await scanAnnouncements(client, pc.privacy.stealthAnnouncer, BigInt(pc.privacy.deployBlock), latest, { viewingKey: keys.viewingKey, spendingPublicKey: keys.spendingPublicKey, spendingKey: keys.spendingKey }, { withBalances: true, history: (from) => announcementHistory(pc.chain.chainId, from) });
           for (const m of matches) {
             // A private bridge payment is announced on the source chain; its funds sit on dstChainId.
             const dst = m.dstChainId ? Number(m.dstChainId) : pc.chain.chainId;

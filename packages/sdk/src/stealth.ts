@@ -35,6 +35,7 @@ import {
   type PublicClient,
   bytesToHex,
   concat,
+  decodeEventLog,
   encodeFunctionData,
   getAddress,
   isAddress,
@@ -354,52 +355,94 @@ export interface StealthMatch extends StealthMetadata {
   balance?: bigint;
 }
 
+/** A raw Announcement log, e.g. from an indexer such as Envio HyperSync. */
+export interface AnnouncementLog {
+  blockNumber: bigint;
+  transactionHash: Hex;
+  logIndex: number;
+  topics: Hex[];
+  data: Hex;
+}
+
 export interface ScanOptions {
   /** eth_getLogs block range per request; Monad's public RPC refuses more than 100 */
   chunk?: bigint;
+  /** eth_getLogs requests in flight at once (default 12) */
+  concurrency?: number;
   schemeId?: bigint;
   /** also read each match's current balance */
   withBalances?: boolean;
   onProgress?: (scannedTo: bigint) => void;
+  /**
+   * Optional fast history (e.g. Envio HyperSync): the announcer's logs from `fromBlock` up to some
+   * block it has indexed. The rest, up to `toBlock`, is read over RPC. If it throws or returns null,
+   * the whole range is read over RPC.
+   */
+  history?: (fromBlock: bigint) => Promise<{ logs: AnnouncementLog[]; toBlock: bigint } | null>;
 }
 
+type AnnouncementArgs = { schemeId?: bigint; stealthAddress?: Hex; caller?: Hex; ephemeralPubKey?: Hex; metadata?: Hex };
+
 /**
- * Scan an ERC-5564 announcer for announcements addressed to `keys`, paging eth_getLogs in
- * `chunk`-block ranges (same pattern as findPayout). Metadata that cannot be decoded still
- * matches if the stealth address checks out.
+ * Scan an ERC-5564 announcer for announcements addressed to `keys`. History may come from an
+ * indexer (`opts.history`); the rest is paged over eth_getLogs in `chunk`-block ranges, several at
+ * once. Metadata that cannot be decoded still matches if the stealth address checks out.
  */
 export async function scanAnnouncements(client: PublicClient, announcer: Hex, fromBlock: bigint, toBlock: bigint, keys: ScanKeys, opts: ScanOptions = {}): Promise<StealthMatch[]> {
   const chunk = opts.chunk ?? 100n;
   if (chunk < 1n) throw new Error("chunk must be positive");
+  const scheme = opts.schemeId ?? STEALTH_SCHEME_ID;
   const event = erc5564AnnouncerAbi[0];
   const out: StealthMatch[] = [];
-  for (let from = fromBlock; from <= toBlock; from += chunk) {
-    const to = from + chunk - 1n > toBlock ? toBlock : from + chunk - 1n;
-    const logs = await client.getLogs({ address: announcer, event, args: { schemeId: opts.schemeId ?? STEALTH_SCHEME_ID }, fromBlock: from, toBlock: to });
-    for (const l of logs) {
-      const a = l.args;
-      if (!a.stealthAddress || !a.ephemeralPubKey || a.metadata === undefined || !a.caller) continue;
-      if (!checkStealthAddress({ stealthAddress: a.stealthAddress, ephemeralPubKey: a.ephemeralPubKey, metadata: a.metadata }, keys.viewingKey, keys.spendingPublicKey)) continue;
-      let md: StealthMetadata = { viewTag: -1 };
-      try {
-        md = decodeStealthMetadata(a.metadata);
-      } catch {
-        /* empty metadata: address matched anyway */
-      }
-      const m: StealthMatch = {
-        ...md,
-        stealthAddress: getAddress(a.stealthAddress),
-        ephemeralPublicKey: a.ephemeralPubKey,
-        caller: a.caller,
-        metadata: a.metadata,
-        blockNumber: l.blockNumber!,
-        txHash: l.transactionHash!,
-        logIndex: l.logIndex!,
-      };
-      if (keys.spendingKey) m.stealthPrivateKey = computeStealthPrivateKey(keys.spendingKey, keys.viewingKey, a.ephemeralPubKey);
-      out.push(m);
+  const match = (a: AnnouncementArgs, at: { blockNumber: bigint; transactionHash: Hex; logIndex: number }) => {
+    if (a.schemeId !== undefined && a.schemeId !== scheme) return;
+    if (!a.stealthAddress || !a.ephemeralPubKey || a.metadata === undefined || !a.caller) return;
+    if (!checkStealthAddress({ stealthAddress: a.stealthAddress, ephemeralPubKey: a.ephemeralPubKey, metadata: a.metadata }, keys.viewingKey, keys.spendingPublicKey)) return;
+    let md: StealthMetadata = { viewTag: -1 };
+    try {
+      md = decodeStealthMetadata(a.metadata);
+    } catch {
+      /* empty metadata: address matched anyway */
     }
-    opts.onProgress?.(to);
+    const m: StealthMatch = {
+      ...md,
+      stealthAddress: getAddress(a.stealthAddress),
+      ephemeralPublicKey: a.ephemeralPubKey,
+      caller: a.caller,
+      metadata: a.metadata,
+      blockNumber: at.blockNumber,
+      txHash: at.transactionHash,
+      logIndex: at.logIndex,
+    };
+    if (keys.spendingKey) m.stealthPrivateKey = computeStealthPrivateKey(keys.spendingKey, keys.viewingKey, a.ephemeralPubKey);
+    out.push(m);
+  };
+
+  let start = fromBlock;
+  if (opts.history) {
+    const h = await opts.history(fromBlock).catch(() => null);
+    if (h) {
+      for (const l of h.logs) {
+        try {
+          const ev = decodeEventLog({ abi: erc5564AnnouncerAbi, data: l.data, topics: l.topics as [Hex, ...Hex[]] });
+          if (ev.eventName === "Announcement") match(ev.args as AnnouncementArgs, l);
+        } catch {
+          /* not an Announcement */
+        }
+      }
+      start = h.toBlock + 1n;
+      opts.onProgress?.(h.toBlock);
+    }
+  }
+
+  const pages: [bigint, bigint][] = [];
+  for (let from = start; from <= toBlock; from += chunk) pages.push([from, from + chunk - 1n > toBlock ? toBlock : from + chunk - 1n]);
+  const concurrency = Math.max(1, opts.concurrency ?? 12);
+  for (let i = 0; i < pages.length; i += concurrency) {
+    const batch = pages.slice(i, i + concurrency);
+    const results = await Promise.all(batch.map(([from, to]) => client.getLogs({ address: announcer, event, args: { schemeId: scheme }, fromBlock: from, toBlock: to })));
+    for (const logs of results) for (const l of logs) match(l.args as AnnouncementArgs, { blockNumber: l.blockNumber!, transactionHash: l.transactionHash!, logIndex: l.logIndex! });
+    opts.onProgress?.(batch[batch.length - 1]![1]);
   }
   if (opts.withBalances) {
     // a confidential match's token balance is a ciphertext: its `balance` is the stealth address's native (gas) balance
