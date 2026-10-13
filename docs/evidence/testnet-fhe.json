@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-13T13:16:48.852Z",
+  "chainId": 10143,
+  "results": [
+    {
+      "name": "Wrap (USDC -> private)",
+      "pass": true,
+      "detail": "alice's encrypted balance 1.308644 USDC -> 2.308644 USDC (revealed by her own EIP-712 user decrypt); public USDC -1 USDC"
+    },
+    {
+      "name": "Encrypted pay to a stealth address",
+      "pass": true,
+      "detail": "one tx (704272 gas): from alice to ConfidentialStealthPay, value 0.07344 MON (gas for the recipient), amount = ciphertext 0xbd184a2431d51576…; metadata selector 0xfe0000fe, token cUSDC"
+    },
+    {
+      "name": "Scanner finds it",
+      "pass": true,
+      "detail": "1 match(es); FHE payment at 0x71855d053402192Be19f42fABeFDf39ffF493847 in cUSDC; stealth key derived (computeStealthPrivateKey) controls it; gas there 0.07344 MON"
+    },
+    {
+      "name": "Stealth-key user decrypt",
+      "pass": true,
+      "detail": "revealed 0.345678 USDC (sent 0.345678 USDC); a random key is refused by the gateway's ACL check"
+    },
+    {
+      "name": "Move to main wallet",
+      "pass": true,
+      "detail": "stealth -> 0x74D7A2F9eb3A82C5D8913095003b590C4CFedB4d with confidentialTransfer(to, balanceHandle) (518204 gas, paid from the forwarded 0.07344 MON: 0.0581424888 used); stealth balance now 0 USDC"
+    },
+    {
+      "name": "Main wallet reveals new balance",
+      "pass": true,
+      "detail": "bob's encrypted balance 0 USDC -> 0.345678 USDC (+0.345678 USDC)"
+    },
+    {
+      "name": "Encrypted pay + cash out",
+      "pass": true,
+      "detail": "bob +0.1 USDC encrypted; cashed out 0.2 USDC to public USDC (only that amount revealed, KMS callback request #1)"
+    },
+    {
+      "name": "Pay link",
+      "pass": true,
+      "detail": "link #1 (key only in the URL fragment) claimed by bob: +0.1 USDC encrypted, link Claimed"
+    }
+  ]
+}

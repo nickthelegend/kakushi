@@ -8,7 +8,7 @@ import { readStealthMetaAddress } from "@kakushi/sdk";
 import { ConnectButton } from "@/components/AppShell";
 import { readError, short } from "@/components/kit";
 import { Done, GlassCard, NotLive, ScreenTitle, Well, inputCls } from "@/components/privacy-ui";
-import { DEFAULT_STEALTH_GAS, balanceHandle, claimPayLink, createPayLink, parsePayLinkFragment, payEncrypted, payLinkFragment, payStealth, publicBalance, readPayLink, reveal, unwrap, wrap, type ConfidentialToken } from "@/lib/confidential";
+import { balanceHandle, claimPayLink, createPayLink, parsePayLinkFragment, payEncrypted, payLinkFragment, payStealth, publicBalance, readPayLink, reveal, stealthGas, unwrap, wrap, type ConfidentialToken } from "@/lib/confidential";
 import { isolated, lastEncryption, useConfidential } from "@/lib/fhe-browser";
 import { usePrivacyChains } from "@/lib/privacy";
 import { useRuntime } from "@/lib/runtime";
@@ -218,7 +218,7 @@ function PayTab({ token }: { token: ConfidentialToken }) {
     try {
       const s = await signer();
       if (privateTo && meta) {
-        const r = await payStealth(env, s, token, meta, value, DEFAULT_STEALTH_GAS, setBusy);
+        const r = await payStealth(env, s, token, meta, value, await stealthGas(env), setBusy);
         setDone({
           headline: `Sent ${fmt(value, token.decimals)} ${token.symbol}`,
           sub: "Nobody else can see who got it or how much",

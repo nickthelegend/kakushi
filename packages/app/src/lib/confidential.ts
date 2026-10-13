@@ -28,8 +28,18 @@ export interface FhePublicConfig {
   gateway: string;
 }
 
-/** Native coin forwarded to a stealth address with a confidential payment, so it can move the funds on. */
+/** Native coin forwarded to a stealth address with a confidential payment, so it can move the funds on:
+ *  the floor, on a chain with ~1 gwei gas (the local forks). See stealthGas() for the live amount. */
 export const DEFAULT_STEALTH_GAS = parseEther("0.05");
+/** gas limit budgeted for the stealth address's one move (confidentialTransfer: ~400k, sent as estimate x 1.3) */
+const STEALTH_MOVE_GAS = 600_000n;
+
+/** What to forward for the recipient's move at today's gas price (Monad testnet runs ~100 gwei),
+ *  never below DEFAULT_STEALTH_GAS. Monad bills the whole limit, so the stealth address needs limit x price. */
+export async function stealthGas(env: ConfidentialEnv): Promise<bigint> {
+  const need = (STEALTH_MOVE_GAS * (await env.client.getGasPrice()) * 12n) / 10n;
+  return need > DEFAULT_STEALTH_GAS ? need : DEFAULT_STEALTH_GAS;
+}
 
 export const payTokenAbi = parseAbi([
   "function confidentialBalanceOf(address) view returns (bytes32)",
@@ -65,7 +75,7 @@ const oracleAbi = parseAbi(["function requests(uint256) view returns (address re
 /** Anything that can send a transaction and sign EIP-712 for `address` (a wallet, or a stealth key). */
 export interface ConfidentialSigner {
   address: Hex;
-  sendTransaction(tx: { to: Hex; data: Hex; value?: bigint; gas: bigint }): Promise<Hex>;
+  sendTransaction(tx: { to: Hex; data: Hex; value?: bigint; gas: bigint; gasPrice?: bigint }): Promise<Hex>;
   signTypedData(typedData: { domain: Record<string, unknown>; types: Record<string, readonly { name: string; type: string }[]>; primaryType: string; message: Record<string, unknown> }): Promise<Hex>;
 }
 
@@ -88,11 +98,13 @@ export interface ConfidentialEnv {
 
 export const isZeroHandle = (h: Hex | null | undefined) => !h || /^0x0+$/.test(h);
 
-/** Monad bills the gas limit: every call sends estimate x 1.3, and must succeed. */
+/** Monad bills the gas limit: every call sends estimate x 1.3, and must succeed. The price is the live
+ *  gas price + 10% rather than a wallet's 2x-base-fee cap, so an account holding exactly the gas it was
+ *  sent (a stealth address) can still afford its transaction. */
 async function call(env: ConfidentialEnv, s: ConfidentialSigner, to: Hex, abi: Abi, functionName: string, args: readonly unknown[], value?: bigint): Promise<TransactionReceipt> {
   const data = encodeFunctionData({ abi, functionName, args } as never);
-  const est = await env.client.estimateGas({ account: s.address, to, data, value });
-  const hash = await s.sendTransaction({ to, data, value, gas: (est * 13n) / 10n });
+  const [est, price] = await Promise.all([env.client.estimateGas({ account: s.address, to, data, value }), env.client.getGasPrice()]);
+  const hash = await s.sendTransaction({ to, data, value, gas: (est * 13n) / 10n, gasPrice: (price * 11n) / 10n });
   const rc = await env.client.waitForTransactionReceipt({ hash });
   if (rc.status !== "success") throw new Error(`${functionName} reverted (${hash})`);
   return rc;
