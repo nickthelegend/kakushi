@@ -10,7 +10,7 @@ The run is recorded on https://kakushi.vercel.app against Monad testnet and Sepo
    - https://kakushi.vercel.app/bridge: wait for the Maker 1 quote;
    - https://kakushi.vercel.app/confidential: the FHE key loads, ~33 KB;
    - https://relayer-production-6ade.up.railway.app/health.
-4. **Pre-register private receiving off camera** (optional; it saves 15 s): open Receive, click **Register**, sign, confirm.
+4. **Register private receiving off camera.** This is required, because steps 3 and 6 pay your own wallet. Open Receive, click **Register**, sign, then confirm.
 5. **Check the header pill.** It should say **Monad testnet hub**. At wide widths it also shows "final in ~0.6 s"; hover it for the full Proposed → Finalized → Verified readout.
 
 ## The run
@@ -48,7 +48,7 @@ The run is recorded on https://kakushi.vercel.app against Monad testnet and Sepo
 | Item | Monad | Sepolia |
 | --- | --- | --- |
 | Step 3: private send | 0.01 MON + ~0.02 MON gas | |
-| Step 4 (or prep): register keys | ~0.015 MON | |
+| Register keys (prep) | ~0.015 MON | |
 | Step 5: approve + wrap | ~0.1 MON gas, 1 USDC | |
 | Step 6: encrypted stealth pay | ~0.08 MON gas + ~0.073 MON forwarded, 0.3 cUSDC | |
 | Step 7: move | paid from the forwarded gas | |
