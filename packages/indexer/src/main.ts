@@ -17,7 +17,9 @@ const server = createServer(createHandler(store,{
 server.listen(Number(process.env.INDEXER_PORT??4201),process.env.INDEXER_HOST??'127.0.0.1');
 for(const signal of ['SIGINT','SIGTERM'] as const) process.on(signal,()=>{stopping=true;server.close();});
 while(!stopping) {
-  try {await scan(k,store);lastSuccessfulScan=Date.now();lastError=null;} catch(error) {lastError=error instanceof Error?error.message:String(error);console.error('Indexer scan failed:',lastError);}
-  if(!stopping) await new Promise(resolve=>{const timer=setTimeout(resolve,2000);timer.unref();});
+  let behind=false;
+  try {behind=await scan(k,store);lastSuccessfulScan=Date.now();lastError=null;} catch(error) {lastError=error instanceof Error?error.message:String(error);console.error('Indexer scan failed:',lastError);}
+  // catching up: go straight on; at the head (or after an error): wait for new blocks
+  if(!stopping && !behind) await new Promise(resolve=>{const timer=setTimeout(resolve,2000);timer.unref();});
 }
 store.close();

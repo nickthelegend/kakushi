@@ -3,6 +3,7 @@ import { encodeEventTopics,encodeAbiParameters } from 'viem';
 import { payoutRouterAbi,type Kakushi } from '@kakushi/sdk';
 import { scan } from '../src/scanner.ts';
 import { Store } from '../src/store.ts';
+import { CHAINS } from '@kakushi/config';
 const address='0x1111111111111111111111111111111111111111';
 const hash=`0x${'ab'.repeat(32)}` as const;
 const ref=`0x${'cd'.repeat(32)}` as const;
@@ -20,4 +21,17 @@ it('ingests every raw payment in a transaction, not only the compatibility first
  const client={getBlockNumber:async()=>1n,getBlock:async()=>({number:1n,hash,timestamp:101n,transactions:[tx]}),getLogs:async()=>logs,getTransaction:async()=>tx,getTransactionReceipt:async()=>({status:'success',blockNumber:1n,logs})};
  const k={network:'local',d:{chains:{11155111:{chainId:11155111,deployBlock:1,sourceRouter:'0x3333333333333333333333333333333333333333',payoutRouter:address}}},clientById:()=>client,makers:async()=>[address]} as unknown as Kakushi;
  const s=new Store(':memory:');await scan(k,s);expect(s.transfers()).toHaveLength(2);expect(new Set(s.transfers().map(t=>t.srcRef)).size).toBe(2);s.close();
+});
+it('on testnet without native lanes reads only blocks with logs, plus the cursor block, and says when it is behind',async()=>{
+ const conf=BigInt(CHAINS.sepolia.attestConfirmations);
+ const read:bigint[]=[];
+ const log={address,blockNumber:5n,blockHash:hash,transactionHash:hash,logIndex:0,removed:false,topics:encodeEventTopics({abi:payoutRouterAbi,eventName:'Payout',args:{srcRef:ref,maker:address,recipient:address}}),data:encodeAbiParameters([{type:'address'},{type:'uint256'},{type:'uint8'}],[address,99n,2])};
+ const client={getBlockNumber:async()=>150n+conf,getBlock:async({blockNumber}:{blockNumber:bigint})=>{read.push(blockNumber);return {number:blockNumber,hash,timestamp:101n,transactions:[]};},getLogs:async()=>[log]};
+ const k={network:'testnet',d:{chains:{11155111:{chainId:11155111,deployBlock:1,sourceRouter:'0x2222222222222222222222222222222222222222',payoutRouter:address}}},clientById:()=>client,makers:async()=>[address],pairs:async()=>[]} as unknown as Kakushi;
+ const s=new Store(':memory:');
+ expect(await scan(k,s)).toBe(true);
+ expect(read).toEqual([150n,5n,100n]);
+ expect(s.transfers()[0]).toMatchObject({srcRef:ref,status:'filled'});
+ expect(s.cursor(11155111)?.block).toBe(100);
+ s.close();
 });
