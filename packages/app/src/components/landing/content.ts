@@ -19,8 +19,9 @@ export const hero = {
   pill: "The privacy provider for Monad",
   headline: ["Make anything", "private."],
   sub: "Zero-knowledge proofs hide who. Fully homomorphic encryption hides how much. Kakushi plugs both into any token, contract or app on Monad.",
-  primary: "Add privacy",
-  secondary: "Open the app",
+  primary: "Open app",
+  secondary: "Add privacy to your app",
+  line: "Private payments, a shielded pool and a private bridge, on Monad.",
   trust: ["Proofs made in your browser", "No custodian, no mixer operator", "Monad first, every chain next"],
 };
 

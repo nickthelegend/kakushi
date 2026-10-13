@@ -32,7 +32,23 @@ export function Compare() {
     <section id="compare" aria-labelledby="compare-title" className="scroll-mt-24 py-16 lg:py-24">
       <Shell>
         <SectionIntro id="compare-title" align="center" eyebrow="Compare" heading={["Who and how much,", "both private."]} className="mx-auto max-w-[760px]" />
-        <Rise y={24} className="mx-auto mt-12 max-w-[1040px] overflow-x-auto rounded-[28px] ring-1 ring-ui-hairline-strong">
+        {/* Phones: one card per row, Kakushi first. */}
+        <ul className="mt-10 grid gap-3 md:hidden">
+          {ROWS.map((r) => (
+            <li key={r.k} className="rounded-[22px] bg-ui-surface-1/60 p-4 ring-1 ring-ui-hairline">
+              <p className="text-[15px] font-medium">{r.k}</p>
+              <div className="mt-3 rounded-[14px] bg-[#0b1233] px-3 py-2.5 text-[14px]">
+                <span className="mb-1 block text-[12px] font-semibold text-[#c4d0ff]">Kakushi</span>
+                <Cell v={r.kakushi} />
+              </div>
+              <dl className="mt-2.5 grid grid-cols-2 gap-3 px-1 text-[13px] text-ui-muted">
+                <div><dt className="mb-1 text-[12px] text-ui-dim">Umbra</dt><dd><Cell v={r.umbra} /></dd></div>
+                <div><dt className="mb-1 text-[12px] text-ui-dim">Mixer pools</dt><dd><Cell v={r.pool} /></dd></div>
+              </dl>
+            </li>
+          ))}
+        </ul>
+        <Rise y={24} className="mx-auto mt-12 hidden max-w-[1040px] overflow-x-auto rounded-[28px] ring-1 ring-ui-hairline-strong md:block">
           <table className="w-full min-w-[640px] border-collapse text-left text-[15px]">
             <caption className="sr-only">Kakushi compared with Umbra and single-chain mixer pools</caption>
             <thead>

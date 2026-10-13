@@ -7,7 +7,7 @@ import Link from "next/link";
 import { BlurWords, Rise } from "@/components/motion";
 import { hero } from "./content";
 
-/** The hero: a blue pill, the serif headline, one white CTA, and the struck coins (a Gemini render with the real marks). */
+/** The hero: a blue pill, the serif headline, one line on what it is, Open app (white) and the developer path, and the struck coins (a Gemini render with the real marks). */
 export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
@@ -23,9 +23,15 @@ export function Hero() {
           <BlurWords as="span" css text={hero.headline[0]!} className="block" lineClassName="block" delay={0.05} />
           <BlurWords as="span" css text={hero.headline[1]!} className="block" lineClassName="block" delay={0.3} />
         </h1>
-        <Rise y={12} delay={0.5} duration={0.7} className="mt-9">
+        <Rise y={10} delay={0.25} duration={0.6} className="mt-5 max-w-[34ch] sm:mt-6">
+          <p className="text-[16px] leading-snug text-ui-muted sm:text-[18px]">{hero.line}</p>
+        </Rise>
+        <Rise y={12} delay={0.35} duration={0.6} className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:mt-9">
           <Button asChild variant="white" size="md" className="h-12 px-6 text-[16px] font-medium">
-            <Link href="/developers">{hero.primary}</Link>
+            <Link href="/send">{hero.primary}</Link>
+          </Button>
+          <Button asChild variant="outline" size="md" className="h-12 border-white/40 px-6 text-[16px] font-medium">
+            <Link href="/developers">{hero.secondary}</Link>
           </Button>
         </Rise>
       </div>
