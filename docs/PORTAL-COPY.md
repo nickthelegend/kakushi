@@ -24,7 +24,7 @@ Kakushi adds privacy to any Monad app: stealth addresses, a ZK shielded pool wit
   - A shielded pool for any token (a permissionless factory): deposit, then withdraw to a fresh address with a Noir/UltraHonk proof, gasless through a relayer, or spend straight into any contract call bound by the proof.
 - **FHE hides how much.** A native tfhe-rs engine with k-of-n input attestation and KMS. Balances and payments are ciphertexts; the gateway releases a decryption only to the owner (sealed to their browser tab) or as a KMS-signed public value. Any contract becomes confidential with `contract MyApp is KakushiConfig` and the Zama-compatible `FHE.*` API. **Trust today:** one hosted engine holds the FHE key, and the 2-of-3 KMS signers run in one service. The threshold is in code, not yet split across independent operators.
 - **Both at once.** An encrypted amount sent to a one-time stealth address, in one transaction.
-- **Cross-chain.** A Maker bridge between Monad and Sepolia. Each Maker is bonded with margin on Monad, and a Maker that doesn't pay is slashed with a ZK proof checked against Chainlink CRE attestation windows. The slash has run end to end on a local fork (7.009 USDC paid back from margin, proof in 725 ms); no bridge transfer has gone unpaid on testnet. Deliveries to a stealth address are built into the bridge but not yet run live.
+- **Cross-chain.** A Maker bridge between Monad and Sepolia. Each Maker is bonded with margin on Monad, and a Maker that doesn't pay is slashed with a ZK proof checked against Chainlink CRE attestation windows. The slash has run end to end on a local fork (7.009 USDC paid back from margin, proof in 725 ms); no bridge transfer has gone unpaid on testnet. A delivery to a stealth address ran live once, in the demo recording (0.44955 USDC to a one-time address on Sepolia in 11 s, payout `0x77ebad14…be06`).
 
 Developers get `@kakushi/sdk`, `@kakushi/fhe-sdk` and the `<KakushiPay>` widget.
 
@@ -72,6 +72,7 @@ T4: Trust, Identity & AI Infrastructure
 - **Repository:** https://github.com/nickthelegend/kakushi
 - **Live app:** https://kakushi.vercel.app
 - **Submission evidence:** https://github.com/nickthelegend/kakushi/blob/main/SUBMISSION.md
+- **Demo video (portal "demo video" field):** https://github.com/nickthelegend/kakushi/blob/main/docs/demo/kakushi-demo.mp4 (2:53, live on Monad testnet + Sepolia; recording tx hashes in https://github.com/nickthelegend/kakushi/blob/main/docs/demo/README.md)
 
 ## Contracts (Monad testnet, MonadVision)
 

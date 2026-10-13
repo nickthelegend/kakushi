@@ -1,0 +1,134 @@
+{
+ "voice": "pFZP5JQG7iQjIQuC4Bku",
+ "voiceName": "Lily (ElevenLabs premade)",
+ "lines": [
+  {
+   "id": "i1",
+   "part": "intro",
+   "text": "On Monad, every payment is public: who paid whom, and how much, readable by anyone, forever."
+  },
+  {
+   "id": "i2",
+   "part": "intro",
+   "text": "Kakushi is the privacy provider for Monad. Zero-knowledge proofs hide who paid. Fully homomorphic encryption hides how much."
+  },
+  {
+   "id": "i3",
+   "part": "intro",
+   "text": "It's a plugin, so any Monad app can add it without a rewrite."
+  },
+  {
+   "id": "i4",
+   "part": "intro",
+   "text": "And it's built for Monad's speed: blocks go from proposed to finalized in about six tenths of a second, read live from the chain. Our stealth send got its receipt in 431 milliseconds.",
+   "say": "And it's built for Monad's speed: blocks go from proposed to finalized in about six tenths of a second, read live from the chain. Our stealth send got its receipt in four hundred thirty-one milliseconds."
+  },
+  {
+   "id": "o1",
+   "part": "outro",
+   "text": "Kakushi. The privacy provider for Monad: ZK hides who, FHE hides how much. Try it live at kakushi.vercel.app.",
+   "say": "Kakushi. The privacy provider for Monad: Z K hides who, F H E hides how much. Try it live at kakushi dot vercel dot app."
+  },
+  {
+   "id": "p1",
+   "part": "demo",
+   "text": "Every payment on Monad is public: who paid, who got paid, and how much. Kakushi is for wallets and payment apps on Monad that need private payouts, like payroll, merchants and OTC, without building the cryptography themselves."
+  },
+  {
+   "id": "p2",
+   "part": "demo",
+   "text": "The header reads Monad live: each block goes from proposed to finalized in about six tenths of a second."
+  },
+  {
+   "id": "p3",
+   "part": "demo",
+   "text": "Stealth send. The app finds the wallet's private address, and 0.01 MON lands at a one-time address. The receipt came back in about a second.",
+   "say": "Stealth send. The app finds the wallet's private address, and a hundredth of a MON lands at a one-time address. The receipt came back in about a second."
+  },
+  {
+   "id": "p4",
+   "part": "demo",
+   "text": "Privy handles email and social sign-in. Email needs a one-time code, so for this recording I connect a browser wallet."
+  },
+  {
+   "id": "p5",
+   "part": "demo",
+   "text": "Shield, on Sepolia, where gasless withdrawals are economic. I deposit 0.001 ETH and keep the note.",
+   "say": "Shield, on Sepolia, where gasless withdrawals are economic. I deposit a thousandth of an ETH and keep the note."
+  },
+  {
+   "id": "p6",
+   "part": "demo",
+   "text": "Then I withdraw to a brand-new address. The zero-knowledge proof is made in the browser, and the relayer pays the gas, so the new address never needed funding."
+  },
+  {
+   "id": "p7",
+   "part": "demo",
+   "text": "Bridge, Monad to Sepolia, delivered privately. Maker 1 quotes, then pays a one-time stealth address on Sepolia. Makers post margin on Monad, and an unpaid transfer can be slashed with a ZK proof; that path is tested on a fork."
+  },
+  {
+   "id": "p8",
+   "part": "demo",
+   "text": "Now the amount. One USDC becomes an encrypted balance, and only my signature reveals it, in this tab."
+  },
+  {
+   "id": "p9",
+   "part": "demo",
+   "text": "Pay privately sends an encrypted 0.3 to a one-time stealth address. Neither who nor how much is public.",
+   "say": "Pay privately sends an encrypted point three to a one-time stealth address. Neither who nor how much is public."
+  },
+  {
+   "id": "p10",
+   "part": "demo",
+   "text": "Cash out asks the KMS for a signed decryption of just that amount. Today, one hosted engine holds the FHE key."
+  },
+  {
+   "id": "p11",
+   "part": "demo",
+   "text": "Bridge payouts are attested by Kakushi's own runner, using Chainlink CRE workflow logic; it is not a DON yet."
+  },
+  {
+   "id": "p12",
+   "part": "demo",
+   "text": "The recipient's inbox scans for these payments with a viewing key. Monad's RPC returns logs 100 blocks at a time, so a full-history scan takes many minutes today; an indexed scan is next.",
+   "say": "The recipient's inbox scans for these payments with a viewing key. Monad's RPC returns logs a hundred blocks at a time, so a full-history scan takes many minutes today; an indexed scan is next."
+  },
+  {
+   "id": "p14",
+   "part": "demo",
+   "text": "For developers, one React component, KakushiPay, brings all of this to any Monad app."
+  },
+  {
+   "id": "p15",
+   "part": "demo",
+   "text": "Kakushi. ZK hides who, FHE hides how much, live on Monad today.",
+   "say": "Kakushi. Z K hides who, F H E hides how much, live on Monad today."
+  },
+  {
+   "id": "q1",
+   "part": "pitch",
+   "text": "Why now? Payments are moving on chain, and Monad makes them fast and cheap enough for payroll and checkout. But no one runs payroll on a public ledger."
+  },
+  {
+   "id": "q2",
+   "part": "pitch",
+   "text": "Kakushi is live on Monad testnet today: stealth sends, a shielded pool with gasless withdrawals, encrypted balances and payments, and a Maker bridge to Sepolia."
+  },
+  {
+   "id": "q3",
+   "part": "pitch",
+   "text": "44 contracts are verified on chain, and every flow you see is a real testnet transaction. The pool's anonymity set was seeded by our team for the demo; these are not organic users.",
+   "say": "Forty-four contracts are verified on chain, and every flow you see is a real testnet transaction. The pool's anonymity set was seeded by our team for the demo; these are not organic users."
+  },
+  {
+   "id": "q4",
+   "part": "pitch",
+   "text": "What's next is decentralizing trust: today one engine holds the FHE key, and attestations come from our runner using CRE logic, not a DON."
+  },
+  {
+   "id": "q5",
+   "part": "pitch",
+   "text": "The vision: privacy as a plugin. Any Monad wallet or payment app adds one component, and its users get private payments by default."
+  }
+ ]
+}

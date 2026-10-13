@@ -6,6 +6,10 @@
 - **FHE hides *how much*.** Encrypted balances and payments on a native tfhe-rs engine, with k-of-n input attestation and KMS. Any contract becomes confidential with `contract MyApp is KakushiConfig` and the Zama-compatible `FHE.*` API.
 - **Both at once:** an encrypted amount sent to a one-time stealth address.
 
+**Problem and intended user.** Every Monad payment is public: who paid whom, and how much. Kakushi is for wallets and payment apps on Monad that need private payouts (payroll, merchants, OTC) without building zero-knowledge or FHE cryptography themselves.
+
+**Videos:** [Demo](docs/demo/kakushi-demo.mp4) (2:53, live on Monad testnet + Sepolia, captions in [.srt](docs/demo/kakushi-demo.srt)). Recording notes and every transaction hash: [docs/demo](docs/demo/README.md).
+
 Send, Receive, Shield, Confidential and Bridge are the app. The SDK (`@kakushi/sdk`, `@kakushi/fhe-sdk`) and the drop-in `<KakushiPay>` widget (`@kakushi/widget`) are the plugin for other apps.
 
 **Live:** https://kakushi.vercel.app, on Monad testnet (10143) plus Ethereum Sepolia (11155111). Evidence is in [SUBMISSION](SUBMISSION.md); sponsor status is in [SPONSOR-COVERAGE](docs/SPONSOR-COVERAGE.md).
@@ -78,7 +82,7 @@ CI (`.github/workflows/ci.yml`) runs the TypeScript, Solidity, Noir, CRE and `fh
 - **The attester is not a Chainlink DON.** It runs the CRE workflow's logic through Chainlink's `MockKeystoneForwarder`, which checks no signatures, so attestations are trusted from Kakushi's runner.
 - **FHE key custody.** One hosted engine holds the FHE key, and the 2-of-3 KMS signers run in one service.
 - **Slashing on testnet.** It has run end to end only on a local fork (no bridge transfer has gone unpaid on testnet).
-- **Stealth delivery over the bridge.** It is built but not yet run live.
+- **Stealth delivery over the bridge.** It ran live once, in the demo recording (0.44955 USDC to a one-time address on Sepolia, 11 s, payout `0x77ebad14…be06`); the recipient's inbox scan over the full Monad history is still too slow on public RPC (see [docs/demo](docs/demo/README.md)).
 - **Gasless on Monad is uneconomic at today's testnet gas.** An UltraHonk withdraw is ~6.2M gas: the withdraw itself cost 0.698 MON on chain (6.22M gas, billed on the limit); the relayer quotes ~0.9 MON because it budgets 8M gas plus 10%. That is more than the 0.1 MON note, so the app offers self-withdraw instead. On Sepolia, gasless costs 10% of the note.
 - **Envio is offline-tested only.** The HyperIndex package is built and tested but not on Envio Cloud; the live app uses Kakushi's own RPC indexer.
 - **Cleanverse needs onboarding.** The compliance gate waits on Cleanverse's canonical ABI.

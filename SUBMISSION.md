@@ -4,6 +4,7 @@
 | --- | --- |
 | Project | Kakushi, the privacy provider for Monad (ZK hides who, FHE hides how much) |
 | Live app | https://kakushi.vercel.app (Monad testnet 10143 + Ethereum Sepolia) |
+| Demo video | [docs/demo/kakushi-demo.mp4](docs/demo/kakushi-demo.mp4) (2:53, live footage, tx hashes in [docs/demo/README.md](docs/demo/README.md)) |
 | Repository | https://github.com/nickthelegend/kakushi |
 | Sponsors | Working: Chainlink CRE, Privy, BlockVision/MonadVision, Circle USDC, Monad-native RPC. Partial: Agora AUSD, Chainlink Data Feeds, Envio, Cleanverse. See [SPONSOR-COVERAGE](docs/SPONSOR-COVERAGE.md). |
 | Backends | Railway: relayer, Maker 1, attester, watchtower, indexer, FHE engine, FHE gateway + KMS |
@@ -16,7 +17,7 @@ Every Monad transfer is public: who paid whom, and how much. Kakushi is a plugin
 - **Shielded pool.** Deposit any token, then withdraw it to a fresh address with a zero-knowledge proof. A relayer pays the gas, or the withdrawal calls any contract privately.
 - **Encrypted amounts (FHE).** Balances and payments are ciphertexts. The gateway releases a decryption only to the owner (sealed to their tab) or as a KMS-signed public value.
 - **Both at once.** An encrypted amount goes to a one-time stealth address, so neither who nor how much is public.
-- **Cross-chain.** A Maker bridge between Monad and Sepolia, backed by Maker margin on Monad. A Maker that doesn't pay is slashed with a ZK proof checked against Chainlink CRE attestation windows (run end to end on a local fork; no Maker has failed to pay on testnet). Deliveries to a stealth address are built but not yet run live.
+- **Cross-chain.** A Maker bridge between Monad and Sepolia, backed by Maker margin on Monad. A Maker that doesn't pay is slashed with a ZK proof checked against Chainlink CRE attestation windows (run end to end on a local fork; no Maker has failed to pay on testnet). A delivery to a stealth address ran live once, in the demo recording (0.44955 USDC to a one-time address on Sepolia in 11 s, payout `0x77ebad14…be06`).
 
 For developers, there is the `@kakushi/sdk` / `@kakushi/fhe-sdk`, the `<KakushiPay>` React widget, and `contract MyApp is KakushiConfig` for confidential contracts.
 

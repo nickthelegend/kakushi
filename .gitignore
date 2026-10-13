@@ -37,3 +37,8 @@ docs/video/raw/
 *.tsbuildinfo
 .vercel
 packages/app/public/vendor/
+
+# demo video build intermediates (only the final mp4/srt in docs/demo are committed)
+docs/demo/_build/work/
+docs/demo/_build/hf-intro/
+docs/demo/_build/fonts/
