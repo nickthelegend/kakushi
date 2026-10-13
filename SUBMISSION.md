@@ -14,9 +14,9 @@ Every Monad transfer is public: who paid whom, and how much. Kakushi is a plugin
 
 - **Stealth addresses.** Pay a registered wallet; the money lands at a one-time address only the recipient can find and spend.
 - **Shielded pool.** Deposit any token, then withdraw it to a fresh address with a zero-knowledge proof. A relayer pays the gas, or the withdrawal calls any contract privately.
-- **Encrypted amounts (FHE).** Balances and payments are ciphertexts. Only the owner can decrypt them, sealed to their own browser tab.
+- **Encrypted amounts (FHE).** Balances and payments are ciphertexts. The gateway releases a decryption only to the owner (sealed to their tab) or as a KMS-signed public value.
 - **Both at once.** An encrypted amount goes to a one-time stealth address, so neither who nor how much is public.
-- **Cross-chain.** A Maker bridge between Monad and Sepolia, backed by Maker margin on Monad. A Maker that doesn't pay is slashed with a ZK proof checked against Chainlink CRE attestation windows. Deliveries can go to a stealth address.
+- **Cross-chain.** A Maker bridge between Monad and Sepolia, backed by Maker margin on Monad. A Maker that doesn't pay is slashed with a ZK proof checked against Chainlink CRE attestation windows (run end to end on a local fork; no Maker has failed to pay on testnet). Deliveries to a stealth address are built but not yet run live.
 
 For developers, there is the `@kakushi/sdk` / `@kakushi/fhe-sdk`, the `<KakushiPay>` React widget, and `contract MyApp is KakushiConfig` for confidential contracts.
 
@@ -27,10 +27,12 @@ For developers, there is the `@kakushi/sdk` / `@kakushi/fhe-sdk`, the `<KakushiP
 | Stealth send | `0x7181caa525a2f22f73cba6d07f5a402a6ecd20794077cb98d7584de9033b8505` | Sync receipt in 431 ms. Proposed 431 / Voted 725 / Finalized 1020 / Verified 1933 ms. txpool "tracked". Scanner found it. |
 | Shield + ZK withdraw | deposit `0x94531ecb05ab522f0cbdd1d6d0411188fd29e3e46bad0adb863406ef2245a32a`, withdraw `0x5ad430ff2f7eea02551543cca518374ba13212d4297c7f4689e611d3c8b633ca` | A fresh address received 0.1 MON (UltraHonk, 6.22M gas) |
 | Gasless withdraw (Sepolia) | deposit `0xc928a1c6…ddc7d`, relayed `0x02882fb832078ba1a41294dcfbf9bd836c84886d2ef0f081c0dc3e1c10acc38c` | A never-funded address received 0.0009 ETH. Sent by the relayer through `kakushi.vercel.app/api/svc/relayer`. |
-| Bridge Monad → Sepolia | source `0x2db2e05065aed1369fea3934d17a90a282e015c6c9d78c7f47756fd75a337a1d`, payout `0x11b85b3e1300b81d7c687fce3def9a794c93437edff8d8b4ebadcf14279ce48b` | 0.44955 USDC paid 27.4 s after the source receipt |
+| Bridge Monad → Sepolia | source `0x2db2e05065aed1369fea3934d17a90a282e015c6c9d78c7f47756fd75a337a1d`, payout `0x11b85b3e1300b81d7c687fce3def9a794c93437edff8d8b4ebadcf14279ce48b` | 0.44955 USDC paid 23 s after the source (block times). The testnet fill window is 20 s, so the watchtower marks it "Paid late" (disputable). |
 | Bridge Sepolia → Monad | source `0x65e30e33951b0caa432d1ce17a897b9a13e26ee4c6263a1ab5d95f6bb234e666`, payout `0x7bd857000ba31adc5b0f68ac9d95e14381d722bdbe3fc5a699bd68765c0670c1` | 0.27972 USDC paid in 11.3 s |
 | Confidential (FHE), 8/8 | see [testnet-fhe.json](docs/evidence/testnet-fhe.json) | Wrap, encrypted stealth pay, scan, stealth-key decrypt, move, encrypted pay, KMS cash-out (request #1), pay link |
 | Chainlink CRE attestation | `0x29f20989d587fece820750cb8e71da9c4026107f3b238244a2367dce35f300b8` | 10,000 Monad blocks attested in one report (hosted attester) |
+| Chainlink CRE simulate | [cre-simulate-attest-sepolia-testnet.txt](docs/evidence/cre-simulate-attest-sepolia-testnet.txt) | The compiled workflow, run by CRE CLI v1.36.0 against live testnet state, computes the next contiguous Sepolia window |
+| ZK slash (local fork) | `pnpm demo` scenario B, 8 Oct | A dead Maker is proven unpaid and slashed: 7.009 USDC paid back from margin, proof in 725 ms. Not run on testnet: no Maker has failed to pay there, and testnet MON is frozen. |
 | Privy policy wallet | `0x99a69528658c259ee7d47ffc41101cd135bc6100a2ba3f5719029283cea627b4` | Allowed approve signed by Privy. A transfer out was refused for a policy violation. |
 | Contract verification | MonadVision (Sourcify) | Monad 29/29, Sepolia 15/15 |
 
@@ -48,7 +50,9 @@ The raw outputs are in `docs/evidence/testnet-*.json`. Rerun them with the `scri
 
 ## Limits (stated plainly)
 
-- **CRE:** the attester runs the CRE workflow logic through Chainlink's `MockKeystoneForwarder`, the `cre workflow simulate --broadcast` path. It is not a deployed DON workflow.
+- **CRE:** the hosted attester runs the CRE workflow logic through Chainlink's `MockKeystoneForwarder`. The mock does not check signatures, so attestations are trusted from Kakushi's runner, not a DON. Idle windows are batched every 2 h to save gas.
+- **FHE trust:** one hosted engine holds the FHE key, and the 2-of-3 KMS signers run in one service. The threshold is in code, not yet split across independent operators.
+- **Fill window:** the testnet's 20 s window is shorter than Sepolia's block time allows for, so honest Makers can pay "late". The watchtower reports it and disputes it only with `WATCHTOWER_DISPUTE_LATE=1`.
 - **Gasless on Monad:** an UltraHonk withdraw is ~6.2M gas (about 0.9 MON at today's testnet price), more than the 0.1 MON note. The app says so and offers self-withdraw. On Sepolia, gasless works.
 - **Chains awaiting funding:** Base, Arbitrum and OP Sepolia spokes are built and fork-tested but await testnet funding. maker2's ETH lane (Chainlink ETH/USD-priced margin) is unfunded.
 - **Envio:** offline-tested, not on Envio Cloud. The live indexer is Kakushi's RPC indexer.

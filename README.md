@@ -19,7 +19,8 @@ Every row below is a real transaction on a public testnet. It was run by a scrip
 | Stealth send + scan | The receipt arrives in 431 ms. Proposed 431, Voted 725, Finalized 1020, Verified 1933 ms. The scanner finds the payment, and the derived key controls it. | `smoke-testnet.ts` |
 | Shield + ZK withdraw to a fresh address | 0.1 MON in, then out with an UltraHonk proof (6.2M gas on Monad) | `smoke-testnet.ts` |
 | Gasless withdraw through the relayer | Sepolia: a never-funded address receives 0.0009 ETH. The relayer's key pays, reached through the app's own proxy. | `smoke-relay-testnet.ts` |
-| Bridge Monad → Sepolia, Sepolia → Monad | A Maker pays the exact quote in 27.4 s and 11.3 s | `smoke-bridge-testnet.ts` |
+| Bridge Monad → Sepolia, Sepolia → Monad | A Maker pays the exact quote in 23 s and 11.3 s | `smoke-bridge-testnet.ts` |
+| Chainlink CRE simulate against live state | CRE CLI computes the next contiguous Sepolia window | `docs/evidence/cre-simulate-attest-sepolia-testnet.txt` |
 | Confidential (FHE), 8 steps | Wrap, encrypted pay to a stealth address, scan, stealth-key decrypt, move, encrypted pay, KMS cash-out, pay link | `fhe-stealth-e2e.ts --testnet` |
 | Privy policy wallet | The Maker's Privy server wallet signs an allowed approve (it lands), and Privy refuses a transfer out | `privy-proof-testnet.ts` |
 
@@ -74,7 +75,10 @@ CI (`.github/workflows/ci.yml`) runs the TypeScript, Solidity, Noir, CRE and `fh
 
 ## Honest limits
 
-- **The attester is not a Chainlink DON.** It runs the CRE workflow's logic through Chainlink's `MockKeystoneForwarder` (the simulate `--broadcast` path).
+- **The attester is not a Chainlink DON.** It runs the CRE workflow's logic through Chainlink's `MockKeystoneForwarder`, which checks no signatures, so attestations are trusted from Kakushi's runner.
+- **FHE key custody.** One hosted engine holds the FHE key, and the 2-of-3 KMS signers run in one service.
+- **Slashing on testnet.** It has run end to end only on a local fork (no testnet Maker has failed to pay).
+- **Stealth delivery over the bridge.** It is built but not yet run live.
 - **Gasless on Monad is uneconomic at today's testnet gas.** An UltraHonk withdraw is ~6.2M gas, about 0.9 MON. That is more than the 0.1 MON note, so the app offers self-withdraw instead. On Sepolia, gasless costs 10% of the note.
 - **Envio is offline-tested only.** The HyperIndex package is built and tested but not on Envio Cloud; the live app uses Kakushi's own RPC indexer.
 - **Cleanverse needs onboarding.** The compliance gate waits on Cleanverse's canonical ABI.

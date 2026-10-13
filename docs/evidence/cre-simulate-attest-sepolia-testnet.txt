@@ -1,0 +1,30 @@
+Initializing...
+Loading settings...
+! Using default private key for chain write simulation. To use your own key, set CRE_ETH_PRIVATE_KEY in your .env file or system environment.
+Checking RPC connectivity...
+Compiling workflow...
+✓ Workflow compiled
+✓ Simulation limits enabled
+  HTTP: req=120kb resp=250kb timeout=10s | ConfHTTP: req=125kb resp=500kb timeout=1m30s | Consensus obs=25kb | ChainWrite evm_report=50kb evm_gas=10000000 solana_report=265b solana_cu=300000 | WASM binary=100mb compressed=20mb
+  Binary hash: a41530255331a99023d5b6729cfe09e02823dbfd31d1c79c7add56592ac0c843
+  Config hash: 8ebbe7826589196e98f75642eb2273231ab99aceda855f0186f24dca880ddd44
+2026-10-13T20:14:29Z [SIMULATION] Simulator Initialized
+
+2026-10-13T20:14:29Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+2026-10-13T20:14:31Z [USER LOG] kakushi-attest {"chainId":11155111,"status":"written","fromBlock":"11906267","toBlock":"11906366","payoutRoot":"0x1ed5c2e0654c751387a4f852926a170b68aeb3c069bd35e9a3c0af783a83bb0c","sourceLeaves":0,"payoutLeaves":0,"txHash":"0x0000000000000000000000000000000000000000000000000000000000000000","reads":8}
+
+✓ Workflow Simulation Result:
+"{\"chainId\":11155111,\"status\":\"written\",\"fromBlock\":\"11906267\",\"toBlock\":\"11906366\",\"payoutRoot\":\"0x1ed5c2e0654c751387a4f852926a170b68aeb3c069bd35e9a3c0af783a83bb0c\",\"sourceLeaves\":0,\"payoutLeaves\":0,\"txHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"reads\":8}"
+
+2026-10-13T20:14:31Z [SIMULATION] Execution finished signal received
+2026-10-13T20:14:31Z [SIMULATION] Skipping WorkflowEngineV2
+
+╭──────────────────────────────────────────────────────╮
+│ Simulation complete! Ready to deploy your workflow?  │
+│                                                      │
+│ Run cre account access to request deployment access. │
+╰──────────────────────────────────────────────────────╯
+
+
+# command: cd packages/cre && cre workflow simulate ./workflows/attest-sepolia --non-interactive --trigger-index 0 -T staging-settings
+# CRE CLI v1.36.0, run 13 Oct 2026 against live Monad testnet + Sepolia (read-only; no --broadcast)
