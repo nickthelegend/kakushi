@@ -446,7 +446,16 @@ export async function scanAnnouncements(client: PublicClient, announcer: Hex, fr
   }
   if (opts.withBalances) {
     // a confidential match's token balance is a ciphertext: its `balance` is the stealth address's native (gas) balance
-    for (const m of out) m.balance = await stealthBalance(client, m.stealthAddress, m.kind === "erc20" ? m.token : undefined);
+    const here = client.chain?.id ?? (await client.getChainId().catch(() => undefined));
+    for (const m of out) {
+      // a private bridge delivery is announced here but funded on its destination chain: its balance is read there by the caller
+      if (m.dstChainId && here !== undefined && Number(m.dstChainId) !== here) continue;
+      try {
+        m.balance = await stealthBalance(client, m.stealthAddress, m.kind === "erc20" ? m.token : undefined);
+      } catch {
+        // one unreadable balance must not hide the other payments
+      }
+    }
   }
   return out;
 }
