@@ -35,7 +35,7 @@ export function relayerServer(relayer: Relayer): Server {
     const url = new URL(req.url ?? "/", "http://x");
     try {
       if (req.method === "GET" && url.pathname === "/health") return void res.end(json({ ok: true, address: relayer.address }));
-      if (req.method === "GET" && url.pathname === "/info") return void res.end(json(relayer.info()));
+      if (req.method === "GET" && url.pathname === "/info") return void res.end(json(await relayer.quote()));
       if (req.method === "POST" && url.pathname === "/relay") {
         let body: unknown;
         try {

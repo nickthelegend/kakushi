@@ -224,7 +224,9 @@ function Withdraw() {
   }, [k, pc]);
   const pool = pc && note ? pools?.find((p) => p.address.toLowerCase() === note.pool.toLowerCase()) : null;
   const relayFee = relayer && note ? BigInt(relayer.feeByPool[String(note.chainId)]?.[note.pool.toLowerCase()] ?? relayer.feeByPool[String(note.chainId)]?.[note.pool] ?? "-1") : -1n;
-  const viaRelayer = Boolean(useRelayer && relayer && relayFee >= 0n);
+  // the relayer quotes its gas cost; when that is more than the note is worth, withdraw yourself
+  const relayable = Boolean(relayer && pool && relayFee >= 0n && relayFee < BigInt(pool.denomination));
+  const viaRelayer = useRelayer && relayable;
   const ready = pool && (mode === "address" ? isAddress(recipient) : mode === "pay" ? recipient.length > 0 : isAddress(target) && isHex(data) && isAddress(refundTo));
 
   async function withdraw() {
@@ -326,7 +328,7 @@ function Withdraw() {
         {relayer ? (
           <label className="mt-3 flex items-center gap-2 text-[13px] text-ui-muted">
             <input type="checkbox" checked={useRelayer} onChange={(e) => setUseRelayer(e.target.checked)} className="accent-[#2f47f5]" />
-            Gasless via relayer{relayFee >= 0n && pool ? ` · fee ${formatUnits(relayFee, pool.decimals)} ${pool.symbol}` : pool ? " · not for this pool" : ""}
+            Gasless via relayer{relayable && pool ? ` · fee ${formatUnits(relayFee, pool.decimals)} ${pool.symbol}` : pool && relayFee >= 0n ? ` · gas (${formatUnits(relayFee, pool.decimals)} ${pool.symbol}) is more than this note` : pool ? " · not for this pool" : ""}
           </label>
         ) : null}
       </Well>

@@ -27,7 +27,7 @@ const MONAD = 10143;
 const POOL = "0xc0ffee254729296a45a3885639AC7E10F9d54979" as Hex;
 const OTHER_POOL = "0x00000000000000000000000000000000000000AA" as Hex;
 const pools: PoolConfig[] = [
-  { chainId: MONAD, pool: POOL, minFee: 1000n, rpc: "http://rpc.invalid" },
+  { chainId: MONAD, pool: POOL, minFee: 1000n, rpc: "http://rpc.invalid", maxGasWei: 10n ** 18n },
   { chainId: 11155111, pool: OTHER_POOL, minFee: 5n, rpc: "http://rpc.invalid" },
 ];
 const RECIPIENT = "0x00000000000000000000000000000000000000bb" as Hex;
@@ -164,6 +164,8 @@ interface Chain {
   sent: Hex[];
   revert?: string;
   delayMs?: number;
+  /** pool.token() returns address(0): a native-coin pool, where the fee must cover the gas */
+  native?: boolean;
 }
 
 function mockTransport(state: Chain) {
@@ -177,6 +179,7 @@ function mockTransport(state: Chain) {
         case "eth_call":
         case "eth_estimateGas": {
           const tx = params[0];
+          if (method === "eth_call" && tx.data === "0xfc0c546a") return (state.calls[state.calls.length - 1] = "token()"),  `0x${(state.native ? "00" : "11").repeat(32).slice(0, 24)}${(state.native ? "00" : "aa").repeat(20)}`;
           expect(tx.to.toLowerCase()).toBe(POOL.toLowerCase());
           expect(tx.from.toLowerCase()).toBe(account.address.toLowerCase());
           if (state.revert) {
@@ -230,6 +233,18 @@ describe("relaying", () => {
     expect(functionName).toBe("withdraw");
     const b = body();
     expect(args).toEqual([b.proof, b.args.root, b.args.nullifierHash, RECIPIENT, account.address, 1000n, 0n]);
+  });
+
+  it("sets the gas limit to the estimate plus 15% (Monad bills the limit)", async () => {
+    const state: Chain = { calls: [], sent: [] };
+    await relayerWith(state).relay(body());
+    expect(parseTransaction(state.sent[0]!).gas).toBe((0x30d40n * 115n) / 100n);
+  });
+
+  it("refuses a native-pool fee below the gas cost, so withdrawals cannot drain the relayer", async () => {
+    const state: Chain = { calls: [], sent: [], native: true };
+    await expect(relayerWith(state).relay(body())).rejects.toMatchObject({ status: 402 });
+    expect(state.sent).toHaveLength(0);
   });
 
   it("a request with `call` simulates, then submits withdrawAndCall with exactly the bound call", async () => {
@@ -312,6 +327,23 @@ describe("HTTP server", () => {
   });
   afterAll(async () => {
     await new Promise<void>((r) => server.close(() => r()));
+  });
+
+  it("quotes native-pool fees at the gas a withdrawal costs, never below the minimum", async () => {
+    const q = await relayerWith({ calls: [], sent: [], native: true }).quote();
+    // mock gas price 0x77359400 = 2 gwei; 8M gas + 10%
+    expect(q.feeByPool["10143"]![POOL]).toBe(((8_000_000n * 2_000_000_000n * 110n) / 100n).toString());
+    expect((await relayerWith({ calls: [], sent: [] }).quote()).feeByPool["10143"]![POOL]).toBe("1000");
+  });
+
+  it("does not relay a token pool whose gas is over its maxGasWei (or that has none)", async () => {
+    const capped = (maxGasWei?: bigint) => new Relayer({ account, pools: [{ ...pools[0]!, maxGasWei }], transport: () => mockTransport(state), network: "testnet", log: () => {} });
+    const state: Chain = { calls: [], sent: [] };
+    for (const r of [capped(undefined), capped(1n)]) {
+      await expect(r.relay(body())).rejects.toMatchObject({ status: 402 });
+      expect((await r.quote()).feeByPool["10143"]![POOL]).toBeUndefined();
+    }
+    expect(state.sent).toHaveLength(0);
   });
 
   it("GET /health and /info", async () => {

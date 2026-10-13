@@ -2,7 +2,9 @@
 //   RELAYER_KEY     0x… private key the relayer signs withdrawals with (never logged)
 //   RELAYER_PORT    HTTP port (default 3715)
 //   RELAYER_HOST    bind address (default 127.0.0.1; put a reverse proxy in front)
-//   RELAYER_POOLS   JSON array: [{"chainId":10143,"pool":"0x…","minFee":"1000000000000000","rpc":"https://…"?}]
+//   RELAYER_POOLS   JSON array: [{"chainId":10143,"pool":"0x…","minFee":"1000000000000000","rpc":"https://…"?,"maxGasWei":"…"?}]
+//                   A token pool's fee is not in the gas coin, so it is relayed only with maxGasWei set:
+//                   the most native coin the operator will spend on one of its withdrawals.
 //   RELAYER_CONFIG  alternatively, a JSON file {"pools":[…]} (RELAYER_POOLS wins if both are set)
 // RPC defaults to @kakushi/config's rpcUrl() for the chain (KAKUSHI_NETWORK, <PREFIX>_RPC_URL).
 import { readFileSync } from "node:fs";
@@ -16,6 +18,8 @@ export interface PoolConfig {
   minFee: bigint;
   /** RPC override for this chain */
   rpc?: string;
+  /** token pools only: the most gas (in wei of the native coin) one relay may cost; unset = not relayed */
+  maxGasWei?: bigint;
 }
 
 export interface RelayerConfig {
@@ -37,11 +41,12 @@ export function parsePools(raw: unknown): PoolConfig[] {
     const fee = e.minFee ?? "0";
     if ((typeof fee !== "string" && typeof fee !== "number") || !/^\d+$/.test(String(fee))) throw new Error(`pool ${i}: minFee must be a base-unit integer`);
     if (e.rpc !== undefined && typeof e.rpc !== "string") throw new Error(`pool ${i}: rpc must be a URL string`);
+    if (e.maxGasWei !== undefined && !/^\d+$/.test(String(e.maxGasWei))) throw new Error(`pool ${i}: maxGasWei must be a wei integer`);
     const pool = getAddress(e.pool);
     const key = `${chainId}:${pool}`;
     if (seen.has(key)) throw new Error(`pool ${i}: duplicate ${key}`);
     seen.add(key);
-    return { chainId, pool, minFee: BigInt(fee), ...(e.rpc ? { rpc: e.rpc as string } : {}) };
+    return { chainId, pool, minFee: BigInt(fee), ...(e.rpc ? { rpc: e.rpc as string } : {}), ...(e.maxGasWei !== undefined ? { maxGasWei: BigInt(String(e.maxGasWei)) } : {}) };
   });
 }
 

@@ -862,7 +862,7 @@ function writeOutputs(liveBalances: Record<string, Record<string, bigint>>) {
   }
   writeJson(`${OUT_DIR}/relayer.testnet.json`, {
     relayer: EXPECTED.relayer,
-    note: "RELAYER_KEY from .env.testnet; RELAYER_CONFIG=config/generated/relayer.testnet.json. minFee = 10% of the denomination (placeholder: below the ~2.4M-gas withdraw cost on Monad and Sepolia).",
+    note: "RELAYER_KEY from .env.testnet; RELAYER_CONFIG=config/generated/relayer.testnet.json. minFee is a floor: the relayer quotes native pools at the live gas cost (~6.2M gas per UltraHonk withdraw on Monad testnet) and relays token pools only with a maxGasWei cap.",
     pools: relayerPools,
   });
 
