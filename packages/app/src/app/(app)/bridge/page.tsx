@@ -354,7 +354,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
       {/* One line of quote; the rest behind Details */}
       <details className="group mt-2 px-3 py-2 text-[13px]">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-1.5 text-ui-muted [&::-webkit-details-marker]:hidden">
-          <span className="inline-flex items-center gap-1.5"><Timer aria-hidden size={14} /> <span className="ui-figure text-ui-text">{q ? `${(q.etaMs / 1000).toFixed(1)} s` : "≈1 s"}</span> · fee <span className="ui-figure text-ui-text">{q ? fmt(BigInt(q.withholdingFee) + BigInt(q.tradingFee), src.decimals, route.asset === "ETH" ? 5 : 3) : "—"}</span></span>
+          <span className="inline-flex items-center gap-1.5"><Timer aria-hidden size={14} /> <span className="ui-figure text-ui-text">{q ? `~${Math.round(q.etaMs / 1000)} s` : "—"}</span> · fee <span className="ui-figure text-ui-text">{q ? fmt(BigInt(q.gross) - BigInt(q.net), src.decimals, route.asset === "ETH" ? 5 : 3) : "—"}</span></span>
           <span className="inline-flex items-center gap-1">Details <ChevronDown aria-hidden size={13} className="transition-transform group-open:rotate-180" /></span>
         </summary>
         <dl className="mt-2 grid gap-2.5 border-t border-ui-hairline pt-3">
@@ -368,7 +368,7 @@ function BridgeCard({ routes, route, setRoute }: { routes: Route[]; route: Route
                 trigger={<span className={cn("inline-flex items-center gap-1 font-medium hover:text-ui-lime-text", !quotes?.length && "pointer-events-none text-ui-muted")}>{q ? q.name : "Best quote"}<ChevronDown aria-hidden size={13} /></span>}
               >
                 {quotes?.map((x) => (
-                  <Menu.Item key={x.maker} disabled={!x.quotable} onSelect={() => setChosen(x.maker)} description={x.quotable ? `Fee ${fmt(BigInt(x.withholdingFee) + BigInt(x.tradingFee), src.decimals, 4)} · margin ${fmt(BigInt(x.margin), 6, 0)} USDC` : x.reason}>
+                  <Menu.Item key={x.maker} disabled={!x.quotable} onSelect={() => setChosen(x.maker)} description={x.quotable ? `Fee ${fmt(BigInt(x.gross) - BigInt(x.net), src.decimals, 4)} · margin ${fmt(BigInt(x.margin), 6, 0)} USDC` : x.reason}>
                     {x.name}: {fmt(BigInt(x.net), src.decimals, 4)} {route.asset}
                   </Menu.Item>
                 ))}
@@ -427,20 +427,23 @@ function Recent() {
         <Link href="/explorer" className="inline-flex items-center gap-1 text-[13px] text-ui-muted hover:text-ui-text">All <ArrowRight aria-hidden size={13} /></Link>
       </div>
       <ul className="grid gap-1.5">
-        {[...data].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5).map((r) => {
+        {/* a plain transfer to a Maker (no valid destination code) isn't a bridge payment: leave it to /explorer */}
+        {[...data].filter((r) => r.status !== "no-obligation").sort((a, b) => b.timestamp - a.timestamp).slice(0, 5).map((r) => {
           const native = r.token === ZERO;
           const st = statusPill(r.status);
           const code = Number(r.gross.slice(-4));
+          const dst = chainByIdentCode(code);
+          const srcName = chainById(r.srcChainId).shortName;
           return (
             <li key={r.srcRef + r.maker}>
               <button type="button" onClick={() => router.push(`/tx/${r.srcChainId}/${r.txHash}`)} className="flex w-full items-center gap-3 rounded-[18px] bg-ui-surface-1 px-3.5 py-3 text-left ring-1 ring-ui-hairline transition-colors hover:bg-ui-surface-2">
                 <span className="flex items-center -space-x-1.5">
                   <ChainCoin chainId={r.srcChainId} size={24} />
-                  <ChainCoin chainId={chainByIdentCode(code)?.chainId ?? r.srcChainId} size={24} />
+                  <ChainCoin chainId={dst?.chainId ?? r.srcChainId} size={24} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="ui-figure block text-[14px] font-medium">{fmt(BigInt(r.gross), native ? 18 : 6, native ? 4 : 2)} {native ? "ETH" : "USDC"}</span>
-                  <span className="block truncate text-[12px] text-ui-muted">{chainById(r.srcChainId).shortName} → {chainByIdentCode(code)?.shortName ?? "?"} · {name(r.maker)} · {ago(r.timestamp)}</span>
+                  <span className="block truncate text-[12px] text-ui-muted">{dst ? `${srcName} → ${dst.shortName}` : `Refund on ${srcName}`} · {name(r.maker)} · {ago(r.timestamp)}</span>
                 </span>
                 <StatusPill tone={st.tone} size="sm">{st.text}</StatusPill>
               </button>
@@ -470,7 +473,7 @@ export default function BridgePage() {
         </span>
         <span aria-hidden className="h-px flex-1 bg-[linear-gradient(90deg,transparent,#8ea5ff,transparent)]" />
         <span className="inline-flex items-center gap-2 text-[14px] font-medium">
-          <ChainCoin chainId={10143} size={22} /> Monad in ≈1 s
+          <ChainCoin chainId={10143} size={22} /> Monad in about 15–30 s
         </span>
       </button>
       <BridgeCard routes={routes} route={route} setRoute={setRoute} />
